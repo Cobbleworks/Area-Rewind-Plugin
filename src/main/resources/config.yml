@@ -1,0 +1,12 @@
+backup:
+  auto-backup: true
+  auto-interval: 30
+  max-backups-per-area: 50
+  compression: true
+
+performance:
+  max-area-size: 1000000
+  rate-limit-cooldown: 1000
+
+visualization:
+  particle-distance: 50

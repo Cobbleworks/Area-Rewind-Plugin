@@ -1,0 +1,88 @@
+name: AreaRewind
+version: 1.0.1
+description: Advanced area protection and backup system for Minecraft servers
+author: Bernd Julian Hagen
+website: https://github.com/BerndHagen/Minecraft-Server-Plugins
+api-version: 1.19
+
+main: arearewind.AreaRewindPlugin
+
+commands:
+  rewind:
+    description: Main command for AreaRewind plugin
+    usage: /<command> [subcommand] [args...]
+    aliases: [gr, arearewind, backup, protect]
+    permission: arearewind.use
+    permission-message: "You don't have permission to use AreaRewind commands!"
+
+permissions:
+  arearewind.*:
+    description: Grants access to all AreaRewind features
+    children:
+      arearewind.admin: true
+      arearewind.use: true
+      arearewind.create: true
+      arearewind.delete: true
+      arearewind.backup: true
+      arearewind.restore: true
+      arearewind.trust: true
+      arearewind.visualize: true
+      arearewind.gui: true
+      arearewind.export: true
+      arearewind.import: true
+    default: op
+
+  arearewind.admin:
+    description: Administrative access to all plugin features
+    children:
+      arearewind.use: true
+      arearewind.create: true
+      arearewind.delete: true
+      arearewind.backup: true
+      arearewind.restore: true
+      arearewind.trust: true
+      arearewind.visualize: true
+      arearewind.gui: true
+      arearewind.export: true
+      arearewind.import: true
+    default: op
+
+  arearewind.use:
+    description: Basic permission to use the plugin
+    default: true
+
+  arearewind.create:
+    description: Permission to create protected areas
+    default: true
+
+  arearewind.delete:
+    description: Permission to delete owned areas
+    default: true
+
+  arearewind.backup:
+    description: Permission to create backups
+    default: true
+
+  arearewind.restore:
+    description: Permission to restore from backups
+    default: true
+
+  arearewind.trust:
+    description: Permission to manage trusted players
+    default: true
+
+  arearewind.visualize:
+    description: Permission to visualize area boundaries
+    default: true
+
+  arearewind.gui:
+    description: Permission to use GUI interfaces
+    default: true
+
+  arearewind.export:
+    description: Permission to export areas
+    default: true
+
+  arearewind.import:
+    description: Permission to import areas
+    default: true
