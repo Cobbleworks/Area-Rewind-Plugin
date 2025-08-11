@@ -233,9 +233,11 @@ public class PlayerInteractionListener implements Listener {
                 areaManager.setPosition1(player.getUniqueId(), pos1);
                 areaManager.setPosition2(player.getUniqueId(), pos2);
 
-                player.sendMessage(ChatColor.GREEN + "Synced WorldEdit selection to Area Rewind!");
-                player.sendMessage(ChatColor.GRAY + "Blocks: " + ChatColor.WHITE + blockCount);
-                showSelectionInfo(player);
+                // player.sendMessage(ChatColor.GREEN + "Synced WorldEdit selection to Area
+                // Rewind!");
+                // player.sendMessage(ChatColor.GRAY + "Blocks: " + ChatColor.WHITE +
+                // blockCount);
+                // showSelectionInfo(player);
             }
         } catch (IncompleteRegionException e) {
             // Selection is incomplete, this is normal - don't spam the player

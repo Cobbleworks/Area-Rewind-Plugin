@@ -30,14 +30,14 @@ public class ReloadCommand extends BaseCommand {
             return true;
         }
 
-        player.sendMessage(ChatColor.YELLOW + "Area Rewind Plugin is reloading...");
+        player.sendMessage(ChatColor.YELLOW + "Area Rewind Plugin is fully reloading...");
 
-        plugin.reloadConfig();
-        configManager.reloadConfiguration();
-        areaManager.loadAreas();
-        backupManager.loadBackups();
-
-        player.sendMessage(ChatColor.GREEN + "Plugin successfully reloaded!");
+        if (plugin instanceof arearewind.AreaRewindPlugin) {
+            ((arearewind.AreaRewindPlugin) plugin).reloadAll();
+            player.sendMessage(ChatColor.GREEN + "Plugin fully reloaded!");
+        } else {
+            player.sendMessage(ChatColor.RED + "Reload failed: plugin instance is not AreaRewindPlugin.");
+        }
 
         return true;
     }
