@@ -4,6 +4,7 @@ import arearewind.managers.gui.AreaSettingsGUIPage;
 import arearewind.managers.gui.AreasGUIPage;
 import arearewind.managers.gui.BackupsGUIPage;
 import arearewind.managers.gui.GUIPaginationHelper;
+import arearewind.managers.gui.MaterialSelectorGUIPage;
 import arearewind.managers.gui.SettingsGUIPage;
 import arearewind.util.ConfigurationManager;
 import org.bukkit.entity.Player;
@@ -22,15 +23,18 @@ public class GUIManager implements Listener {
     private final BackupsGUIPage backupsPage;
     private final SettingsGUIPage settingsPage;
     private final AreaSettingsGUIPage areaSettingsPage;
+    private final MaterialSelectorGUIPage materialSelectorPage;
 
     public GUIManager(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
-            PermissionManager permissionManager, ConfigurationManager configManager) {
+            PermissionManager permissionManager, ConfigurationManager configManager, FileManager fileManager) {
 
         // Initialize GUI pages
         this.areasPage = new AreasGUIPage(this, areaManager, backupManager, permissionManager);
         this.backupsPage = new BackupsGUIPage(this, areaManager, backupManager, permissionManager);
         this.settingsPage = new SettingsGUIPage(this, permissionManager, configManager);
         this.areaSettingsPage = new AreaSettingsGUIPage(this, areaManager, backupManager, permissionManager);
+        this.materialSelectorPage = new MaterialSelectorGUIPage(this, areaManager, backupManager, permissionManager,
+                fileManager);
     }
 
     // Public methods for opening specific GUIs
@@ -56,6 +60,14 @@ public class GUIManager implements Listener {
 
     public void openAreaSettingsGUI(Player player, String areaName) {
         areaSettingsPage.openAreaSettingsGUI(player, areaName);
+    }
+
+    public void openMaterialSelector(Player player, String type, String areaName, String backupId) {
+        materialSelectorPage.openMaterialSelector(player, type, areaName, backupId, 0);
+    }
+
+    public void openMaterialSelector(Player player, String type, String areaName, String backupId, int page) {
+        materialSelectorPage.openMaterialSelector(player, type, areaName, backupId, page);
     }
 
     // GUI state management methods
@@ -104,6 +116,8 @@ public class GUIManager implements Listener {
             settingsPage.handleClick(player, event);
         } else if (guiType.startsWith("area-settings:")) {
             areaSettingsPage.handleClick(player, event);
+        } else if (guiType.startsWith("material-selector:")) {
+            materialSelectorPage.handleClick(player, event);
         }
     }
 
@@ -126,6 +140,7 @@ public class GUIManager implements Listener {
         return title.contains("Protected Areas") ||
                 title.contains("Area Management:") ||
                 title.contains("Area Rewind Settings") ||
-                title.contains("Area Settings:");
+                title.contains("Area Settings:") ||
+                title.contains("Set Icon:");
     }
 }

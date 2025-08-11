@@ -109,6 +109,9 @@ public class BackupsGUIPage implements IGUIPage {
             }
             lore.add(ChatColor.YELLOW + "Right Click: Preview");
             lore.add(ChatColor.YELLOW + "Shift+Click: Compare with current");
+            if (permissionManager.canModifyBoundaries(player, area)) {
+                lore.add(ChatColor.YELLOW + "Middle Click: Set Icon");
+            }
 
             meta.setLore(lore);
             item.setItemMeta(meta);
@@ -247,7 +250,7 @@ public class BackupsGUIPage implements IGUIPage {
         if (displayName.contains("Backup #")) {
             String backupId = displayName.replaceAll(".*#", "");
 
-            if (event.isShiftClick()) {
+            if (event.getClick().isShiftClick()) {
                 player.closeInventory();
                 // Compare selected backup with current state
                 int currentStateId = backupManager.getUndoPointer(areaName);
@@ -258,6 +261,13 @@ public class BackupsGUIPage implements IGUIPage {
             } else if (event.isRightClick()) {
                 player.closeInventory();
                 player.performCommand("rewind preview " + areaName + " " + backupId);
+            } else if (event.getClick().name().contains("MIDDLE")) {
+                // Middle click to set icon
+                ProtectedArea area = areaManager.getArea(areaName);
+                if (area != null && permissionManager.canModifyBoundaries(player, area)) {
+                    player.closeInventory();
+                    guiManager.openMaterialSelector(player, "backup", areaName, backupId);
+                }
             }
         }
     }

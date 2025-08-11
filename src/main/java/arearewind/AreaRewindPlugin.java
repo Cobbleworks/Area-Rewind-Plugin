@@ -32,7 +32,7 @@ public class AreaRewindPlugin extends JavaPlugin {
         areaManager = new AreaManager(this, fileManager);
         backupManager = new BackupManager(this, configManager, fileManager);
         permissionManager = new PermissionManager();
-        guiManager = new GUIManager(this, areaManager, backupManager, permissionManager, configManager);
+        guiManager = new GUIManager(this, areaManager, backupManager, permissionManager, configManager, fileManager);
         visualizationManager = new VisualizationManager(this, areaManager);
         commandHandler = new CommandHandler(this, areaManager, backupManager,
                 guiManager, visualizationManager, permissionManager, configManager);
@@ -79,7 +79,7 @@ public class AreaRewindPlugin extends JavaPlugin {
         areaManager = new AreaManager(this, fileManager);
         backupManager = new BackupManager(this, configManager, fileManager);
         permissionManager = new PermissionManager();
-        guiManager = new GUIManager(this, areaManager, backupManager, permissionManager, configManager);
+        guiManager = new GUIManager(this, areaManager, backupManager, permissionManager, configManager, fileManager);
         visualizationManager = new VisualizationManager(this, areaManager);
         commandHandler = new CommandHandler(this, areaManager, backupManager,
                 guiManager, visualizationManager, permissionManager, configManager);

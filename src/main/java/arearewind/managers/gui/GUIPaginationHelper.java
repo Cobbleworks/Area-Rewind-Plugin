@@ -97,8 +97,8 @@ public class GUIPaginationHelper {
             String areaName) {
         PaginationData data = getPaginationData(playerId, guiType, areaName);
         data.setCurrentPage(currentPage);
-        data.setFilterType(filterType);
-        data.setCurrentPage(FIRST_PAGE); // Reset to first page when filter changes
+        data.setMaxPage(maxPage);
+    }
 
     /**
      * Update filter type for a player's pagination data

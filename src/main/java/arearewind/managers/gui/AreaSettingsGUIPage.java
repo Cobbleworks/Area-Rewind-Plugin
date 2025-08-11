@@ -134,6 +134,10 @@ public class AreaSettingsGUIPage implements IGUIPage {
             player.sendMessage(ChatColor.YELLOW + "To transfer ownership, use: " + ChatColor.GREEN + "/rewind transfer "
                     + areaName + " <new-owner>");
             return;
+        } else if (displayName.contains("Set Icon")) {
+            player.closeInventory();
+            guiManager.openMaterialSelector(player, "area", areaName, null);
+            return;
         } else if (displayName.contains("Delete Area")) {
             // Confirmation required for deletion
             if (event.isShiftClick()) {
@@ -266,6 +270,22 @@ public class AreaSettingsGUIPage implements IGUIPage {
             gui.setItem(23, trustItem);
         }
 
+        // Set Icon
+        if (permissionManager.canModifyBoundaries(player, area)) {
+            ItemStack iconItem = new ItemStack(area.getIcon() != null ? area.getIcon() : Material.GRASS_BLOCK);
+            ItemMeta iconMeta = iconItem.getItemMeta();
+            iconMeta.setDisplayName(ChatColor.AQUA + "Set Icon");
+            List<String> iconLore = new ArrayList<>();
+            iconLore.add(ChatColor.GRAY + "Change the icon for this area");
+            iconLore.add(
+                    ChatColor.GRAY + "Current: " + (area.getIcon() != null ? area.getIcon().name() : "GRASS_BLOCK"));
+            iconLore.add("");
+            iconLore.add(ChatColor.YELLOW + "Click to select new icon");
+            iconMeta.setLore(iconLore);
+            iconItem.setItemMeta(iconMeta);
+            gui.setItem(24, iconItem);
+        }
+
         // Transfer Ownership
         if (area.getOwner().equals(player.getUniqueId())) {
             ItemStack transferItem = new ItemStack(Material.GOLDEN_HELMET);
@@ -277,7 +297,7 @@ public class AreaSettingsGUIPage implements IGUIPage {
             transferLore.add(ChatColor.YELLOW + "Click for transfer command");
             transferMeta.setLore(transferLore);
             transferItem.setItemMeta(transferMeta);
-            gui.setItem(25, transferItem);
+            gui.setItem(26, transferItem);
         }
 
         // Delete Area (dangerous action)
