@@ -101,6 +101,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new IntervalCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
+                commandRegistry.registerCommand(new SetIconCommand(plugin, areaManager, backupManager, guiManager,
+                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
 
                 // Maintenance commands
                 commandRegistry.registerCommand(new CleanupCommand(plugin, areaManager, backupManager, guiManager,

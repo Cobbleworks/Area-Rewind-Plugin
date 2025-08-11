@@ -119,9 +119,11 @@ public class AreaManager {
 
     public boolean expandArea(String areaName, String direction, int amount) {
         ProtectedArea area = protectedAreas.get(areaName);
-        if (area == null) return false;
+        if (area == null)
+            return false;
 
-        if (amount <= 0) return false;
+        if (amount <= 0)
+            return false;
 
         Location pos1 = area.getPos1().clone();
         Location pos2 = area.getPos2().clone();
@@ -169,13 +171,20 @@ public class AreaManager {
 
     private String getOppositeDirection(String direction) {
         switch (direction.toLowerCase()) {
-            case "north": return "south";
-            case "south": return "north";
-            case "east": return "west";
-            case "west": return "east";
-            case "up": return "down";
-            case "down": return "up";
-            default: return direction;
+            case "north":
+                return "south";
+            case "south":
+                return "north";
+            case "east":
+                return "west";
+            case "west":
+                return "east";
+            case "up":
+                return "down";
+            case "down":
+                return "up";
+            default:
+                return direction;
         }
     }
 
@@ -242,11 +251,25 @@ public class AreaManager {
                             UUID trustedUUID = UUID.fromString(trustedString);
                             area.addTrustedPlayer(trustedUUID);
                         } catch (IllegalArgumentException e) {
-                            plugin.getLogger().warning("Invalid trusted player UUID in area '" + key + "': " + trustedString);
+                            plugin.getLogger()
+                                    .warning("Invalid trusted player UUID in area '" + key + "': " + trustedString);
                         }
                     }
 
                     protectedAreas.put(key, area);
+
+                    // Load icon
+                    String iconName = areasConfig.getString(key + ".icon");
+                    if (iconName != null) {
+                        try {
+                            area.setIcon(org.bukkit.Material.valueOf(iconName));
+                        } catch (IllegalArgumentException e) {
+                            plugin.getLogger().warning(
+                                    "Invalid icon material '" + iconName + "' for area '" + key + "', using default");
+                            area.setIcon(org.bukkit.Material.GRASS_BLOCK);
+                        }
+                    }
+
                     loadedCount++;
                 } catch (Exception e) {
                     plugin.getLogger().warning("Failed to load area '" + key + "': " + e.getMessage());
@@ -280,6 +303,9 @@ public class AreaManager {
                         .map(UUID::toString)
                         .collect(Collectors.toList());
                 areasConfig.set(name + ".trusted", trustedList);
+
+                // Save icon
+                areasConfig.set(name + ".icon", area.getIcon().name());
             }
 
             areasConfig.save(fileManager.getAreasFile());
@@ -290,7 +316,8 @@ public class AreaManager {
     }
 
     public String locationToString(Location loc) {
-        if (loc == null) return "null";
+        if (loc == null)
+            return "null";
         return loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ();
     }
 
@@ -312,7 +339,8 @@ public class AreaManager {
             info.append("Pos1: ").append(locationToString(pos1));
         }
         if (pos2 != null) {
-            if (info.length() > 0) info.append(" | ");
+            if (info.length() > 0)
+                info.append(" | ");
             info.append("Pos2: ").append(locationToString(pos2));
         }
 

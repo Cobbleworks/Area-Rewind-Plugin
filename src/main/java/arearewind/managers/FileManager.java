@@ -66,6 +66,9 @@ public class FileManager {
                 config.set("backup.entities", backup.getEntities());
             }
 
+            // Save icon
+            config.set("backup.icon", backup.getIcon().name());
+
             config.save(backupFile);
             plugin.getLogger().fine("Successfully saved backup file: " + backupFile.getName());
 
@@ -125,7 +128,21 @@ public class FileManager {
                 }
             }
 
-            return new AreaBackup(id, timestamp, blocks, entities);
+            AreaBackup backup = new AreaBackup(id, timestamp, blocks, entities);
+
+            // Load icon
+            String iconName = config.getString("backup.icon");
+            if (iconName != null) {
+                try {
+                    backup.setIcon(org.bukkit.Material.valueOf(iconName));
+                } catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("Invalid backup icon material '" + iconName + "' in file "
+                            + backupFile.getName() + ", using default");
+                    backup.setIcon(org.bukkit.Material.CHEST);
+                }
+            }
+
+            return backup;
         } catch (Exception e) {
             plugin.getLogger()
                     .severe("Failed to load backup from file " + backupFile.getName() + ": " + e.getMessage());

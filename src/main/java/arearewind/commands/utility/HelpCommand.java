@@ -35,11 +35,13 @@ public class HelpCommand extends BaseCommand {
         player.sendMessage(ChatColor.GRAY + "  /rewind save <name> - Create new area");
         player.sendMessage(ChatColor.GRAY + "  /rewind delete <area> - Delete area");
         player.sendMessage(ChatColor.GRAY + "  /rewind contract <area> <dir> <amount> - Contract area");
+        player.sendMessage(ChatColor.GRAY + "  /rewind seticon <area> <material> - Set area icon");
 
         player.sendMessage(ChatColor.YELLOW + "Backup Operations:");
         player.sendMessage(ChatColor.GRAY + "  /rewind backup <area> - Create backup");
         player.sendMessage(ChatColor.GRAY + "  /rewind restore <area> <id> - Restore backup");
         player.sendMessage(ChatColor.GRAY + "  /rewind history <area> - View backup history");
+        player.sendMessage(ChatColor.GRAY + "  /rewind seticon backup <area> <id> <material> - Set backup icon");
 
         player.sendMessage(ChatColor.YELLOW + "Information & Management:");
         player.sendMessage(ChatColor.GRAY + "  /rewind list [owned|trusted] - List areas");

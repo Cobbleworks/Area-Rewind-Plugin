@@ -1,6 +1,7 @@
 package arearewind.data;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
@@ -11,6 +12,7 @@ public class ProtectedArea implements Serializable {
     private Location pos1, pos2;
     private UUID owner;
     private Set<UUID> trustedPlayers;
+    private Material icon;
 
     public ProtectedArea(String name, Location pos1, Location pos2, UUID owner) {
         this.name = name;
@@ -18,14 +20,40 @@ public class ProtectedArea implements Serializable {
         this.pos2 = pos2;
         this.owner = owner;
         this.trustedPlayers = new HashSet<>();
+        this.icon = Material.GRASS_BLOCK; // Default icon
     }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public Location getPos1() { return pos1; }
-    public Location getPos2() { return pos2; }
-    public UUID getOwner() { return owner; }
-    public Set<UUID> getTrustedPlayers() { return trustedPlayers; }
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Location getPos1() {
+        return pos1;
+    }
+
+    public Location getPos2() {
+        return pos2;
+    }
+
+    public UUID getOwner() {
+        return owner;
+    }
+
+    public Set<UUID> getTrustedPlayers() {
+        return trustedPlayers;
+    }
+
+    public Material getIcon() {
+        return icon;
+    }
+
+    public void setIcon(Material icon) {
+        this.icon = icon != null ? icon : Material.GRASS_BLOCK;
+    }
 
     public void updatePositions(Location pos1, Location pos2) {
         this.pos1 = pos1;

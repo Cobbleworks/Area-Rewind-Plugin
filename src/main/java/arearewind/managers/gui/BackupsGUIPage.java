@@ -87,7 +87,9 @@ public class BackupsGUIPage implements IGUIPage {
         for (int i = paginationInfo.getStartIndex(); i < paginationInfo.getEndIndex(); i++) {
             AreaBackup backup = backups.get(i);
 
-            ItemStack item = new ItemStack(Material.CHEST);
+            // Use custom icon if set, otherwise default to CHEST
+            Material iconMaterial = backup.getIcon() != null ? backup.getIcon() : Material.CHEST;
+            ItemStack item = new ItemStack(iconMaterial);
             ItemMeta meta = item.getItemMeta();
             meta.setDisplayName(ChatColor.AQUA + "Backup #" + i);
 
