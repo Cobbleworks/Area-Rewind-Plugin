@@ -146,6 +146,18 @@ public class BackupsGUIPage implements IGUIPage {
             player.closeInventory();
             player.performCommand("rewind preview " + areaName);
             return;
+        } else if (displayName.contains("Area Settings")) {
+            player.closeInventory();
+            guiManager.openAreaSettingsGUI(player, areaName);
+            return;
+        } else if (displayName.contains("Permissions")) {
+            player.closeInventory();
+            guiManager.openAreaSettingsGUI(player, areaName);
+            return;
+        } else if (displayName.contains("Area Management")) {
+            player.closeInventory();
+            guiManager.openAreaSettingsGUI(player, areaName);
+            return;
         } else if (displayName.contains("Permissions")) {
             player.closeInventory();
             player.performCommand("rewind permissions " + areaName);
@@ -187,27 +199,25 @@ public class BackupsGUIPage implements IGUIPage {
         infoLore.add(ChatColor.GRAY + "Owner: " + Bukkit.getOfflinePlayer(area.getOwner()).getName());
         infoLore.add(ChatColor.GRAY + "World: " + area.getPos1().getWorld().getName());
         infoLore.add(ChatColor.GRAY + "Size: " + area.getSize() + " blocks");
-        infoLore.add(ChatColor.GRAY + "Pos1: " + areaManager.locationToString(area.getPos1()));
-        infoLore.add(ChatColor.GRAY + "Pos2: " + areaManager.locationToString(area.getPos2()));
+        infoLore.add("");
+        infoLore.add(ChatColor.YELLOW + "For detailed settings, click Area Settings");
         infoMeta.setLore(infoLore);
         infoItem.setItemMeta(infoMeta);
         gui.setItem(35, infoItem);
 
-        // Backup Statistics
-        ItemStack backupInfoItem = new ItemStack(Material.CHEST);
-        ItemMeta backupMeta = backupInfoItem.getItemMeta();
-        backupMeta.setDisplayName(ChatColor.BLUE + "Backup Statistics");
-        List<String> backupLore = new ArrayList<>();
-        List<AreaBackup> backups = backupManager.getBackupHistory(areaName);
-        backupLore.add(ChatColor.GRAY + "Total Backups: " + backups.size());
-        if (!backups.isEmpty()) {
-            AreaBackup lastBackup = backups.get(backups.size() - 1);
-            backupLore.add(ChatColor.GRAY + "Last Backup: " +
-                    lastBackup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-        }
-        backupMeta.setLore(backupLore);
-        backupInfoItem.setItemMeta(backupMeta);
-        gui.setItem(36, backupInfoItem);
+        // Area Settings Button
+        ItemStack settingsItem = new ItemStack(Material.COMPARATOR);
+        ItemMeta settingsMeta = settingsItem.getItemMeta();
+        settingsMeta.setDisplayName(ChatColor.GOLD + "Area Settings");
+        List<String> settingsLore = new ArrayList<>();
+        settingsLore.add(ChatColor.GRAY + "Manage area settings and permissions");
+        settingsLore.add(ChatColor.GRAY + "View backup statistics");
+        settingsLore.add(ChatColor.GRAY + "Area management options");
+        settingsLore.add("");
+        settingsLore.add(ChatColor.YELLOW + "Click to open settings");
+        settingsMeta.setLore(settingsLore);
+        settingsItem.setItemMeta(settingsMeta);
+        gui.setItem(36, settingsItem);
     }
 
     private void addControlItems(Inventory gui, String areaName, ProtectedArea area, Player player) {
@@ -253,35 +263,6 @@ public class BackupsGUIPage implements IGUIPage {
             previewMeta.setDisplayName(ChatColor.AQUA + "Preview Area");
             previewItem.setItemMeta(previewMeta);
             gui.setItem(49, previewItem);
-        }
-
-        // Permissions
-        ItemStack permItem = new ItemStack(Material.NAME_TAG);
-        ItemMeta permMeta = permItem.getItemMeta();
-        permMeta.setDisplayName(ChatColor.YELLOW + "Permissions");
-        List<String> permLore = new ArrayList<>();
-        permLore.add(ChatColor.GRAY + "Your Level: " + permissionManager.getPermissionLevelString(player, area));
-        if (!area.getTrustedPlayers().isEmpty()) {
-            permLore.add(ChatColor.GRAY + "Trusted Players: " + area.getTrustedPlayers().size());
-        }
-        permLore.add("");
-        permLore.add(ChatColor.YELLOW + "Click for detailed permissions");
-        permMeta.setLore(permLore);
-        permItem.setItemMeta(permMeta);
-        gui.setItem(50, permItem);
-
-        // Area Management
-        if (permissionManager.canModifyBoundaries(player, area)) {
-            ItemStack manageItem = new ItemStack(Material.IRON_PICKAXE);
-            ItemMeta manageMeta = manageItem.getItemMeta();
-            manageMeta.setDisplayName(ChatColor.RED + "Area Management");
-            List<String> manageLore = new ArrayList<>();
-            manageLore.add(ChatColor.GRAY + "Expand, contract, or delete area");
-            manageLore.add("");
-            manageLore.add(ChatColor.YELLOW + "Click for management options");
-            manageMeta.setLore(manageLore);
-            manageItem.setItemMeta(manageMeta);
-            gui.setItem(51, manageItem);
         }
 
         // Back button

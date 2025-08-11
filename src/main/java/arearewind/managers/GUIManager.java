@@ -1,5 +1,6 @@
 package arearewind.managers;
 
+import arearewind.managers.gui.AreaSettingsGUIPage;
 import arearewind.managers.gui.AreasGUIPage;
 import arearewind.managers.gui.BackupsGUIPage;
 import arearewind.managers.gui.IGUIPage;
@@ -25,6 +26,7 @@ public class GUIManager implements Listener {
     private final AreasGUIPage areasPage;
     private final BackupsGUIPage backupsPage;
     private final SettingsGUIPage settingsPage;
+    private final AreaSettingsGUIPage areaSettingsPage;
 
     public GUIManager(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
             PermissionManager permissionManager, ConfigurationManager configManager) {
@@ -38,6 +40,7 @@ public class GUIManager implements Listener {
         this.areasPage = new AreasGUIPage(this, areaManager, backupManager, permissionManager);
         this.backupsPage = new BackupsGUIPage(this, areaManager, backupManager, permissionManager);
         this.settingsPage = new SettingsGUIPage(this, permissionManager, configManager);
+        this.areaSettingsPage = new AreaSettingsGUIPage(this, areaManager, backupManager, permissionManager);
     }
 
     // Public methods for opening specific GUIs
@@ -51,6 +54,10 @@ public class GUIManager implements Listener {
 
     public void openSettingsGUI(Player player) {
         settingsPage.openGUI(player);
+    }
+
+    public void openAreaSettingsGUI(Player player, String areaName) {
+        areaSettingsPage.openAreaSettingsGUI(player, areaName);
     }
 
     // GUI state management methods
@@ -95,6 +102,8 @@ public class GUIManager implements Listener {
             backupsPage.handleClick(player, event);
         } else if (guiType.equals("settings")) {
             settingsPage.handleClick(player, event);
+        } else if (guiType.startsWith("area-settings:")) {
+            areaSettingsPage.handleClick(player, event);
         }
     }
 
@@ -114,6 +123,7 @@ public class GUIManager implements Listener {
     private boolean isPluginGUI(String title) {
         return title.contains("Protected Areas") ||
                 title.contains("Area Management:") ||
-                title.contains("Area Rewind Settings");
+                title.contains("Area Rewind Settings") ||
+                title.contains("Area Settings:");
     }
 }
