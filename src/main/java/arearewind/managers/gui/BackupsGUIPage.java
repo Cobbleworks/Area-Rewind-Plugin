@@ -6,6 +6,7 @@ import arearewind.managers.AreaManager;
 import arearewind.managers.BackupManager;
 import arearewind.managers.GUIManager;
 import arearewind.managers.PermissionManager;
+import arearewind.managers.gui.GUIPaginationHelper.PaginationInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -29,6 +30,11 @@ public class BackupsGUIPage implements IGUIPage {
     private final BackupManager backupManager;
     private final PermissionManager permissionManager;
 
+    // Pagination constants
+    private static final int ITEMS_PER_PAGE = 28; // 4 rows of 7 items (slots 0-27)
+    private static final int INFO_ROW_START = 35; // Row for area info (35-44)
+    private static final int NAVIGATION_ROW_START = 45; // Bottom row for navigation
+
     public BackupsGUIPage(GUIManager guiManager, AreaManager areaManager,
             BackupManager backupManager, PermissionManager permissionManager) {
         this.guiManager = guiManager;
@@ -44,6 +50,10 @@ public class BackupsGUIPage implements IGUIPage {
     }
 
     public void openBackupsGUI(Player player, String areaName) {
+        openBackupsGUI(player, areaName, 0); // Default to first page
+    }
+
+    public void openBackupsGUI(Player player, String areaName, int page) {
         ProtectedArea area = areaManager.getArea(areaName);
         if (area == null) {
             player.sendMessage(ChatColor.RED + "Area not found!");
@@ -56,11 +66,25 @@ public class BackupsGUIPage implements IGUIPage {
         }
 
         List<AreaBackup> backups = backupManager.getBackupHistory(areaName);
-        Inventory gui = Bukkit.createInventory(null, 54, ChatColor.DARK_BLUE + "Area Management: " + areaName);
 
-        // Reserve slots 45-53 for controls and info, use 0-44 for backups
+        // Calculate pagination
+        PaginationInfo paginationInfo = GUIPaginationHelper.calculatePagination(
+                backups.size(), ITEMS_PER_PAGE, page);
+
+        // Update pagination data for the player
+        GUIPaginationHelper.updatePaginationData(player.getUniqueId(),
+                paginationInfo.getCurrentPage(), paginationInfo.getMaxPage(), getPageType(), areaName);
+
+        // Create inventory with page info in title
+        String title = ChatColor.DARK_BLUE + "Area Management: " + areaName;
+        if (paginationInfo.getMaxPage() > 0) {
+            title += " (" + (paginationInfo.getCurrentPage() + 1) + "/" + (paginationInfo.getMaxPage() + 1) + ")";
+        }
+        Inventory gui = Bukkit.createInventory(null, 54, title);
+
+        // Add backup items for current page
         int slot = 0;
-        for (int i = Math.max(0, backups.size() - 35); i < backups.size() && slot < 35; i++) {
+        for (int i = paginationInfo.getStartIndex(); i < paginationInfo.getEndIndex(); i++) {
             AreaBackup backup = backups.get(i);
 
             ItemStack item = new ItemStack(Material.CHEST);
@@ -89,11 +113,17 @@ public class BackupsGUIPage implements IGUIPage {
             gui.setItem(slot++, item);
         }
 
+        // Add pagination navigation if needed
+        if (paginationInfo.getMaxPage() > 0) {
+            GUIPaginationHelper.addPaginationButtons(gui, paginationInfo,
+                    NAVIGATION_ROW_START, NAVIGATION_ROW_START + 8, -1); // No info button for backups page
+        }
+
         // Add area info in slots 35-44 (second row from bottom)
         addAreaInfoItems(gui, area, areaName);
 
         // Add control items in bottom row (45-53)
-        addControlItems(gui, areaName, area, player);
+        addControlItems(gui, areaName, area, player, paginationInfo);
 
         player.openInventory(gui);
         guiManager.registerOpenGUI(player, getPageType() + ":" + areaName);
@@ -114,12 +144,51 @@ public class BackupsGUIPage implements IGUIPage {
         return "backups";
     }
 
+    @Override
+    public void handlePaginationAction(Player player, GUIPaginationHelper.PaginationAction action) {
+        String guiData = guiManager.getOpenGUIType(player);
+        if (!guiData.startsWith("backups:"))
+            return;
+
+        String areaName = guiData.substring(8);
+
+        GUIPaginationHelper.PaginationData paginationData = GUIPaginationHelper.getPaginationData(player.getUniqueId(),
+                getPageType(), areaName);
+
+        int newPage = paginationData.getCurrentPage();
+
+        switch (action) {
+            case PREVIOUS:
+                if (newPage > 0) {
+                    newPage--;
+                }
+                break;
+            case NEXT:
+                if (newPage < paginationData.getMaxPage()) {
+                    newPage++;
+                }
+                break;
+            default:
+                return;
+        }
+
+        player.closeInventory();
+        openBackupsGUI(player, areaName, newPage);
+    }
+
     private void handleBackupsGUIClick(Player player, InventoryClickEvent event, String areaName) {
         ItemStack item = event.getCurrentItem();
         if (item == null || !item.hasItemMeta())
             return;
 
         String displayName = item.getItemMeta().getDisplayName();
+
+        // Handle pagination navigation
+        GUIPaginationHelper.PaginationAction paginationAction = GUIPaginationHelper.checkPaginationClick(item);
+        if (paginationAction != GUIPaginationHelper.PaginationAction.NONE) {
+            handlePaginationAction(player, paginationAction);
+            return;
+        }
 
         // Handle navigation and control buttons
         if (displayName.contains("Back to Areas")) {
@@ -222,14 +291,23 @@ public class BackupsGUIPage implements IGUIPage {
         gui.setItem(36, settingsItem);
     }
 
-    private void addControlItems(Inventory gui, String areaName, ProtectedArea area, Player player) {
+    private void addControlItems(Inventory gui, String areaName, ProtectedArea area, Player player,
+            PaginationInfo paginationInfo) {
+        // Adjust slot positions based on whether pagination is present
+        int createSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 1 : NAVIGATION_ROW_START;
+        int undoSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 2 : NAVIGATION_ROW_START + 1;
+        int redoSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 3 : NAVIGATION_ROW_START + 2;
+        int teleportSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 4 : NAVIGATION_ROW_START + 3;
+        int previewSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 5 : NAVIGATION_ROW_START + 4;
+        int backSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 7 : NAVIGATION_ROW_START + 8;
+
         // Create Backup
         if (permissionManager.canCreateBackup(player, area)) {
             ItemStack createItem = new ItemStack(Material.CRAFTING_TABLE);
             ItemMeta createMeta = createItem.getItemMeta();
             createMeta.setDisplayName(ChatColor.GREEN + "Create Backup");
             createItem.setItemMeta(createMeta);
-            gui.setItem(45, createItem);
+            gui.setItem(createSlot, createItem);
         }
 
         // Undo/Redo
@@ -238,7 +316,7 @@ public class BackupsGUIPage implements IGUIPage {
             ItemMeta undoMeta = undoItem.getItemMeta();
             undoMeta.setDisplayName(ChatColor.YELLOW + "Undo Last Change");
             undoItem.setItemMeta(undoMeta);
-            gui.setItem(46, undoItem);
+            gui.setItem(undoSlot, undoItem);
         }
 
         if (permissionManager.canUndoRedo(player, area) && backupManager.canRedo(areaName)) {
@@ -246,7 +324,7 @@ public class BackupsGUIPage implements IGUIPage {
             ItemMeta redoMeta = redoItem.getItemMeta();
             redoMeta.setDisplayName(ChatColor.YELLOW + "Redo Last Undo");
             redoItem.setItemMeta(redoMeta);
-            gui.setItem(47, redoItem);
+            gui.setItem(redoSlot, redoItem);
         }
 
         // Teleport
@@ -255,7 +333,7 @@ public class BackupsGUIPage implements IGUIPage {
             ItemMeta teleportMeta = teleportItem.getItemMeta();
             teleportMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Teleport to Area");
             teleportItem.setItemMeta(teleportMeta);
-            gui.setItem(48, teleportItem);
+            gui.setItem(teleportSlot, teleportItem);
         }
 
         // Preview
@@ -264,7 +342,7 @@ public class BackupsGUIPage implements IGUIPage {
             ItemMeta previewMeta = previewItem.getItemMeta();
             previewMeta.setDisplayName(ChatColor.AQUA + "Preview Area");
             previewItem.setItemMeta(previewMeta);
-            gui.setItem(49, previewItem);
+            gui.setItem(previewSlot, previewItem);
         }
 
         // Back button
@@ -272,6 +350,6 @@ public class BackupsGUIPage implements IGUIPage {
         ItemMeta backMeta = backItem.getItemMeta();
         backMeta.setDisplayName(ChatColor.GRAY + "Back to Areas");
         backItem.setItemMeta(backMeta);
-        gui.setItem(53, backItem);
+        gui.setItem(backSlot, backItem);
     }
 }

@@ -3,7 +3,7 @@ package arearewind.managers;
 import arearewind.managers.gui.AreaSettingsGUIPage;
 import arearewind.managers.gui.AreasGUIPage;
 import arearewind.managers.gui.BackupsGUIPage;
-import arearewind.managers.gui.IGUIPage;
+import arearewind.managers.gui.GUIPaginationHelper;
 import arearewind.managers.gui.SettingsGUIPage;
 import arearewind.util.ConfigurationManager;
 import org.bukkit.entity.Player;
@@ -15,11 +15,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.*;
 
 public class GUIManager implements Listener {
-    private final JavaPlugin plugin;
-    private final AreaManager areaManager;
-    private final BackupManager backupManager;
-    private final PermissionManager permissionManager;
-    private final ConfigurationManager configManager;
     private final Map<UUID, String> openGUIs = new HashMap<>();
 
     // GUI Pages
@@ -30,11 +25,6 @@ public class GUIManager implements Listener {
 
     public GUIManager(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
             PermissionManager permissionManager, ConfigurationManager configManager) {
-        this.plugin = plugin;
-        this.areaManager = areaManager;
-        this.backupManager = backupManager;
-        this.permissionManager = permissionManager;
-        this.configManager = configManager;
 
         // Initialize GUI pages
         this.areasPage = new AreasGUIPage(this, areaManager, backupManager, permissionManager);
@@ -48,8 +38,16 @@ public class GUIManager implements Listener {
         areasPage.openGUI(player);
     }
 
+    public void openAreasGUI(Player player, int page) {
+        areasPage.openGUI(player, page);
+    }
+
     public void openBackupsGUI(Player player, String areaName) {
         backupsPage.openBackupsGUI(player, areaName);
+    }
+
+    public void openBackupsGUI(Player player, String areaName, int page) {
+        backupsPage.openBackupsGUI(player, areaName, page);
     }
 
     public void openSettingsGUI(Player player) {
@@ -67,6 +65,8 @@ public class GUIManager implements Listener {
 
     public void closeGUI(Player player) {
         openGUIs.remove(player.getUniqueId());
+        // Clear pagination data when GUI is closed
+        GUIPaginationHelper.clearPaginationData(player.getUniqueId());
     }
 
     public boolean hasGUIOpen(Player player) {
@@ -117,6 +117,8 @@ public class GUIManager implements Listener {
         String title = event.getView().getTitle();
         if (isPluginGUI(title)) {
             openGUIs.remove(player.getUniqueId());
+            // Clear pagination data when GUI is closed
+            GUIPaginationHelper.clearPaginationData(player.getUniqueId());
         }
     }
 

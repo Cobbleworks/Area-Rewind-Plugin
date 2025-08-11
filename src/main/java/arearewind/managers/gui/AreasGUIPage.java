@@ -5,6 +5,7 @@ import arearewind.managers.AreaManager;
 import arearewind.managers.BackupManager;
 import arearewind.managers.GUIManager;
 import arearewind.managers.PermissionManager;
+import arearewind.managers.gui.GUIPaginationHelper.PaginationInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -28,6 +29,10 @@ public class AreasGUIPage implements IGUIPage {
     private final BackupManager backupManager;
     private final PermissionManager permissionManager;
 
+    // Pagination constants
+    private static final int ITEMS_PER_PAGE = 35; // 5 rows of 7 items (slots 0-34)
+    private static final int NAVIGATION_ROW_START = 45; // Bottom row for navigation
+
     public AreasGUIPage(GUIManager guiManager, AreaManager areaManager,
             BackupManager backupManager, PermissionManager permissionManager) {
         this.guiManager = guiManager;
@@ -38,24 +43,45 @@ public class AreasGUIPage implements IGUIPage {
 
     @Override
     public void openGUI(Player player) {
+        openGUI(player, 0); // Default to first page
+    }
+
+    @Override
+    public void openGUI(Player player, int page) {
         if (!permissionManager.canUseGUI(player)) {
             player.sendMessage(ChatColor.RED + "You don't have permission to use the GUI!");
             return;
         }
 
-        Inventory gui = Bukkit.createInventory(null, 54, ChatColor.DARK_GREEN + "Protected Areas");
-        int slot = 0;
-
+        // Get all areas the player can access
+        List<Map.Entry<String, ProtectedArea>> accessibleAreas = new ArrayList<>();
         for (Map.Entry<String, ProtectedArea> entry : areaManager.getProtectedAreas().entrySet()) {
-            if (slot >= 45)
-                break;
+            if (permissionManager.hasAreaPermission(player, entry.getValue())) {
+                accessibleAreas.add(entry);
+            }
+        }
 
+        // Calculate pagination
+        PaginationInfo paginationInfo = GUIPaginationHelper.calculatePagination(
+                accessibleAreas.size(), ITEMS_PER_PAGE, page);
+
+        // Update pagination data for the player
+        GUIPaginationHelper.updatePaginationData(player.getUniqueId(),
+                paginationInfo.getCurrentPage(), paginationInfo.getMaxPage(), getPageType(), null);
+
+        // Create inventory
+        String title = ChatColor.DARK_GREEN + "Protected Areas" +
+                (paginationInfo.getMaxPage() > 0
+                        ? " (" + (paginationInfo.getCurrentPage() + 1) + "/" + (paginationInfo.getMaxPage() + 1) + ")"
+                        : "");
+        Inventory gui = Bukkit.createInventory(null, 54, title);
+
+        // Add area items for current page
+        int slot = 0;
+        for (int i = paginationInfo.getStartIndex(); i < paginationInfo.getEndIndex(); i++) {
+            Map.Entry<String, ProtectedArea> entry = accessibleAreas.get(i);
             String areaName = entry.getKey();
             ProtectedArea area = entry.getValue();
-
-            if (!permissionManager.hasAreaPermission(player, area)) {
-                continue;
-            }
 
             ItemStack item = new ItemStack(Material.GRASS_BLOCK);
             ItemMeta meta = item.getItemMeta();
@@ -74,7 +100,14 @@ public class AreasGUIPage implements IGUIPage {
             gui.setItem(slot++, item);
         }
 
-        addNavigationItems(gui);
+        // Add pagination navigation if needed
+        if (paginationInfo.getMaxPage() > 0) {
+            GUIPaginationHelper.addPaginationButtons(gui, paginationInfo,
+                    NAVIGATION_ROW_START, NAVIGATION_ROW_START + 8, NAVIGATION_ROW_START + 4);
+        }
+
+        // Add other navigation items
+        addNavigationItems(gui, paginationInfo);
 
         player.openInventory(gui);
         guiManager.registerOpenGUI(player, getPageType());
@@ -88,13 +121,23 @@ public class AreasGUIPage implements IGUIPage {
 
         String displayName = ChatColor.stripColor(item.getItemMeta().getDisplayName());
 
+        // Handle pagination navigation
+        GUIPaginationHelper.PaginationAction paginationAction = GUIPaginationHelper.checkPaginationClick(item);
+        if (paginationAction != GUIPaginationHelper.PaginationAction.NONE) {
+            handlePaginationAction(player, paginationAction);
+            return;
+        }
+
         // Handle navigation buttons
         if (displayName.equals("Close")) {
             player.closeInventory();
             return;
         } else if (displayName.equals("Refresh")) {
             player.closeInventory();
-            openGUI(player);
+            // Get current page from pagination data
+            GUIPaginationHelper.PaginationData paginationData = GUIPaginationHelper
+                    .getPaginationData(player.getUniqueId(), getPageType(), null);
+            openGUI(player, paginationData.getCurrentPage());
             return;
         } else if (displayName.equals("Settings")) {
             player.closeInventory();
@@ -118,23 +161,54 @@ public class AreasGUIPage implements IGUIPage {
         return "areas";
     }
 
-    private void addNavigationItems(Inventory gui) {
-        ItemStack closeItem = new ItemStack(Material.BARRIER);
-        ItemMeta closeMeta = closeItem.getItemMeta();
-        closeMeta.setDisplayName(ChatColor.RED + "Close");
-        closeItem.setItemMeta(closeMeta);
-        gui.setItem(49, closeItem);
+    @Override
+    public void handlePaginationAction(Player player, GUIPaginationHelper.PaginationAction action) {
+        GUIPaginationHelper.PaginationData paginationData = GUIPaginationHelper.getPaginationData(player.getUniqueId(),
+                getPageType(), null);
+
+        int newPage = paginationData.getCurrentPage();
+
+        switch (action) {
+            case PREVIOUS:
+                if (newPage > 0) {
+                    newPage--;
+                }
+                break;
+            case NEXT:
+                if (newPage < paginationData.getMaxPage()) {
+                    newPage++;
+                }
+                break;
+            default:
+                return;
+        }
+
+        player.closeInventory();
+        openGUI(player, newPage);
+    }
+
+    private void addNavigationItems(Inventory gui, PaginationInfo paginationInfo) {
+        // Adjust slot positions based on whether pagination is present
+        int refreshSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 1 : NAVIGATION_ROW_START;
+        int closeSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 3 : NAVIGATION_ROW_START + 4;
+        int settingsSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 7 : NAVIGATION_ROW_START + 8;
 
         ItemStack refreshItem = new ItemStack(Material.EMERALD);
         ItemMeta refreshMeta = refreshItem.getItemMeta();
         refreshMeta.setDisplayName(ChatColor.GREEN + "Refresh");
         refreshItem.setItemMeta(refreshMeta);
-        gui.setItem(45, refreshItem);
+        gui.setItem(refreshSlot, refreshItem);
+
+        ItemStack closeItem = new ItemStack(Material.BARRIER);
+        ItemMeta closeMeta = closeItem.getItemMeta();
+        closeMeta.setDisplayName(ChatColor.RED + "Close");
+        closeItem.setItemMeta(closeMeta);
+        gui.setItem(closeSlot, closeItem);
 
         ItemStack settingsItem = new ItemStack(Material.COMPARATOR);
         ItemMeta settingsMeta = settingsItem.getItemMeta();
         settingsMeta.setDisplayName(ChatColor.YELLOW + "Settings");
         settingsItem.setItemMeta(settingsMeta);
-        gui.setItem(53, settingsItem);
+        gui.setItem(settingsSlot, settingsItem);
     }
 }
