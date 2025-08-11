@@ -269,10 +269,19 @@ public class MaterialSelectorGUIPage implements IGUIPage {
             List<AreaBackup> backups = backupManager.getBackupHistory(areaName);
             AreaBackup targetBackup = null;
 
-            for (AreaBackup backup : backups) {
-                if (backup.getId().equals(backupId)) {
-                    targetBackup = backup;
-                    break;
+            try {
+                // backupId is now the index as a string
+                int backupIndex = Integer.parseInt(backupId);
+                if (backupIndex >= 0 && backupIndex < backups.size()) {
+                    targetBackup = backups.get(backupIndex);
+                }
+            } catch (NumberFormatException e) {
+                // Fallback to old ID-based lookup for compatibility
+                for (AreaBackup backup : backups) {
+                    if (backup.getId().equals(backupId)) {
+                        targetBackup = backup;
+                        break;
+                    }
                 }
             }
 

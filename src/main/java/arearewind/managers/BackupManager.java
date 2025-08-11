@@ -200,8 +200,14 @@ public class BackupManager {
                             block.getChunk().load();
                         }
 
-                        block.setType(info.getMaterial(), false);
-                        block.setBlockData(info.getBlockData(), false);
+                        // Ensure the chunk is fully loaded before modifying blocks
+                        try {
+                            block.setType(info.getMaterial(), false);
+                            block.setBlockData(info.getBlockData(), false);
+                        } catch (Exception e) {
+                            plugin.getLogger().warning("Failed to restore block at " + x + "," + y + "," + z +
+                                    ": " + e.getMessage());
+                        }
 
                         restoreNonContainerSpecialData(block, info);
 
@@ -588,11 +594,19 @@ public class BackupManager {
     }
 
     public boolean restoreArea(String areaName, ProtectedArea area, int backupIndex) {
+        return restoreArea(areaName, area, backupIndex, true);
+    }
+
+    public boolean restoreArea(String areaName, ProtectedArea area, int backupIndex, boolean createBackupFirst) {
         AreaBackup backup = getBackup(areaName, backupIndex);
         if (backup == null)
             return false;
 
-        createBackup(areaName, area);
+        if (createBackupFirst) {
+            createBackup(areaName, area);
+            // After creating a backup, the index shifts since we added a backup to the end
+            // The backup we want to restore from is still at the same index
+        }
 
         restoreFromBackup(area, backup);
 

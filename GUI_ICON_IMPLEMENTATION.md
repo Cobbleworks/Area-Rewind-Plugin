@@ -89,5 +89,15 @@ I have successfully implemented a comprehensive GUI-based icon setting feature f
 - **Item Validation**: Ensures selected materials are valid items (not AIR or non-items)
 - **Area Validation**: Checks that areas and backups exist before processing
 - **User Feedback**: Provides clear success/error messages
+- **Backup Index Handling**: Fixed backup lookup issue by using array indices instead of UUID-based IDs
+
+## Fixed Issues
+
+### Backup Icon Selection Fix
+
+- **Problem**: "Backup not found" error when setting backup icons
+- **Root Cause**: Mismatch between display index (Backup #0, #1, etc.) and actual backup UUID-based IDs
+- **Solution**: Updated to use backup array index for lookup instead of UUID strings
+- **Backward Compatibility**: Includes fallback to ID-based lookup for compatibility
 
 This implementation provides a user-friendly alternative to command-line icon setting while maintaining full compatibility with existing functionality.

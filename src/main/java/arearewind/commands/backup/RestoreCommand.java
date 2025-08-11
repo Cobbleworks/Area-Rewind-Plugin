@@ -59,7 +59,7 @@ public class RestoreCommand extends BaseCommand {
         player.sendMessage(ChatColor.YELLOW + "Restoring backup " + id + " for '" + areaName + "'...");
 
         Bukkit.getScheduler().runTask(plugin, () -> {
-            backupManager.restoreArea(areaName, area, id);
+            backupManager.restoreArea(areaName, area, id, false); // Don't create backup when manually restoring
             player.sendMessage(ChatColor.GREEN + "Successfully restored backup " + id + " for '" + areaName + "'!");
         });
 

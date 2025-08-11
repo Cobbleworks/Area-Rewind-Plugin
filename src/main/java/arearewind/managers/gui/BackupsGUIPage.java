@@ -262,11 +262,25 @@ public class BackupsGUIPage implements IGUIPage {
                 player.closeInventory();
                 player.performCommand("rewind preview " + areaName + " " + backupId);
             } else if (event.getClick().name().contains("MIDDLE")) {
-                // Middle click to set icon
+                // Middle click to set icon - pass the actual index instead of extracting from
+                // display name
                 ProtectedArea area = areaManager.getArea(areaName);
                 if (area != null && permissionManager.canModifyBoundaries(player, area)) {
                     player.closeInventory();
-                    guiManager.openMaterialSelector(player, "backup", areaName, backupId);
+                    // Instead of extracting from display name, we need to find which backup was
+                    // clicked
+                    // based on the slot and pagination
+                    GUIPaginationHelper.PaginationData paginationData = GUIPaginationHelper.getPaginationData(
+                            player.getUniqueId(), getPageType(), areaName);
+
+                    int clickedSlot = event.getSlot();
+                    if (clickedSlot >= 0 && clickedSlot < ITEMS_PER_PAGE) {
+                        int backupIndex = paginationData.getCurrentPage() * ITEMS_PER_PAGE + clickedSlot;
+                        List<AreaBackup> allBackups = backupManager.getBackupHistory(areaName);
+                        if (backupIndex < allBackups.size()) {
+                            guiManager.openMaterialSelector(player, "backup", areaName, String.valueOf(backupIndex));
+                        }
+                    }
                 }
             }
         }
