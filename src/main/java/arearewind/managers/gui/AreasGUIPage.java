@@ -32,6 +32,7 @@ public class AreasGUIPage implements IGUIPage {
     // Pagination constants
     private static final int ITEMS_PER_PAGE = 35; // 5 rows of 7 items (slots 0-34)
     private static final int NAVIGATION_ROW_START = 45; // Bottom row for navigation
+    private static final int FIRST_PAGE = 0; // Used for resetting to the first page
 
     public AreasGUIPage(GUIManager guiManager, AreaManager areaManager,
             BackupManager backupManager, PermissionManager permissionManager) {
@@ -43,7 +44,7 @@ public class AreasGUIPage implements IGUIPage {
 
     @Override
     public void openGUI(Player player) {
-        openGUI(player, 0); // Default to first page
+        openGUI(player, FIRST_PAGE); // Default to first page
     }
 
     @Override
@@ -53,33 +54,35 @@ public class AreasGUIPage implements IGUIPage {
             return;
         }
 
-        // Get all areas the player can access
-        List<Map.Entry<String, ProtectedArea>> accessibleAreas = new ArrayList<>();
-        for (Map.Entry<String, ProtectedArea> entry : areaManager.getProtectedAreas().entrySet()) {
-            if (permissionManager.hasAreaPermission(player, entry.getValue())) {
-                accessibleAreas.add(entry);
-            }
-        }
+        // Get current filter type from pagination data
+        GUIPaginationHelper.PaginationData paginationData = GUIPaginationHelper.getPaginationData(
+                player.getUniqueId(), getPageType(), null);
+        String filterType = paginationData.getFilterType();
+
+        // Get filtered areas based on current filter
+        List<Map.Entry<String, ProtectedArea>> filteredAreas = getFilteredAreas(player, filterType);
 
         // Calculate pagination
         PaginationInfo paginationInfo = GUIPaginationHelper.calculatePagination(
-                accessibleAreas.size(), ITEMS_PER_PAGE, page);
+                filteredAreas.size(), ITEMS_PER_PAGE, page);
 
         // Update pagination data for the player
         GUIPaginationHelper.updatePaginationData(player.getUniqueId(),
                 paginationInfo.getCurrentPage(), paginationInfo.getMaxPage(), getPageType(), null);
 
-        // Create inventory
-        String title = ChatColor.DARK_GREEN + "Protected Areas" +
+        // Create inventory with filter info in title
+        String filterDisplay = filterType.equals("my") ? "My Areas" : "All Areas";
+        String title = ChatColor.DARK_GREEN + "Protected Areas - " + ChatColor.YELLOW + filterDisplay +
                 (paginationInfo.getMaxPage() > 0
-                        ? " (" + (paginationInfo.getCurrentPage() + 1) + "/" + (paginationInfo.getMaxPage() + 1) + ")"
+                        ? ChatColor.DARK_GREEN + " (" + (paginationInfo.getCurrentPage() + 1) + "/"
+                                + (paginationInfo.getMaxPage() + 1) + ")"
                         : "");
         Inventory gui = Bukkit.createInventory(null, 54, title);
 
         // Add area items for current page
         int slot = 0;
         for (int i = paginationInfo.getStartIndex(); i < paginationInfo.getEndIndex(); i++) {
-            Map.Entry<String, ProtectedArea> entry = accessibleAreas.get(i);
+            Map.Entry<String, ProtectedArea> entry = filteredAreas.get(i);
             String areaName = entry.getKey();
             ProtectedArea area = entry.getValue();
 
@@ -108,8 +111,8 @@ public class AreasGUIPage implements IGUIPage {
                     NAVIGATION_ROW_START, NAVIGATION_ROW_START + 8, NAVIGATION_ROW_START + 4);
         }
 
-        // Add other navigation items
-        addNavigationItems(gui, paginationInfo);
+        // Add other navigation items including filter buttons
+        addNavigationItems(gui, paginationInfo, filterType);
 
         player.openInventory(gui);
         guiManager.registerOpenGUI(player, getPageType());
@@ -144,6 +147,18 @@ public class AreasGUIPage implements IGUIPage {
         } else if (displayName.equals("Settings")) {
             player.closeInventory();
             guiManager.openSettingsGUI(player);
+            return;
+        } else if (displayName.equals("My Areas")) {
+            // Switch to "My Areas" filter
+            GUIPaginationHelper.updateFilterType(player.getUniqueId(), "my", getPageType(), null);
+            openGUI(player, GUIPaginationHelper.FIRST_PAGE); // Reset to first page
+            openGUI(player, FIRST_PAGE); // Reset to first page
+            return;
+        } else if (displayName.equals("All Areas")) {
+            // Switch to "All Areas" filter
+            GUIPaginationHelper.updateFilterType(player.getUniqueId(), "all", getPageType(), null);
+            player.closeInventory();
+            openGUI(player, 0); // Reset to first page
             return;
         }
 
@@ -189,10 +204,41 @@ public class AreasGUIPage implements IGUIPage {
         openGUI(player, newPage);
     }
 
-    private void addNavigationItems(Inventory gui, PaginationInfo paginationInfo) {
+    /**
+     * Get filtered areas based on the filter type
+     */
+    private List<Map.Entry<String, ProtectedArea>> getFilteredAreas(Player player, String filterType) {
+        List<Map.Entry<String, ProtectedArea>> filteredAreas = new ArrayList<>();
+
+        for (Map.Entry<String, ProtectedArea> entry : areaManager.getProtectedAreas().entrySet()) {
+            ProtectedArea area = entry.getValue();
+
+            // Check if player has permission to see this area
+            if (!permissionManager.hasAreaPermission(player, area)) {
+                continue;
+            }
+
+            // Apply filter
+            if (filterType.equals("my")) {
+                // Only show areas owned by the player
+                if (area.getOwner().equals(player.getUniqueId())) {
+                    filteredAreas.add(entry);
+                }
+            } else {
+                // Show all accessible areas (default "all" filter)
+                filteredAreas.add(entry);
+            }
+        }
+
+        return filteredAreas;
+    }
+
+    private void addNavigationItems(Inventory gui, PaginationInfo paginationInfo, String currentFilter) {
         // Adjust slot positions based on whether pagination is present
         int refreshSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 1 : NAVIGATION_ROW_START;
+        int myAreasSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 2 : NAVIGATION_ROW_START + 1;
         int closeSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 3 : NAVIGATION_ROW_START + 4;
+        int allAreasSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 5 : NAVIGATION_ROW_START + 6;
         int settingsSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 7 : NAVIGATION_ROW_START + 8;
 
         ItemStack refreshItem = new ItemStack(Material.EMERALD);
@@ -201,11 +247,43 @@ public class AreasGUIPage implements IGUIPage {
         refreshItem.setItemMeta(refreshMeta);
         gui.setItem(refreshSlot, refreshItem);
 
+        // My Areas filter button
+        ItemStack myAreasItem = new ItemStack(
+                currentFilter.equals("my") ? Material.LIME_CONCRETE : Material.GRAY_CONCRETE);
+        ItemMeta myAreasMeta = myAreasItem.getItemMeta();
+        myAreasMeta.setDisplayName(ChatColor.BLUE + "My Areas");
+        List<String> myAreasLore = new ArrayList<>();
+        myAreasLore.add(ChatColor.GRAY + "Show only areas you own");
+        if (currentFilter.equals("my")) {
+            myAreasLore.add(ChatColor.GREEN + "Currently active");
+        } else {
+            myAreasLore.add(ChatColor.YELLOW + "Click to activate");
+        }
+        myAreasMeta.setLore(myAreasLore);
+        myAreasItem.setItemMeta(myAreasMeta);
+        gui.setItem(myAreasSlot, myAreasItem);
+
         ItemStack closeItem = new ItemStack(Material.BARRIER);
         ItemMeta closeMeta = closeItem.getItemMeta();
         closeMeta.setDisplayName(ChatColor.RED + "Close");
         closeItem.setItemMeta(closeMeta);
         gui.setItem(closeSlot, closeItem);
+
+        // All Areas filter button
+        ItemStack allAreasItem = new ItemStack(
+                currentFilter.equals("all") ? Material.LIME_CONCRETE : Material.GRAY_CONCRETE);
+        ItemMeta allAreasMeta = allAreasItem.getItemMeta();
+        allAreasMeta.setDisplayName(ChatColor.AQUA + "All Areas");
+        List<String> allAreasLore = new ArrayList<>();
+        allAreasLore.add(ChatColor.GRAY + "Show all accessible areas");
+        if (currentFilter.equals("all")) {
+            allAreasLore.add(ChatColor.GREEN + "Currently active");
+        } else {
+            allAreasLore.add(ChatColor.YELLOW + "Click to activate");
+        }
+        allAreasMeta.setLore(allAreasLore);
+        allAreasItem.setItemMeta(allAreasMeta);
+        gui.setItem(allAreasSlot, allAreasItem);
 
         ItemStack settingsItem = new ItemStack(Material.COMPARATOR);
         ItemMeta settingsMeta = settingsItem.getItemMeta();

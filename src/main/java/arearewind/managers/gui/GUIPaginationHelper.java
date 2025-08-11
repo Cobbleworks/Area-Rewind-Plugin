@@ -20,6 +20,9 @@ public class GUIPaginationHelper {
     // Store pagination data for each player
     private static final Map<UUID, PaginationData> paginationData = new ConcurrentHashMap<>();
 
+    // Constant for the first page index
+    public static final int FIRST_PAGE = 0;
+
     /**
      * Data structure to store pagination information for a player
      */
@@ -28,12 +31,22 @@ public class GUIPaginationHelper {
         private int maxPage;
         private String guiType;
         private String areaName; // For area-specific GUIs
+        private String filterType; // Filter type: "all", "my", etc.
 
         public PaginationData(int currentPage, int maxPage, String guiType, String areaName) {
             this.currentPage = currentPage;
             this.maxPage = maxPage;
             this.guiType = guiType;
             this.areaName = areaName;
+            this.filterType = "all"; // Default filter
+        }
+
+        public PaginationData(int currentPage, int maxPage, String guiType, String areaName, String filterType) {
+            this.currentPage = currentPage;
+            this.maxPage = maxPage;
+            this.guiType = guiType;
+            this.areaName = areaName;
+            this.filterType = filterType;
         }
 
         public int getCurrentPage() {
@@ -52,12 +65,20 @@ public class GUIPaginationHelper {
             return areaName;
         }
 
+        public String getFilterType() {
+            return filterType;
+        }
+
         public void setCurrentPage(int currentPage) {
             this.currentPage = currentPage;
         }
 
         public void setMaxPage(int maxPage) {
             this.maxPage = maxPage;
+        }
+
+        public void setFilterType(String filterType) {
+            this.filterType = filterType;
         }
     }
 
@@ -76,7 +97,16 @@ public class GUIPaginationHelper {
             String areaName) {
         PaginationData data = getPaginationData(playerId, guiType, areaName);
         data.setCurrentPage(currentPage);
-        data.setMaxPage(maxPage);
+        data.setFilterType(filterType);
+        data.setCurrentPage(FIRST_PAGE); // Reset to first page when filter changes
+
+    /**
+     * Update filter type for a player's pagination data
+     */
+    public static void updateFilterType(UUID playerId, String filterType, String guiType, String areaName) {
+        PaginationData data = getPaginationData(playerId, guiType, areaName);
+        data.setFilterType(filterType);
+        data.setCurrentPage(0); // Reset to first page when filter changes
     }
 
     /**
