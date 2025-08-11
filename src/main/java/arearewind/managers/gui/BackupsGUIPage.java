@@ -178,7 +178,9 @@ public class BackupsGUIPage implements IGUIPage {
 
             if (event.isShiftClick()) {
                 player.closeInventory();
-                player.performCommand("rewind diff " + areaName);
+                // Compare selected backup with current state
+                int currentStateId = backupManager.getUndoPointer(areaName);
+                player.performCommand("rewind diff " + areaName + " " + backupId + " " + currentStateId);
             } else if (event.isLeftClick()) {
                 player.closeInventory();
                 player.performCommand("rewind restore " + areaName + " " + backupId);
