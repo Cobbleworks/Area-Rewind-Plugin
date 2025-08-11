@@ -56,8 +56,8 @@ public class GUIManager implements Listener {
             lore.add(ChatColor.GRAY + "Backups: " + backupManager.getBackupHistory(areaName).size());
             lore.add(ChatColor.GRAY + "Permission: " + permissionManager.getPermissionLevelString(player, area));
             lore.add("");
-            lore.add(ChatColor.YELLOW + "Left Click: Teleport");
-            lore.add(ChatColor.YELLOW + "Right Click: Manage Backups");
+            lore.add(ChatColor.YELLOW + "Left Click: Manage Backups");
+            lore.add(ChatColor.YELLOW + "Right Click: Teleport");
             lore.add(ChatColor.YELLOW + "Shift+Click: Area Info");
 
             meta.setLore(lore);
@@ -255,20 +255,38 @@ public class GUIManager implements Listener {
         if (item == null || !item.hasItemMeta())
             return;
 
-        String areaName = ChatColor.stripColor(item.getItemMeta().getDisplayName());
-        ProtectedArea area = areaManager.getArea(areaName);
+        String displayName = ChatColor.stripColor(item.getItemMeta().getDisplayName());
+
+        // Handle navigation buttons
+        if (displayName.equals("Close")) {
+            player.closeInventory();
+            return;
+        } else if (displayName.equals("Refresh")) {
+            player.closeInventory();
+            openAreasGUI(player);
+            return;
+        } else if (displayName.equals("Settings")) {
+            player.closeInventory();
+            player.sendMessage(ChatColor.YELLOW + "Settings functionality coming soon!");
+            return;
+        }
+
+        // Handle area selection
+        ProtectedArea area = areaManager.getArea(displayName);
         if (area == null)
             return;
 
         if (event.isShiftClick()) {
             player.closeInventory();
-            openAreaInfoGUI(player, areaName);
+            openAreaInfoGUI(player, displayName);
         } else if (event.isLeftClick()) {
+            // Changed: Left click now opens backup management instead of teleporting
             player.closeInventory();
-            player.performCommand("rewind teleport " + areaName);
+            openBackupsGUI(player, displayName);
         } else if (event.isRightClick()) {
+            // Changed: Right click now teleports instead of opening backups
             player.closeInventory();
-            openBackupsGUI(player, areaName);
+            player.performCommand("rewind teleport " + displayName);
         }
     }
 
@@ -279,7 +297,12 @@ public class GUIManager implements Listener {
 
         String displayName = item.getItemMeta().getDisplayName();
 
-        if (displayName.contains("Create Backup")) {
+        // Handle navigation and control buttons
+        if (displayName.contains("Back to Areas")) {
+            player.closeInventory();
+            openAreasGUI(player);
+            return;
+        } else if (displayName.contains("Create Backup")) {
             player.closeInventory();
             player.performCommand("rewind backup " + areaName);
             return;
@@ -291,8 +314,17 @@ public class GUIManager implements Listener {
             player.closeInventory();
             player.performCommand("rewind redo " + areaName);
             return;
+        } else if (displayName.contains("Teleport to Area")) {
+            player.closeInventory();
+            player.performCommand("rewind teleport " + areaName);
+            return;
+        } else if (displayName.contains("Preview Area")) {
+            player.closeInventory();
+            player.performCommand("rewind preview " + areaName);
+            return;
         }
 
+        // Handle backup selection
         if (displayName.contains("Backup #")) {
             String backupId = displayName.replaceAll(".*#", "");
 
@@ -377,28 +409,35 @@ public class GUIManager implements Listener {
             gui.setItem(47, redoItem);
         }
 
+        // Area-specific actions - Teleport and Preview
+        if (permissionManager.hasAreaPermission(player, area)) {
+            ItemStack teleportItem = new ItemStack(Material.ENDER_PEARL);
+            ItemMeta teleportMeta = teleportItem.getItemMeta();
+            teleportMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Teleport to Area");
+            List<String> teleportLore = new ArrayList<>();
+            teleportLore.add(ChatColor.GRAY + "Teleport to this area");
+            teleportMeta.setLore(teleportLore);
+            teleportItem.setItemMeta(teleportMeta);
+            gui.setItem(48, teleportItem);
+        }
+
+        if (permissionManager.canVisualize(player, area)) {
+            ItemStack previewItem = new ItemStack(Material.SPYGLASS);
+            ItemMeta previewMeta = previewItem.getItemMeta();
+            previewMeta.setDisplayName(ChatColor.AQUA + "Preview Area");
+            List<String> previewLore = new ArrayList<>();
+            previewLore.add(ChatColor.GRAY + "Preview current state of area");
+            previewMeta.setLore(previewLore);
+            previewItem.setItemMeta(previewMeta);
+            gui.setItem(49, previewItem);
+        }
+
+        // Back button
         ItemStack backItem = new ItemStack(Material.SPECTRAL_ARROW);
         ItemMeta backMeta = backItem.getItemMeta();
         backMeta.setDisplayName(ChatColor.GRAY + "Back to Areas");
         backItem.setItemMeta(backMeta);
         gui.setItem(53, backItem);
-    }
-
-    private ItemStack createToggleItem(Material enabledMaterial, Material disabledMaterial,
-            String name, boolean enabled, String description) {
-        ItemStack item = new ItemStack(enabled ? enabledMaterial : disabledMaterial);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatColor.YELLOW + name + ": " +
-                (enabled ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled"));
-
-        List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + description);
-        lore.add("");
-        lore.add(ChatColor.YELLOW + "Click to toggle");
-        meta.setLore(lore);
-
-        item.setItemMeta(meta);
-        return item;
     }
 
     public void closeGUI(Player player) {
