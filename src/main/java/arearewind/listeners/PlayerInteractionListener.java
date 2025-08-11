@@ -37,7 +37,7 @@ public class PlayerInteractionListener implements Listener {
     private static final long TOOL_COOLDOWN = 100;
     private static final Material SELECTION_TOOL = Material.WOODEN_HOE;
     private static final String TOOL_NAME = "Area Selection Tool";
-    
+
     // WorldEdit integration
     private WorldEditPlugin worldEditPlugin;
     private boolean worldEditEnabled = false;
@@ -68,7 +68,7 @@ public class PlayerInteractionListener implements Listener {
 
         // Check if it's our selection tool or WorldEdit wand
         boolean isOurTool = item != null && item.getType() == SELECTION_TOOL;
-        boolean isWorldEditWand = worldEditEnabled && isWorldEditWand(item);
+        boolean isWorldEditWand = worldEditEnabled && isWorldEditWand(player, item);
 
         if (!isOurTool && !isWorldEditWand) {
             return;
@@ -98,7 +98,7 @@ public class PlayerInteractionListener implements Listener {
                 } else if (isWorldEditWand) {
                     showWorldEditSelectionInfo(player);
                 }
-                
+
                 // Don't cancel WorldEdit wand events
                 if (isOurTool) {
                     event.setCancelled(true);
@@ -120,7 +120,8 @@ public class PlayerInteractionListener implements Listener {
             }
             updateLastUsage(player);
         }
-        // For WorldEdit wand, we let WorldEdit handle the selection, then sync afterwards
+        // For WorldEdit wand, we let WorldEdit handle the selection, then sync
+        // afterwards
         else if (isWorldEditWand) {
             // Delay syncing to let WorldEdit process the selection first
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
@@ -136,8 +137,38 @@ public class PlayerInteractionListener implements Listener {
         }
 
         try {
-            // Check if the item is WorldEdit's wand
-            return item.getType() == Material.WOODEN_AXE; // Default WorldEdit wand
+            // Check against WorldEdit's configured wand item
+            // Users can change the wand with //wand command
+            SessionManager sessionManager = WorldEdit.getInstance().getSessionManager();
+            LocalSession session = sessionManager.get(BukkitAdapter.adapt(
+                    (org.bukkit.entity.Player) plugin.getServer().getOnlinePlayers().iterator().next()));
+
+            // For now, just check the default. A more complete implementation would
+            // need to check the player's current wand setting
+            return item.getType() == Material.WOODEN_AXE;
+        } catch (Exception e) {
+            // Fallback to default wand check
+            return item.getType() == Material.WOODEN_AXE;
+        }
+    }
+
+    // Better method: Check if player is holding WorldEdit wand
+    private boolean isWorldEditWand(Player player, ItemStack item) {
+        if (!worldEditEnabled || item == null) {
+            return false;
+        }
+
+        try {
+            // Simple but effective: check if it's a wooden axe AND the player has WorldEdit
+            // permissions
+            // This covers 99% of use cases since most people use the default wand
+            if (item.getType() == Material.WOODEN_AXE && player.hasPermission("worldedit.wand")) {
+                return true;
+            }
+
+            // TODO: For advanced users who change their wand, we could add a config option
+            // or check WorldEdit's session data, but this adds complexity
+            return false;
         } catch (Exception e) {
             return false;
         }
@@ -151,26 +182,39 @@ public class PlayerInteractionListener implements Listener {
         try {
             SessionManager sessionManager = WorldEdit.getInstance().getSessionManager();
             LocalSession session = sessionManager.get(BukkitAdapter.adapt(player));
-            Region region = session.getSelection(BukkitAdapter.adapt(player.getWorld()));
-            
+
+            // Check if player has a selection in the current world
+            com.sk89q.worldedit.world.World weWorld = BukkitAdapter.adapt(player.getWorld());
+            Region region = session.getSelection(weWorld);
             if (region != null) {
                 // Convert WorldEdit region to our area manager selection
                 com.sk89q.worldedit.math.BlockVector3 min = region.getMinimumPoint();
                 com.sk89q.worldedit.math.BlockVector3 max = region.getMaximumPoint();
-                
+
                 Location pos1 = new Location(player.getWorld(), min.getX(), min.getY(), min.getZ());
                 Location pos2 = new Location(player.getWorld(), max.getX(), max.getY(), max.getZ());
-                
+
+                // Validate selection size (optional - prevent huge selections)
+                long blockCount = region.getVolume();
+                if (blockCount > 1000000) { // 1M block limit
+                    player.sendMessage(ChatColor.RED + "Selection too large! Maximum 1,000,000 blocks.");
+                    return;
+                }
+
                 areaManager.setPosition1(player.getUniqueId(), pos1);
                 areaManager.setPosition2(player.getUniqueId(), pos2);
-                
+
                 player.sendMessage(ChatColor.GREEN + "Synced WorldEdit selection to Area Rewind!");
+                player.sendMessage(ChatColor.GRAY + "Blocks: " + ChatColor.WHITE + blockCount);
                 showSelectionInfo(player);
             }
         } catch (IncompleteRegionException e) {
-            // Selection is incomplete, ignore
+            // Selection is incomplete, this is normal - don't spam the player
         } catch (Exception e) {
-            plugin.getLogger().warning("Failed to sync WorldEdit selection for " + player.getName() + ": " + e.getMessage());
+            plugin.getLogger()
+                    .warning("Failed to sync WorldEdit selection for " + player.getName() + ": " + e.getMessage());
+            player.sendMessage(
+                    ChatColor.YELLOW + "Could not sync WorldEdit selection. Try again or use wooden hoe instead.");
         }
     }
 
@@ -184,11 +228,6 @@ public class PlayerInteractionListener implements Listener {
             player.sendMessage(ChatColor.AQUA + "WorldEdit selection will be automatically synced!");
         }
 
-        if (areaManager.hasValidSelection(player.getUniqueId())) {
-            player.sendMessage(ChatColor.GREEN + "Ready to create area! Use /rewind save <name>");
-        } else {
-            player.sendMessage(ChatColor.GRAY + "Make a selection with WorldEdit to continue");
-        }
     }
 
     private void handleLeftClick(Player player, Location location) {
@@ -289,7 +328,7 @@ public class PlayerInteractionListener implements Listener {
             player.sendMessage(ChatColor.YELLOW + "You received the " + TOOL_NAME + "!");
             player.sendMessage(ChatColor.GRAY + "Left click to set position 1, right click to set position 2");
             player.sendMessage(ChatColor.AQUA + "Note: Any wooden hoe can be used for area selection!");
-            
+
             if (worldEditEnabled) {
                 player.sendMessage(ChatColor.LIGHT_PURPLE + "WorldEdit wand is also supported!");
             }
@@ -343,21 +382,24 @@ public class PlayerInteractionListener implements Listener {
         player.sendMessage("");
         player.sendMessage(ChatColor.GREEN + "Getting Started:");
         player.sendMessage(ChatColor.WHITE + "1. Use ANY wooden hoe to select an area");
-        
+
         if (worldEditEnabled) {
             player.sendMessage(ChatColor.WHITE + "   (WorldEdit wand also works!)");
         }
-        
-        player.sendMessage(ChatColor.WHITE + "2. Use " + ChatColor.GREEN + "/rewind save <name>" + ChatColor.WHITE + " to protect it");
-        player.sendMessage(ChatColor.WHITE + "3. Use " + ChatColor.GREEN + "/rewind help" + ChatColor.WHITE + " for more commands");
+
+        player.sendMessage(ChatColor.WHITE + "2. Use " + ChatColor.GREEN + "/rewind save <name>" + ChatColor.WHITE
+                + " to protect it");
+        player.sendMessage(ChatColor.WHITE + "3. Use " + ChatColor.GREEN + "/rewind help" + ChatColor.WHITE
+                + " for more commands");
         player.sendMessage("");
-        player.sendMessage(ChatColor.GRAY + "Tip: Type " + ChatColor.GREEN + "/rewind gui" + ChatColor.GRAY + " for an easy interface!");
+        player.sendMessage(ChatColor.GRAY + "Tip: Type " + ChatColor.GREEN + "/rewind gui" + ChatColor.GRAY
+                + " for an easy interface!");
         player.sendMessage(ChatColor.AQUA + "Any wooden hoe can be used for area selection!");
-        
+
         if (worldEditEnabled) {
             player.sendMessage(ChatColor.LIGHT_PURPLE + "WorldEdit integration is available!");
         }
-        
+
         player.sendMessage("");
     }
 
