@@ -40,20 +40,19 @@ public class BackupManager {
             Material.LECTERN, Material.CARTOGRAPHY_TABLE, Material.FLETCHING_TABLE,
             Material.SMITHING_TABLE, Material.LOOM, Material.STONECUTTER,
             Material.GRINDSTONE, Material.BARREL, Material.SMOKER, Material.BLAST_FURNACE,
-            Material.FURNACE, Material.BREWING_STAND, Material.COMPOSTER, Material.BELL
-    );
+            Material.FURNACE, Material.BREWING_STAND, Material.COMPOSTER, Material.BELL);
 
     private final Set<Material> BED_BLOCKS = Set.of(
             Material.WHITE_BED, Material.ORANGE_BED, Material.MAGENTA_BED, Material.LIGHT_BLUE_BED,
             Material.YELLOW_BED, Material.LIME_BED, Material.PINK_BED, Material.GRAY_BED,
             Material.LIGHT_GRAY_BED, Material.CYAN_BED, Material.PURPLE_BED, Material.BLUE_BED,
-            Material.BROWN_BED, Material.GREEN_BED, Material.RED_BED, Material.BLACK_BED
-    );
+            Material.BROWN_BED, Material.GREEN_BED, Material.RED_BED, Material.BLACK_BED);
 
     private BlockInfo createBlockInfo(Block block) {
         try {
             if (!Bukkit.isPrimaryThread()) {
-                plugin.getLogger().warning("createBlockInfo called from async thread for block at " + block.getLocation());
+                plugin.getLogger()
+                        .warning("createBlockInfo called from async thread for block at " + block.getLocation());
                 return new BlockInfo(block.getType(), block.getBlockData());
             }
 
@@ -65,14 +64,12 @@ public class BackupManager {
                     if (banner.getPatterns() != null) {
                         blockInfo.setBannerPatterns(new ArrayList<>(banner.getPatterns()));
                     }
-                }
-                else if (block.getState() instanceof Sign) {
+                } else if (block.getState() instanceof Sign) {
                     Sign sign = (Sign) block.getState();
                     if (sign.getLines() != null) {
                         blockInfo.setSignLines(sign.getLines());
                     }
-                }
-                else if (block.getState() instanceof org.bukkit.block.Container) {
+                } else if (block.getState() instanceof org.bukkit.block.Container) {
                     org.bukkit.block.Container container = (org.bukkit.block.Container) block.getState();
                     if (container.getInventory() != null) {
                         ItemStack[] contents = container.getInventory().getContents();
@@ -82,14 +79,12 @@ public class BackupManager {
                                 block.getLocation() + " has " + (contents != null ? contents.length : 0) +
                                 " slots with items: " + getContainerSummary(contents));
                     }
-                }
-                else if (block.getState() instanceof org.bukkit.block.Jukebox) {
+                } else if (block.getState() instanceof org.bukkit.block.Jukebox) {
                     org.bukkit.block.Jukebox jukebox = (org.bukkit.block.Jukebox) block.getState();
                     if (jukebox.getRecord() != null) {
                         blockInfo.setJukeboxRecord(jukebox.getRecord());
                     }
-                }
-                else if (block.getState() instanceof org.bukkit.block.Skull) {
+                } else if (block.getState() instanceof org.bukkit.block.Skull) {
                     org.bukkit.block.Skull skull = (org.bukkit.block.Skull) block.getState();
                     if (skull.getOwningPlayer() != null) {
                         blockInfo.setSkullOwner(skull.getOwningPlayer().getName());
@@ -268,8 +263,7 @@ public class BackupManager {
                 Banner banner = (Banner) block.getState();
                 banner.setPatterns(info.getBannerPatterns());
                 banner.update(true, false);
-            }
-            else if (block.getState() instanceof Sign && info.getSignLines() != null) {
+            } else if (block.getState() instanceof Sign && info.getSignLines() != null) {
                 Sign sign = (Sign) block.getState();
                 String[] lines = info.getSignLines();
                 for (int i = 0; i < lines.length && i < 4; i++) {
@@ -278,13 +272,11 @@ public class BackupManager {
                     }
                 }
                 sign.update(true, false);
-            }
-            else if (block.getState() instanceof org.bukkit.block.Jukebox && info.getJukeboxRecord() != null) {
+            } else if (block.getState() instanceof org.bukkit.block.Jukebox && info.getJukeboxRecord() != null) {
                 org.bukkit.block.Jukebox jukebox = (org.bukkit.block.Jukebox) block.getState();
                 jukebox.setRecord(info.getJukeboxRecord());
                 jukebox.update(true, false);
-            }
-            else if (block.getState() instanceof org.bukkit.block.Skull && info.getSkullOwner() != null) {
+            } else if (block.getState() instanceof org.bukkit.block.Skull && info.getSkullOwner() != null) {
                 org.bukkit.block.Skull skull = (org.bukkit.block.Skull) block.getState();
                 org.bukkit.OfflinePlayer owner = Bukkit.getOfflinePlayer(info.getSkullOwner());
                 skull.setOwningPlayer(owner);
@@ -345,8 +337,7 @@ public class BackupManager {
                                     entity.getLocation().getBlockY() + "_" +
                                     entity.getLocation().getBlockZ();
                             entities.put(key, frameData);
-                        }
-                        else if (entity instanceof org.bukkit.entity.ArmorStand) {
+                        } else if (entity instanceof org.bukkit.entity.ArmorStand) {
                         }
                     });
 
@@ -358,7 +349,8 @@ public class BackupManager {
     }
 
     public void restoreEntitiesInArea(ProtectedArea area, Map<String, Object> entityData) {
-        if (entityData == null || entityData.isEmpty()) return;
+        if (entityData == null || entityData.isEmpty())
+            return;
 
         Location min = area.getMin();
         Location max = area.getMax();
@@ -387,19 +379,21 @@ public class BackupManager {
                     Location loc = new Location(world, x, y, z);
                     org.bukkit.block.BlockFace facing = org.bukkit.block.BlockFace.valueOf((String) data.get("facing"));
 
-                    org.bukkit.entity.ItemFrame frame = world.spawn(loc, org.bukkit.entity.ItemFrame.class, itemFrame -> {
-                        itemFrame.setFacingDirection(facing);
+                    org.bukkit.entity.ItemFrame frame = world.spawn(loc, org.bukkit.entity.ItemFrame.class,
+                            itemFrame -> {
+                                itemFrame.setFacingDirection(facing);
 
-                        if (data.containsKey("rotation")) {
-                            org.bukkit.Rotation rotation = org.bukkit.Rotation.valueOf((String) data.get("rotation"));
-                            itemFrame.setRotation(rotation);
-                        }
+                                if (data.containsKey("rotation")) {
+                                    org.bukkit.Rotation rotation = org.bukkit.Rotation
+                                            .valueOf((String) data.get("rotation"));
+                                    itemFrame.setRotation(rotation);
+                                }
 
-                        if (data.containsKey("item")) {
-                            ItemStack item = (ItemStack) data.get("item");
-                            itemFrame.setItem(item);
-                        }
-                    });
+                                if (data.containsKey("item")) {
+                                    ItemStack item = (ItemStack) data.get("item");
+                                    itemFrame.setItem(item);
+                                }
+                            });
 
                     plugin.getLogger().fine("Restored item frame at " + loc + " with item: " +
                             (frame.getItem() != null ? frame.getItem().getType() : "none"));
@@ -501,7 +495,8 @@ public class BackupManager {
     }
 
     private String getContainerSummary(ItemStack[] contents) {
-        if (contents == null) return "empty";
+        if (contents == null)
+            return "empty";
 
         int itemCount = 0;
         Map<Material, Integer> materialCounts = new HashMap<>();
@@ -514,14 +509,16 @@ public class BackupManager {
             }
         }
 
-        if (itemCount == 0) return "empty";
+        if (itemCount == 0)
+            return "empty";
 
         StringBuilder summary = new StringBuilder();
         summary.append(itemCount).append(" items (");
 
         int count = 0;
         for (Map.Entry<Material, Integer> entry : materialCounts.entrySet()) {
-            if (count > 0) summary.append(", ");
+            if (count > 0)
+                summary.append(", ");
             summary.append(entry.getKey()).append(" x").append(entry.getValue());
             count++;
             if (count >= 3) {
@@ -592,7 +589,8 @@ public class BackupManager {
 
     public boolean restoreArea(String areaName, ProtectedArea area, int backupIndex) {
         AreaBackup backup = getBackup(areaName, backupIndex);
-        if (backup == null) return false;
+        if (backup == null)
+            return false;
 
         createBackup(areaName, area);
 
@@ -648,7 +646,8 @@ public class BackupManager {
 
     public AreaBackup findClosestBackup(String areaName, LocalDateTime targetTime) {
         List<AreaBackup> backups = backupHistory.get(areaName);
-        if (backups == null || backups.isEmpty()) return null;
+        if (backups == null || backups.isEmpty())
+            return null;
 
         AreaBackup closestBackup = null;
         long closestDiff = Long.MAX_VALUE;
@@ -665,7 +664,8 @@ public class BackupManager {
     }
 
     public int cleanupBackups(String areaName, int daysOld) {
-        if (!backupHistory.containsKey(areaName)) return 0;
+        if (!backupHistory.containsKey(areaName))
+            return 0;
 
         List<AreaBackup> backups = backupHistory.get(areaName);
         LocalDateTime cutoffTime = LocalDateTime.now().minusDays(daysOld);
@@ -847,11 +847,16 @@ public class BackupManager {
             int amount = Integer.parseInt(timeStr.substring(0, timeStr.length() - 1));
 
             switch (unit) {
-                case 'm': return amount;
-                case 'h': return amount * 60L;
-                case 'd': return amount * 60L * 24;
-                case 'w': return amount * 60L * 24 * 7;
-                default: return -1;
+                case 'm':
+                    return amount;
+                case 'h':
+                    return amount * 60L;
+                case 'd':
+                    return amount * 60L * 24;
+                case 'w':
+                    return amount * 60L * 24 * 7;
+                default:
+                    return -1;
             }
         } catch (Exception e) {
             return -1;
@@ -872,15 +877,19 @@ public class BackupManager {
     }
 
     private String formatFileSize(long bytes) {
-        if (bytes < 1024) return bytes + " B";
-        if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
-        if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
+        if (bytes < 1024)
+            return bytes + " B";
+        if (bytes < 1024 * 1024)
+            return String.format("%.1f KB", bytes / 1024.0);
+        if (bytes < 1024 * 1024 * 1024)
+            return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
         return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
     }
 
     public int getUndoPointer(String areaName) {
         List<AreaBackup> backups = backupHistory.get(areaName);
-        if (backups == null) return -1;
+        if (backups == null)
+            return -1;
         return undoPointers.getOrDefault(areaName, backups.size() - 1);
     }
 
@@ -890,7 +899,8 @@ public class BackupManager {
 
     public boolean canRedo(String areaName) {
         List<AreaBackup> backups = backupHistory.get(areaName);
-        if (backups == null) return false;
+        if (backups == null)
+            return false;
         return getUndoPointer(areaName) < backups.size() - 1;
     }
 }
