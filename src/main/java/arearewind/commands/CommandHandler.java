@@ -654,9 +654,9 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Open the new enhanced main menu
-        guiManager.openMainMenu(player);
-        player.sendMessage(ChatColor.GREEN + "Opening AreaRewind main menu...");
+        // Open the protected areas GUI as the main menu
+        guiManager.openAreasGUI(player);
+        player.sendMessage(ChatColor.GREEN + "Opening AreaRewind areas menu...");
         return true;
     }
 
