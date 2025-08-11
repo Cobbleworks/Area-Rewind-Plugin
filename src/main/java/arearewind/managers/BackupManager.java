@@ -596,8 +596,8 @@ public class BackupManager {
 
         restoreFromBackup(area, backup);
 
-        List<AreaBackup> backups = backupHistory.get(areaName);
-        undoPointers.put(areaName, backups.size() - 1);
+        // Set the undo pointer to the backup that was actually restored from
+        undoPointers.put(areaName, backupIndex);
 
         return true;
     }
