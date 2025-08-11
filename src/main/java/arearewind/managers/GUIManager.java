@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -202,6 +203,14 @@ public class GUIManager implements Listener {
 
         if (!openGUIs.containsKey(player.getUniqueId())) return;
 
+        // Only cancel clicks in the plugin's GUI, not the player's inventory
+        if (event.getClickedInventory() == null || 
+            !event.getView().getTitle().contains("Protected Areas") && 
+            !event.getView().getTitle().contains("Backups:") && 
+            !event.getView().getTitle().contains("Info:")) {
+            return;
+        }
+
         event.setCancelled(true);
 
         String guiType = openGUIs.get(player.getUniqueId());
@@ -215,6 +224,20 @@ public class GUIManager implements Listener {
             handleBackupsGUIClick(player, event, guiType.substring(8));
         } else if (guiType.startsWith("info:")) {
             handleInfoGUIClick(player, event, guiType.substring(5));
+        }
+    }
+
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player)) return;
+        Player player = (Player) event.getPlayer();
+        
+        // Check if the closed inventory is one of our plugin GUIs
+        String title = event.getView().getTitle();
+        if (title.contains("Protected Areas") || 
+            title.contains("Backups:") || 
+            title.contains("Info:")) {
+            openGUIs.remove(player.getUniqueId());
         }
     }
 
