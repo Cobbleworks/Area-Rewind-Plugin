@@ -87,7 +87,7 @@ See `LICENSE` file for details.
 
 Below is a guide to the main components of the plugin and where to modify each part:
 
-- **Enhanced GUI System:**
+- **Modern GUI System:**
 
   - Location: `src/main/java/arearewind/gui/`
     - `EnhancedGUIManager.java`: Coordinates the new GUI system
@@ -95,10 +95,10 @@ Below is a guide to the main components of the plugin and where to modify each p
     - `menus/`: Specific menu implementations for different features
   - Description: Comprehensive graphical interface system providing intuitive access to all plugin features. The new system includes a main menu, area management with creation wizards, advanced backup management, permission interfaces, and administrative tools. All functionality is accessible through easy-to-navigate menus with visual feedback and confirmation dialogs.
 
-- **Legacy GUI (Backwards Compatibility):**
+- **GUI Manager (Integration Layer):**
 
   - Location: `src/main/java/arearewind/managers/GUIManager.java`
-  - Description: Original GUI implementation maintained for backwards compatibility. Now integrates with the enhanced GUI system while preserving existing functionality.
+  - Description: Clean integration layer that delegates to the enhanced GUI system while maintaining backwards compatibility. All legacy GUI code has been removed in favor of the modern, modular approach.
 
 - **Core Functionality:**
 

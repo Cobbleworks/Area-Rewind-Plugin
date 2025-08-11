@@ -614,7 +614,10 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             player.sendMessage(ChatColor.RED + "You don't have permission to use the GUI!");
             return true;
         }
-        guiManager.openAreasGUI(player);
+        
+        // Open the new enhanced main menu
+        guiManager.openMainMenu(player);
+        player.sendMessage(ChatColor.GREEN + "Opening AreaRewind main menu...");
         return true;
     }
 
