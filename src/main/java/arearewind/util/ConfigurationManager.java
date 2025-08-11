@@ -13,6 +13,8 @@ public class ConfigurationManager {
     private boolean autoBackupEnabled = true;
     private int rateLimitCooldown = 1000;
     private int visualizationParticleDistance = 50;
+    private boolean woodenHoeEnabled = false;
+    private boolean woodenHoeAutoFallback = true;
 
     public ConfigurationManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -31,6 +33,8 @@ public class ConfigurationManager {
             autoBackupEnabled = config.getBoolean("backup.auto-backup", true);
             rateLimitCooldown = config.getInt("performance.rate-limit-cooldown", 1000);
             visualizationParticleDistance = config.getInt("visualization.particle-distance", 50);
+            woodenHoeEnabled = config.getBoolean("selection.wooden-hoe.enabled", false);
+            woodenHoeAutoFallback = config.getBoolean("selection.wooden-hoe.auto-fallback", true);
 
             plugin.getLogger().info("Configuration loaded successfully");
             plugin.getLogger().info("Auto-backup: " + (autoBackupEnabled ? "enabled" : "disabled"));
@@ -47,6 +51,8 @@ public class ConfigurationManager {
             autoBackupEnabled = true;
             rateLimitCooldown = 1000;
             visualizationParticleDistance = 50;
+            woodenHoeEnabled = false;
+            woodenHoeAutoFallback = true;
         }
     }
 
@@ -55,11 +61,45 @@ public class ConfigurationManager {
         loadConfiguration();
     }
 
-    public int getBackupInterval() { return backupInterval; }
-    public int getMaxBackupsPerArea() { return maxBackupsPerArea; }
-    public int getMaxAreaSize() { return maxAreaSize; }
-    public boolean isCompressionEnabled() { return compressionEnabled; }
-    public boolean isAutoBackupEnabled() { return autoBackupEnabled; }
-    public int getRateLimitCooldown() { return rateLimitCooldown; }
-    public int getVisualizationParticleDistance() { return visualizationParticleDistance; }
+    public int getBackupInterval() {
+        return backupInterval;
+    }
+
+    public int getMaxBackupsPerArea() {
+        return maxBackupsPerArea;
+    }
+
+    public int getMaxAreaSize() {
+        return maxAreaSize;
+    }
+
+    public boolean isCompressionEnabled() {
+        return compressionEnabled;
+    }
+
+    public boolean isAutoBackupEnabled() {
+        return autoBackupEnabled;
+    }
+
+    public int getRateLimitCooldown() {
+        return rateLimitCooldown;
+    }
+
+    public int getVisualizationParticleDistance() {
+        return visualizationParticleDistance;
+    }
+
+    public boolean isWoodenHoeEnabled() {
+        return woodenHoeEnabled;
+    }
+
+    public boolean isWoodenHoeAutoFallbackEnabled() {
+        return woodenHoeAutoFallback;
+    }
+
+    public void setWoodenHoeEnabled(boolean enabled) {
+        this.woodenHoeEnabled = enabled;
+        config.set("selection.wooden-hoe.enabled", enabled);
+        plugin.saveConfig();
+    }
 }

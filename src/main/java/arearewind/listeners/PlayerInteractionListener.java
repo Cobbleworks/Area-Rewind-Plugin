@@ -2,6 +2,7 @@ package arearewind.listeners;
 
 import arearewind.managers.AreaManager;
 import arearewind.managers.PermissionManager;
+import arearewind.util.ConfigurationManager;
 import com.sk89q.worldedit.IncompleteRegionException;
 import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.WorldEdit;
@@ -33,7 +34,9 @@ public class PlayerInteractionListener implements Listener {
 
     private final JavaPlugin plugin;
     private final AreaManager areaManager;
+    private final ConfigurationManager configManager;
     private final Map<UUID, Long> lastToolUsage = new HashMap<>();
+    private final Map<UUID, Boolean> playerWoodenHoeEnabled = new HashMap<>(); // Per-player wooden hoe override
     private static final long TOOL_COOLDOWN = 100;
     private static final Material SELECTION_TOOL = Material.WOODEN_HOE;
     private static final String TOOL_NAME = "Area Selection Tool";
@@ -42,9 +45,10 @@ public class PlayerInteractionListener implements Listener {
     private WorldEditPlugin worldEditPlugin;
     private boolean worldEditEnabled = false;
 
-    public PlayerInteractionListener(JavaPlugin plugin, AreaManager areaManager) {
+    public PlayerInteractionListener(JavaPlugin plugin, AreaManager areaManager, ConfigurationManager configManager) {
         this.plugin = plugin;
         this.areaManager = areaManager;
+        this.configManager = configManager;
         initializeWorldEdit();
     }
 
@@ -61,13 +65,59 @@ public class PlayerInteractionListener implements Listener {
         }
     }
 
+    private boolean isWoodenHoeEnabledForPlayer(Player player) {
+        UUID playerId = player.getUniqueId();
+
+        // Check if player has explicitly enabled/disabled wooden hoe mode
+        if (playerWoodenHoeEnabled.containsKey(playerId)) {
+            return playerWoodenHoeEnabled.get(playerId);
+        }
+
+        // Check global config setting
+        if (configManager.isWoodenHoeEnabled()) {
+            return true;
+        }
+
+        // Check auto-fallback setting if WorldEdit is not available or failed
+        if (configManager.isWoodenHoeAutoFallbackEnabled()) {
+            return !worldEditEnabled || hasWorldEditFailed(player);
+        }
+
+        return false;
+    }
+
+    private boolean hasWorldEditFailed(Player player) {
+        // This could be enhanced to track WorldEdit failures per player
+        // For now, just check if WorldEdit is enabled
+        return !worldEditEnabled;
+    }
+
+    public void setPlayerWoodenHoeMode(Player player, boolean enabled) {
+        playerWoodenHoeEnabled.put(player.getUniqueId(), enabled);
+
+        String status = enabled ? "enabled" : "disabled";
+        player.sendMessage(ChatColor.GREEN + "Wooden hoe selection " + status + " for you!");
+
+        if (enabled) {
+            player.sendMessage(ChatColor.GRAY + "You can now use wooden hoes for area selection.");
+            giveSelectionToolIfNeeded(player);
+        } else {
+            player.sendMessage(
+                    ChatColor.GRAY + "Wooden hoe selection disabled. WorldEdit wand will be used if available.");
+        }
+    }
+
+    public boolean getPlayerWoodenHoeMode(Player player) {
+        return isWoodenHoeEnabledForPlayer(player);
+    }
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = (Player) event.getPlayer();
         ItemStack item = player.getInventory().getItemInMainHand();
 
         // Check if it's our selection tool or WorldEdit wand
-        boolean isOurTool = item != null && item.getType() == SELECTION_TOOL;
+        boolean isOurTool = item != null && item.getType() == SELECTION_TOOL && isWoodenHoeEnabledForPlayer(player);
         boolean isWorldEditWand = worldEditEnabled && isWorldEditWand(player, item);
 
         if (!isOurTool && !isWorldEditWand) {
@@ -109,7 +159,7 @@ public class PlayerInteractionListener implements Listener {
 
         Location clickedLocation = event.getClickedBlock().getLocation();
 
-        // Handle our tool interactions
+        // Handle our tool interactions (only if wooden hoe is enabled for this player)
         if (isOurTool) {
             if (event.getAction().name().contains("LEFT")) {
                 handleLeftClick(player, clickedLocation);
@@ -316,6 +366,11 @@ public class PlayerInteractionListener implements Listener {
     }
 
     private void giveSelectionToolIfNeeded(Player player) {
+        // Only give tool if wooden hoe mode is enabled for this player
+        if (!isWoodenHoeEnabledForPlayer(player)) {
+            return;
+        }
+
         for (ItemStack item : player.getInventory().getContents()) {
             if (item != null && item.getType() == SELECTION_TOOL) {
                 return;
