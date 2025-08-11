@@ -10,7 +10,14 @@ AreaRewind is a powerful Minecraft plugin that allows server administrators and 
 
 - **Protected Areas**: Create, manage, and delete protected regions.
 - **Backups**: Create backups of areas, restore previous states, preview and compare backups, undo/redo changes.
-- **GUI**: User-friendly graphical interface for area and backup management.
+- **Enhanced GUI System**: Comprehensive graphical interface with:
+  - Main menu with categorized access to all features
+  - Area management with creation wizard and quick actions
+  - Advanced backup management with visual timeline
+  - Permission and trust management interfaces
+  - Visualization controls and boundary editing
+  - Import/export functionality
+  - Administrative tools and settings
 - **Permissions**: Fine-grained permission system for all plugin features, including area creation, deletion, backup, restore, trust management, visualization, import/export, and GUI access.
 - **Trusted Players**: Manage trusted players for each area.
 - **Visualization**: Visualize area boundaries and states.
@@ -80,10 +87,18 @@ See `LICENSE` file for details.
 
 Below is a guide to the main components of the plugin and where to modify each part:
 
-- **GUI (Graphical User Interface):**
+- **Enhanced GUI System:**
 
-  - Location: `src/main/java/arearewind/managers/GUIManager.java` and related files in `gui/`
-  - Description: Handles all in-game menus, inventory GUIs, and user interactions. Modify here to change how the plugin presents information and options to players.
+  - Location: `src/main/java/arearewind/gui/`
+    - `EnhancedGUIManager.java`: Coordinates the new GUI system
+    - `utils/`: Base classes, item builders, and GUI utilities
+    - `menus/`: Specific menu implementations for different features
+  - Description: Comprehensive graphical interface system providing intuitive access to all plugin features. The new system includes a main menu, area management with creation wizards, advanced backup management, permission interfaces, and administrative tools. All functionality is accessible through easy-to-navigate menus with visual feedback and confirmation dialogs.
+
+- **Legacy GUI (Backwards Compatibility):**
+
+  - Location: `src/main/java/arearewind/managers/GUIManager.java`
+  - Description: Original GUI implementation maintained for backwards compatibility. Now integrates with the enhanced GUI system while preserving existing functionality.
 
 - **Core Functionality:**
 
