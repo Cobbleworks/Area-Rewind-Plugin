@@ -6,6 +6,7 @@ import arearewind.util.ConfigurationManager;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.Particle;
 
 import java.util.Arrays;
 import java.util.List;
@@ -52,14 +53,36 @@ public class PreviewCommand extends BaseCommand {
         }
 
         try {
-            // Using existing visualization methods
-            player.sendMessage(
-                    ChatColor.YELLOW + "Preview functionality is not yet implemented in VisualizationManager");
-            player.sendMessage(ChatColor.GRAY + "Showing basic area visualization instead...");
+            // Get area and backup
+            arearewind.data.ProtectedArea area = areaManager.getArea(areaName);
+            if (area == null) {
+                player.sendMessage(ChatColor.RED + "Area not found!");
+                return true;
+            }
+            arearewind.data.AreaBackup backup = backupManager.getBackup(areaName, backupId);
+            if (backup == null) {
+                player.sendMessage(ChatColor.RED + "Backup not found!");
+                return true;
+            }
 
-            // Use existing visualization if available
-            player.sendMessage(ChatColor.GREEN + "Would show preview of " + areaName +
-                    " (backup " + backupId + ") with " + particleType + " particles");
+            // Set particle type
+            Particle particle;
+            try {
+                particle = Particle.valueOf(particleType);
+            } catch (IllegalArgumentException e) {
+                particle = Particle.FLAME;
+                player.sendMessage(ChatColor.RED + "Unknown particle type, using default: FLAME");
+            }
+            visualizationManager.setPlayerParticle(player, particle);
+
+            // Show backup preview
+            boolean toggled = visualizationManager.toggleBackupPreview(player, backup, area);
+            if (toggled) {
+                player.sendMessage(ChatColor.GREEN + "Showing preview of " + areaName +
+                        " (backup " + backupId + ") with " + particleType + " particles");
+            } else {
+                player.sendMessage(ChatColor.YELLOW + "Preview hidden for " + areaName);
+            }
         } catch (Exception e) {
             player.sendMessage(ChatColor.RED + "Error showing preview: " + e.getMessage());
         }
