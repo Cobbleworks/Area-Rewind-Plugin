@@ -1,4 +1,5 @@
 package arearewind;
+
 import arearewind.listeners.PlayerInteractionListener;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -35,7 +36,10 @@ public class AreaRewindPlugin extends JavaPlugin {
         visualizationManager = new VisualizationManager(this, areaManager);
         commandHandler = new CommandHandler(this, areaManager, backupManager,
                 guiManager, visualizationManager, permissionManager, configManager);
-        playerListener = new PlayerInteractionListener(this, areaManager);
+        playerListener = new PlayerInteractionListener(this, areaManager, configManager);
+
+        // Set the player listener reference in the command handler for tool commands
+        commandHandler.setPlayerInteractionListener(playerListener);
         areaManager.loadAreas();
         backupManager.loadBackups();
         this.getCommand("rewind").setExecutor(commandHandler);
@@ -68,11 +72,31 @@ public class AreaRewindPlugin extends JavaPlugin {
         return commandHandler.onTabComplete(sender, command, alias, args);
     }
 
-    public ConfigurationManager getConfigManager() { return configManager; }
-    public AreaManager getAreaManager() { return areaManager; }
-    public BackupManager getBackupManager() { return backupManager; }
-    public FileManager getFileManager() { return fileManager; }
-    public GUIManager getGUIManager() { return guiManager; }
-    public VisualizationManager getVisualizationManager() { return visualizationManager; }
-    public PermissionManager getPermissionManager() { return permissionManager; }
+    public ConfigurationManager getConfigManager() {
+        return configManager;
+    }
+
+    public AreaManager getAreaManager() {
+        return areaManager;
+    }
+
+    public BackupManager getBackupManager() {
+        return backupManager;
+    }
+
+    public FileManager getFileManager() {
+        return fileManager;
+    }
+
+    public GUIManager getGUIManager() {
+        return guiManager;
+    }
+
+    public VisualizationManager getVisualizationManager() {
+        return visualizationManager;
+    }
+
+    public PermissionManager getPermissionManager() {
+        return permissionManager;
+    }
 }

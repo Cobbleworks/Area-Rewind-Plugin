@@ -10,6 +10,7 @@ import arearewind.managers.IntervalManager;
 import arearewind.managers.PermissionManager;
 import arearewind.managers.FileManager;
 import arearewind.util.ConfigurationManager;
+import arearewind.listeners.PlayerInteractionListener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -39,11 +40,12 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
     private final ConfigurationManager configManager;
     private final FileManager fileManager;
     private final IntervalManager intervalManager;
+    private PlayerInteractionListener playerInteractionListener;
     private final Map<UUID, Long> lastUsage = new HashMap<>();
 
     public CommandHandler(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
-                          GUIManager guiManager, VisualizationManager visualizationManager,
-                          PermissionManager permissionManager, ConfigurationManager configManager) {
+            GUIManager guiManager, VisualizationManager visualizationManager,
+            PermissionManager permissionManager, ConfigurationManager configManager) {
         this.plugin = plugin;
         this.areaManager = areaManager;
         this.backupManager = backupManager;
@@ -76,37 +78,73 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         }
 
         switch (args[0].toLowerCase()) {
-            case "pos1": return handlePos1(player, args);
-            case "pos2": return handlePos2(player, args);
-            case "contract": return handleContract(player, args);
-            case "save": return handleSave(player, args);
-            case "delete": return handleDelete(player, args);
-            case "particle": case "particles": return handleParticle(player, args);
-            case "rename": return handleRename(player, args);
-            case "list": return handleList(player, args);
-            case "info": return handleInfo(player, args);
-            case "teleport": case "tp": return handleTeleport(player, args);
-            case "backup": return handleBackup(player, args);
-            case "restore": return handleRestore(player, args);
-            case "rollback": return handleRollback(player, args);
-            case "undo": return handleUndo(player, args);
-            case "redo": return handleRedo(player, args);
-            case "history": return handleHistory(player, args);
-            case "cleanup": return handleCleanup(player, args);
-            case "scan": return handleScan(player, args);
-            case "diff": return handleDiff(player, args);
-            case "compare": return handleCompare(player, args);
-            case "preview": return handlePreview(player, args);
-            case "trust": return handleTrust(player, args);
-            case "untrust": return handleUntrust(player, args);
-            case "permissions": return handlePermissions(player, args);
-            case "show": return handleShow(player, args);
-            case "hide": return handleHide(player, args);
-            case "gui": case "menu": return handleGUI(player, args);
-            case "interval": return handleInterval(player, args);
-            case "status": return handleStatus(player, args);
-            case "reload": return handleReload(player, args);
-            case "help": return sendHelp(player);
+            case "pos1":
+                return handlePos1(player, args);
+            case "pos2":
+                return handlePos2(player, args);
+            case "contract":
+                return handleContract(player, args);
+            case "save":
+                return handleSave(player, args);
+            case "delete":
+                return handleDelete(player, args);
+            case "particle":
+            case "particles":
+                return handleParticle(player, args);
+            case "rename":
+                return handleRename(player, args);
+            case "list":
+                return handleList(player, args);
+            case "info":
+                return handleInfo(player, args);
+            case "teleport":
+            case "tp":
+                return handleTeleport(player, args);
+            case "backup":
+                return handleBackup(player, args);
+            case "restore":
+                return handleRestore(player, args);
+            case "rollback":
+                return handleRollback(player, args);
+            case "undo":
+                return handleUndo(player, args);
+            case "redo":
+                return handleRedo(player, args);
+            case "history":
+                return handleHistory(player, args);
+            case "cleanup":
+                return handleCleanup(player, args);
+            case "scan":
+                return handleScan(player, args);
+            case "diff":
+                return handleDiff(player, args);
+            case "compare":
+                return handleCompare(player, args);
+            case "preview":
+                return handlePreview(player, args);
+            case "trust":
+                return handleTrust(player, args);
+            case "untrust":
+                return handleUntrust(player, args);
+            case "permissions":
+                return handlePermissions(player, args);
+            case "show":
+                return handleShow(player, args);
+            case "hide":
+                return handleHide(player, args);
+            case "gui":
+            case "menu":
+                return handleGUI(player, args);
+            case "interval":
+                return handleInterval(player, args);
+            case "status":
+                return handleStatus(player, args);
+            case "reload":
+                return handleReload(player, args);
+            case "tool":
+                return handleTool(player, args);
+            case "help":
+                return sendHelp(player);
             default:
                 player.sendMessage(ChatColor.RED + "Unknown command! Use /rewind help");
         }
@@ -180,7 +218,6 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         return true;
     }
 
-
     private boolean handleSave(Player player, String[] args) {
         if (args.length < 2) {
             player.sendMessage(ChatColor.RED + "Usage: /rewind save <name>");
@@ -229,8 +266,10 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 } catch (Exception e) {
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         player.sendMessage(ChatColor.RED + "✗ Failed to create backup for area '" + name + "'!");
-                        player.sendMessage(ChatColor.GRAY + "Area was created but backup failed. Check console for details.");
-                        plugin.getLogger().warning("Failed to create backup for area '" + name + "': " + e.getMessage());
+                        player.sendMessage(
+                                ChatColor.GRAY + "Area was created but backup failed. Check console for details.");
+                        plugin.getLogger()
+                                .warning("Failed to create backup for area '" + name + "': " + e.getMessage());
                     });
                 }
             });
@@ -614,7 +653,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             player.sendMessage(ChatColor.RED + "You don't have permission to use the GUI!");
             return true;
         }
-        
+
         // Open the new enhanced main menu
         guiManager.openMainMenu(player);
         player.sendMessage(ChatColor.GREEN + "Opening AreaRewind main menu...");
@@ -647,7 +686,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 player.sendMessage(ChatColor.YELLOW + "No auto-restore interval set for '" + areaName + "'");
             } else {
                 player.sendMessage(ChatColor.GREEN + "Auto-restore interval for '" + areaName + "':");
-                player.sendMessage(ChatColor.WHITE + "Every " + config.minutes + " minutes, restore to backup " + config.backupId);
+                player.sendMessage(
+                        ChatColor.WHITE + "Every " + config.minutes + " minutes, restore to backup " + config.backupId);
             }
             return true;
         }
@@ -700,7 +740,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             AreaBackup backup = backups.get(backupId);
             player.sendMessage(ChatColor.GREEN + "Auto-restore interval set for '" + areaName + "':");
             player.sendMessage(ChatColor.WHITE + "Every " + minutes + " minutes, restore to backup " + backupId);
-            player.sendMessage(ChatColor.GRAY + "Backup from: " + backup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            player.sendMessage(ChatColor.GRAY + "Backup from: "
+                    + backup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         } else {
             player.sendMessage(ChatColor.RED + "Failed to set interval!");
         }
@@ -744,7 +785,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
     private boolean isRateLimited(Player player) {
         long now = System.currentTimeMillis();
         long last = lastUsage.getOrDefault(player.getUniqueId(), 0L);
-        if (now - last < 2000) return true;
+        if (now - last < 2000)
+            return true;
         return false;
     }
 
@@ -760,8 +802,10 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         player.sendMessage(ChatColor.YELLOW + "/rewind scan|diff|compare|preview|particle");
         player.sendMessage(ChatColor.YELLOW + "/rewind trust|untrust|permissions");
         player.sendMessage(ChatColor.YELLOW + "/rewind show|hide|gui|interval|status|reload");
+        player.sendMessage(ChatColor.YELLOW + "/rewind tool [enable|disable|toggle|status]");
         player.sendMessage(ChatColor.GRAY + "Preview: /rewind preview <area> <id> (toggle on/off)");
         player.sendMessage(ChatColor.GRAY + "Particle: /rewind particle <name> (default: flame)");
+        player.sendMessage(ChatColor.GRAY + "Tool: Manage wooden hoe selection mode");
         return true;
     }
 
@@ -807,22 +851,27 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         }
         List<AreaBackup> backups = backupManager.getBackupHistory(areaName);
         player.sendMessage(ChatColor.GOLD + "=== Area Info: " + areaName + " ===");
-        player.sendMessage(ChatColor.GREEN + "Owner: " + ChatColor.WHITE + Bukkit.getOfflinePlayer(area.getOwner()).getName());
+        player.sendMessage(
+                ChatColor.GREEN + "Owner: " + ChatColor.WHITE + Bukkit.getOfflinePlayer(area.getOwner()).getName());
         player.sendMessage(ChatColor.GREEN + "World: " + ChatColor.WHITE + area.getPos1().getWorld().getName());
-        player.sendMessage(ChatColor.GREEN + "Position 1: " + ChatColor.WHITE + areaManager.locationToString(area.getPos1()));
-        player.sendMessage(ChatColor.GREEN + "Position 2: " + ChatColor.WHITE + areaManager.locationToString(area.getPos2()));
+        player.sendMessage(
+                ChatColor.GREEN + "Position 1: " + ChatColor.WHITE + areaManager.locationToString(area.getPos1()));
+        player.sendMessage(
+                ChatColor.GREEN + "Position 2: " + ChatColor.WHITE + areaManager.locationToString(area.getPos2()));
         player.sendMessage(ChatColor.GREEN + "Size: " + ChatColor.WHITE + area.getSize() + " blocks");
         player.sendMessage(ChatColor.GREEN + "Backups: " + ChatColor.WHITE + backups.size());
         if (!backups.isEmpty()) {
             AreaBackup lastBackup = backups.get(backups.size() - 1);
-            player.sendMessage(ChatColor.GREEN + "Last Backup: " + ChatColor.WHITE + lastBackup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            player.sendMessage(ChatColor.GREEN + "Last Backup: " + ChatColor.WHITE
+                    + lastBackup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         }
         if (!area.getTrustedPlayers().isEmpty()) {
             List<String> trustedNames = new ArrayList<>();
             for (UUID uuid : area.getTrustedPlayers()) {
                 trustedNames.add(Bukkit.getOfflinePlayer(uuid).getName());
             }
-            player.sendMessage(ChatColor.GREEN + "Trusted Players: " + ChatColor.WHITE + String.join(", ", trustedNames));
+            player.sendMessage(
+                    ChatColor.GREEN + "Trusted Players: " + ChatColor.WHITE + String.join(", ", trustedNames));
         }
         return true;
     }
@@ -878,8 +927,10 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             backupManager.restoreFromBackup(area, backup);
             Bukkit.getScheduler().runTask(plugin, () -> {
-                player.sendMessage(ChatColor.GREEN + "Undo successful! Restored backup " + backupManager.getUndoPointer(areaName));
-                player.sendMessage(ChatColor.YELLOW + "From: " + backup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                player.sendMessage(
+                        ChatColor.GREEN + "Undo successful! Restored backup " + backupManager.getUndoPointer(areaName));
+                player.sendMessage(ChatColor.YELLOW + "From: "
+                        + backup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             });
         });
         return true;
@@ -914,8 +965,10 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             backupManager.restoreFromBackup(area, backup);
             Bukkit.getScheduler().runTask(plugin, () -> {
-                player.sendMessage(ChatColor.GREEN + "Redo successful! Restored backup " + backupManager.getUndoPointer(areaName));
-                player.sendMessage(ChatColor.YELLOW + "From: " + backup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                player.sendMessage(
+                        ChatColor.GREEN + "Redo successful! Restored backup " + backupManager.getUndoPointer(areaName));
+                player.sendMessage(ChatColor.YELLOW + "From: "
+                        + backup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             });
         });
         return true;
@@ -950,13 +1003,15 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         }
         int startIndex = (page - 1) * itemsPerPage;
         int endIndex = Math.min(startIndex + itemsPerPage, backups.size());
-        player.sendMessage(ChatColor.GOLD + "=== Backup History: " + areaName + " (Page " + page + "/" + maxPage + ") ===");
+        player.sendMessage(
+                ChatColor.GOLD + "=== Backup History: " + areaName + " (Page " + page + "/" + maxPage + ") ===");
         for (int i = startIndex; i < endIndex; i++) {
             AreaBackup backup = backups.get(i);
             String timestamp = backup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             int blockCount = backup.getBlocks().size();
             ChatColor color = (i == backupManager.getUndoPointer(areaName)) ? ChatColor.YELLOW : ChatColor.GREEN;
-            player.sendMessage(color + "[" + i + "] " + ChatColor.WHITE + timestamp + ChatColor.GRAY + " (" + blockCount + " blocks)");
+            player.sendMessage(color + "[" + i + "] " + ChatColor.WHITE + timestamp + ChatColor.GRAY + " (" + blockCount
+                    + " blocks)");
         }
         if (maxPage > 1) {
             player.sendMessage(ChatColor.YELLOW + "Use /rewind history " + areaName + " <page> to view other pages");
@@ -1014,8 +1069,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                     "rollback", "undo", "redo", "history", "cleanup", "scan",
                     "diff", "compare", "preview", "particle", "particles",
                     "trust", "untrust", "permissions", "show", "hide",
-                    "gui", "menu", "interval", "status", "reload", "help"
-            );
+                    "gui", "menu", "interval", "status", "reload", "tool", "help");
             return commands.stream()
                     .filter(s -> s.toLowerCase().startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toList());
@@ -1027,8 +1081,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 "contract", "delete", "rename", "info", "teleport", "tp",
                 "backup", "restore", "rollback", "undo", "redo", "history",
                 "cleanup", "scan", "diff", "compare", "preview",
-                "trust", "untrust", "permissions", "show", "hide", "interval"
-        );
+                "trust", "untrust", "permissions", "show", "hide", "interval");
 
         List<String> particleCommands = Arrays.asList("particle", "particles");
 
@@ -1045,6 +1098,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 completions.addAll(Arrays.asList("full", "brief"));
             } else if (subCommand.equals("reload")) {
                 completions.addAll(Arrays.asList("config", "areas", "all"));
+            } else if (subCommand.equals("tool")) {
+                completions.addAll(Arrays.asList("enable", "disable", "toggle", "status", "info"));
             }
 
             return completions.stream()
@@ -1177,8 +1232,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 "SPELL", "SPELL_WITCH", "DRIP_WATER", "DRIP_LAVA", "TOWN_AURA",
                 "NOTE", "SUSPENDED", "SUSPENDED_DEPTH", "CRIT_MAGIC", "SMOKE_LARGE",
                 "EXPLOSION_LARGE", "EXPLOSION_HUGE", "FALLING_DUST", "BLOCK_CRACK",
-                "BLOCK_DUST", "WATER_BUBBLE", "WATER_SPLASH", "WATER_WAKE"
-        ));
+                "BLOCK_DUST", "WATER_BUBBLE", "WATER_SPLASH", "WATER_WAKE"));
 
         return completions;
     }
@@ -1188,11 +1242,16 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             char unit = timeStr.charAt(timeStr.length() - 1);
             int amount = Integer.parseInt(timeStr.substring(0, timeStr.length() - 1));
             switch (unit) {
-                case 'm': return amount;
-                case 'h': return amount * 60;
-                case 'd': return amount * 60 * 24;
-                case 'w': return amount * 60 * 24 * 7;
-                default: return -1;
+                case 'm':
+                    return amount;
+                case 'h':
+                    return amount * 60;
+                case 'd':
+                    return amount * 60 * 24;
+                case 'w':
+                    return amount * 60 * 24 * 7;
+                default:
+                    return -1;
             }
         } catch (Exception e) {
             return -1;
@@ -1262,7 +1321,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         }
 
         if (backup == null) {
-            player.sendMessage(ChatColor.RED + "Backup not found! Available: 0-" + (backups.size() - 1) + ", 'latest', 'oldest'");
+            player.sendMessage(
+                    ChatColor.RED + "Backup not found! Available: 0-" + (backups.size() - 1) + ", 'latest', 'oldest'");
             return true;
         }
 
@@ -1271,7 +1331,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         if (isActive) {
             Particle currentParticle = visualizationManager.getPlayerParticle(player);
             player.sendMessage(ChatColor.GREEN + "Backup preview activated! Backup: " + id + " (" + backupId + ")");
-            player.sendMessage(ChatColor.YELLOW + "Particle: " + currentParticle.name() + " | " + backup.getBlocks().size() + " blocks");
+            player.sendMessage(ChatColor.YELLOW + "Particle: " + currentParticle.name() + " | "
+                    + backup.getBlocks().size() + " blocks");
             player.sendMessage(ChatColor.GRAY + "To disable: /rewind preview");
         }
 
@@ -1283,7 +1344,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             Particle current = visualizationManager.getPlayerParticle(player);
             player.sendMessage(ChatColor.GREEN + "Current particle: " + ChatColor.YELLOW + current.name());
             player.sendMessage(ChatColor.GRAY + "Usage: /rewind particle <name>");
-            player.sendMessage(ChatColor.GRAY + "Popular particles: flame, heart, enchantment_table, end_rod, redstone, crit");
+            player.sendMessage(
+                    ChatColor.GRAY + "Popular particles: flame, heart, enchantment_table, end_rod, redstone, crit");
             return true;
         }
 
@@ -1311,6 +1373,95 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             player.sendMessage(ChatColor.GRAY + "- WATER_DROP");
             player.sendMessage(ChatColor.GRAY + "- LAVA");
             player.sendMessage(ChatColor.GRAY + "- SMOKE_NORMAL");
+        }
+
+        return true;
+    }
+
+    public void setPlayerInteractionListener(PlayerInteractionListener listener) {
+        this.playerInteractionListener = listener;
+    }
+
+    private boolean handleTool(Player player, String[] args) {
+        if (!player.hasPermission(PermissionManager.PERMISSION_USE)) {
+            player.sendMessage(ChatColor.RED + "You don't have permission to use this command!");
+            player.sendMessage(ChatColor.GRAY + "Required permission: " + PermissionManager.PERMISSION_USE);
+            return true;
+        }
+
+        if (playerInteractionListener == null) {
+            player.sendMessage(ChatColor.RED + "Tool system not available!");
+            return true;
+        }
+
+        if (args.length < 2) {
+            // Show current status
+            boolean currentMode = playerInteractionListener.getPlayerWoodenHoeMode(player);
+            boolean worldEditEnabled = playerInteractionListener.isWorldEditEnabled();
+
+            player.sendMessage(ChatColor.GOLD + "=== Area Selection Tool Status ===");
+
+            if (worldEditEnabled) {
+                player.sendMessage(ChatColor.GREEN + "WorldEdit: " + ChatColor.WHITE + "Available");
+                player.sendMessage(ChatColor.GRAY + "Your WorldEdit wand is fully supported!");
+            } else {
+                player.sendMessage(ChatColor.RED + "WorldEdit: " + ChatColor.WHITE + "Not available");
+            }
+
+            String modeStatus = currentMode ? "enabled" : "disabled";
+            ChatColor modeColor = currentMode ? ChatColor.GREEN : ChatColor.RED;
+            player.sendMessage(modeColor + "Wooden Hoe Mode: " + ChatColor.WHITE + modeStatus);
+
+            if (!currentMode && !worldEditEnabled) {
+                player.sendMessage(ChatColor.YELLOW + "Warning: No selection tools are active!");
+                player.sendMessage(ChatColor.GRAY + "Use " + ChatColor.GREEN + "/rewind tool enable" +
+                        ChatColor.GRAY + " to enable wooden hoe selection.");
+            }
+
+            player.sendMessage("");
+            player.sendMessage(ChatColor.GRAY + "Usage:");
+            player.sendMessage(
+                    ChatColor.WHITE + "/rewind tool enable" + ChatColor.GRAY + " - Enable wooden hoe selection");
+            player.sendMessage(
+                    ChatColor.WHITE + "/rewind tool disable" + ChatColor.GRAY + " - Disable wooden hoe selection");
+            player.sendMessage(ChatColor.WHITE + "/rewind tool" + ChatColor.GRAY + " - Show this status");
+
+            return true;
+        }
+
+        String action = args[1].toLowerCase();
+
+        switch (action) {
+            case "enable":
+            case "on":
+                playerInteractionListener.setPlayerWoodenHoeMode(player, true);
+                player.sendMessage(ChatColor.AQUA + "Tip: Any wooden hoe can now be used for area selection!");
+                break;
+
+            case "disable":
+            case "off":
+                playerInteractionListener.setPlayerWoodenHoeMode(player, false);
+                if (playerInteractionListener.isWorldEditEnabled()) {
+                    player.sendMessage(ChatColor.AQUA + "Tip: You can still use your WorldEdit wand!");
+                } else {
+                    player.sendMessage(ChatColor.YELLOW + "Warning: No selection tools are now active!");
+                }
+                break;
+
+            case "toggle":
+                boolean currentMode = playerInteractionListener.getPlayerWoodenHoeMode(player);
+                playerInteractionListener.setPlayerWoodenHoeMode(player, !currentMode);
+                break;
+
+            case "status":
+            case "info":
+                // Same as no arguments
+                return handleTool(player, new String[] { "tool" });
+
+            default:
+                player.sendMessage(ChatColor.RED + "Unknown action: " + action);
+                player.sendMessage(ChatColor.GRAY + "Valid actions: enable, disable, toggle, status");
+                return true;
         }
 
         return true;
