@@ -203,7 +203,7 @@ public class BackupsGUIPage implements IGUIPage {
         infoLore.add(ChatColor.YELLOW + "For detailed settings, click Area Settings");
         infoMeta.setLore(infoLore);
         infoItem.setItemMeta(infoMeta);
-        gui.setItem(35, infoItem);
+        gui.setItem(44, infoItem);
 
         // Area Settings Button
         ItemStack settingsItem = new ItemStack(Material.COMPARATOR);

@@ -758,17 +758,22 @@ public class BackupManager {
             return;
         }
 
+        plugin.getLogger().info("Found " + backupFiles.length + " backup files to process");
+
         int totalLoaded = 0;
+        int totalFailed = 0;
         Map<String, Integer> areaBackupCounts = new HashMap<>();
 
         for (File file : backupFiles) {
             try {
                 String fileName = file.getName().replace(".yml", "");
-                String[] parts = fileName.split("_");
+                // Find the last underscore to separate area name from backup ID
+                // Backup ID format: yyyyMMdd-HHmmss-uuid (e.g., 20250811-143022-a1b2c3d4)
+                int lastUnderscoreIndex = fileName.lastIndexOf("_");
 
-                if (parts.length >= 2) {
-                    String areaName = parts[0];
-                    String backupId = parts[1];
+                if (lastUnderscoreIndex > 0 && lastUnderscoreIndex < fileName.length() - 1) {
+                    String areaName = fileName.substring(0, lastUnderscoreIndex);
+                    String backupId = fileName.substring(lastUnderscoreIndex + 1);
 
                     AreaBackup backup = fileManager.loadBackupFromFile(areaName, backupId);
                     if (backup != null) {
@@ -791,10 +796,18 @@ public class BackupManager {
                             totalLoaded++;
                             areaBackupCounts.put(areaName, areaBackupCounts.getOrDefault(areaName, 0) + 1);
                         }
+                    } else {
+                        plugin.getLogger().warning("Failed to load backup from file: " + file.getName() +
+                                " (Area: " + areaName + ", BackupID: " + backupId + ")");
                     }
+                } else {
+                    plugin.getLogger().warning("Invalid backup filename format: " + file.getName() +
+                            " (Expected format: areaName_backupId.yml)");
                 }
             } catch (Exception e) {
                 plugin.getLogger().warning("Failed to load backup file " + file.getName() + ": " + e.getMessage());
+                totalFailed++;
+                e.printStackTrace();
             }
         }
 
@@ -810,7 +823,7 @@ public class BackupManager {
         }
 
         plugin.getLogger().info("Successfully loaded " + totalLoaded + " backups for " +
-                backupHistory.size() + " areas");
+                backupHistory.size() + " areas (" + totalFailed + " failed)");
 
         for (Map.Entry<String, Integer> entry : areaBackupCounts.entrySet()) {
             plugin.getLogger().info("Area '" + entry.getKey() + "': " + entry.getValue() + " backups loaded");

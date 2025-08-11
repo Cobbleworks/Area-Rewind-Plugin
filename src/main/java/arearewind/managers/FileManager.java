@@ -1,4 +1,5 @@
 package arearewind.managers;
+
 import arearewind.data.AreaBackup;
 import arearewind.data.BlockInfo;
 import arearewind.data.ProtectedArea;
@@ -82,14 +83,20 @@ public class FileManager {
                 return null;
             }
 
+            plugin.getLogger().fine("Loading backup file: " + backupFile.getName());
             YamlConfiguration config = new YamlConfiguration();
             config.load(backupFile);
 
             try {
                 String id = config.getString("backup.id", backupId);
                 String timestampStr = config.getString("backup.timestamp");
-                LocalDateTime timestamp = timestampStr != null ?
-                        LocalDateTime.parse(timestampStr) : LocalDateTime.now();
+
+                if (timestampStr == null) {
+                    plugin.getLogger().warning("No timestamp found in backup file: " + backupFile.getName());
+                    return null;
+                }
+
+                LocalDateTime timestamp = LocalDateTime.parse(timestampStr);
 
                 Map<String, BlockInfo> blocks = new HashMap<>();
 
@@ -99,6 +106,9 @@ public class FileManager {
                         @SuppressWarnings("unchecked")
                         Map<String, Object> blockData = (Map<String, Object>) blocksObj;
 
+                        int successfulBlocks = 0;
+                        int failedBlocks = 0;
+
                         for (Map.Entry<String, Object> entry : blockData.entrySet()) {
                             try {
                                 if (entry.getValue() instanceof Map) {
@@ -106,14 +116,30 @@ public class FileManager {
                                     Map<String, Object> blockMap = (Map<String, Object>) entry.getValue();
                                     BlockInfo blockInfo = BlockInfo.deserialize(blockMap);
                                     blocks.put(entry.getKey(), blockInfo);
+                                    successfulBlocks++;
+                                } else {
+                                    plugin.getLogger()
+                                            .warning("Invalid block data type for position " + entry.getKey() +
+                                                    " in " + backupFile.getName());
+                                    failedBlocks++;
                                 }
                             } catch (Exception blockError) {
                                 plugin.getLogger().warning("Failed to deserialize block " + entry.getKey() +
-                                        ": " + blockError.getMessage() + " - Using air block");
-                                blocks.put(entry.getKey(), new BlockInfo(org.bukkit.Material.AIR, org.bukkit.Material.AIR.createBlockData()));
+                                        " in " + backupFile.getName() + ": " + blockError.getMessage()
+                                        + " - Using air block");
+                                blocks.put(entry.getKey(), new BlockInfo(org.bukkit.Material.AIR,
+                                        org.bukkit.Material.AIR.createBlockData()));
+                                failedBlocks++;
                             }
                         }
+
+                        plugin.getLogger().fine("Block loading for " + backupFile.getName() +
+                                ": " + successfulBlocks + " successful, " + failedBlocks + " failed");
+                    } else {
+                        plugin.getLogger().warning("Invalid blocks data structure in " + backupFile.getName());
                     }
+                } else {
+                    plugin.getLogger().warning("No blocks data found in " + backupFile.getName());
                 }
 
                 Map<String, Object> entities = new HashMap<>();
@@ -127,19 +153,22 @@ public class FileManager {
                 }
 
                 AreaBackup backup = new AreaBackup(id, timestamp, blocks, entities);
-                plugin.getLogger().fine("Successfully loaded backup manually: " + backupFile.getName() +
-                        " (Blocks: " + blocks.size() + ", Entities: " + entities.size() + ")");
+                plugin.getLogger().info("Successfully loaded backup: " + backupFile.getName() +
+                        " (Area: " + areaName + ", ID: " + id + ", Blocks: " + blocks.size() + ", Entities: "
+                        + entities.size() + ")");
                 return backup;
 
             } catch (Exception manualError) {
-                plugin.getLogger().warning("Manual deserialization failed for " + backupFile.getName() +
+                plugin.getLogger().severe("Manual deserialization failed for " + backupFile.getName() +
                         ": " + manualError.getMessage() + " - Trying legacy format");
+                manualError.printStackTrace();
             }
 
             try {
                 Object backupObj = config.get("backup");
                 if (backupObj != null) {
-                    plugin.getLogger().info("Detected legacy backup format for " + backupFile.getName() + " - skipping for now");
+                    plugin.getLogger()
+                            .info("Detected legacy backup format for " + backupFile.getName() + " - skipping for now");
                     return null;
                 }
             } catch (Exception legacyError) {
@@ -149,7 +178,9 @@ public class FileManager {
             return null;
 
         } catch (Exception e) {
-            plugin.getLogger().severe("Failed to load backup from file: " + e.getMessage());
+            plugin.getLogger()
+                    .severe("Failed to load backup from file " + areaName + "_" + backupId + ".yml: " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
     }
@@ -157,7 +188,8 @@ public class FileManager {
     public void cleanupLegacyBackups() {
         try {
             File[] files = backupFolder.listFiles((dir, name) -> name.endsWith(".yml"));
-            if (files == null) return;
+            if (files == null)
+                return;
 
             int cleaned = 0;
             for (File file : files) {
@@ -178,7 +210,8 @@ public class FileManager {
             }
 
             if (cleaned > 0) {
-                plugin.getLogger().info("Moved " + cleaned + " legacy backup files. New backups will be created in the new format.");
+                plugin.getLogger().info(
+                        "Moved " + cleaned + " legacy backup files. New backups will be created in the new format.");
             }
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to cleanup legacy backups: " + e.getMessage());
@@ -197,8 +230,7 @@ public class FileManager {
     }
 
     public void deleteBackupFiles(String areaName) {
-        File[] files = backupFolder.listFiles((dir, name) ->
-                name.startsWith(areaName + "_") && name.endsWith(".yml"));
+        File[] files = backupFolder.listFiles((dir, name) -> name.startsWith(areaName + "_") && name.endsWith(".yml"));
 
         if (files != null) {
             int deletedCount = 0;
@@ -212,8 +244,7 @@ public class FileManager {
     }
 
     public void renameBackupFiles(String oldName, String newName) {
-        File[] files = backupFolder.listFiles((dir, name) ->
-                name.startsWith(oldName + "_") && name.endsWith(".yml"));
+        File[] files = backupFolder.listFiles((dir, name) -> name.startsWith(oldName + "_") && name.endsWith(".yml"));
 
         if (files != null) {
             int renamedCount = 0;
@@ -225,7 +256,8 @@ public class FileManager {
                     renamedCount++;
                 }
             }
-            plugin.getLogger().info("Renamed " + renamedCount + " backup files from '" + oldName + "' to '" + newName + "'");
+            plugin.getLogger()
+                    .info("Renamed " + renamedCount + " backup files from '" + oldName + "' to '" + newName + "'");
         }
     }
 
@@ -245,8 +277,7 @@ public class FileManager {
     }
 
     public File[] getBackupFiles(String areaName) {
-        return backupFolder.listFiles((dir, name) ->
-                name.startsWith(areaName + "_") && name.endsWith(".yml"));
+        return backupFolder.listFiles((dir, name) -> name.startsWith(areaName + "_") && name.endsWith(".yml"));
     }
 
     public File[] getAllBackupFiles() {
@@ -265,14 +296,28 @@ public class FileManager {
     }
 
     private String formatFileSize(long bytes) {
-        if (bytes < 1024) return bytes + " B";
-        if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
-        if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
+        if (bytes < 1024)
+            return bytes + " B";
+        if (bytes < 1024 * 1024)
+            return String.format("%.1f KB", bytes / 1024.0);
+        if (bytes < 1024 * 1024 * 1024)
+            return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
         return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
     }
 
-    public File getDataFolder() { return dataFolder; }
-    public File getBackupFolder() { return backupFolder; }
-    public File getAreasFile() { return areasFile; }
-    public File getExportsFolder() { return exportsFolder; }
+    public File getDataFolder() {
+        return dataFolder;
+    }
+
+    public File getBackupFolder() {
+        return backupFolder;
+    }
+
+    public File getAreasFile() {
+        return areasFile;
+    }
+
+    public File getExportsFolder() {
+        return exportsFolder;
+    }
 }
