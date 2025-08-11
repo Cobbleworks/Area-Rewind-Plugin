@@ -76,110 +76,59 @@ public class FileManager {
     }
 
     public AreaBackup loadBackupFromFile(String areaName, String backupId) {
+        File backupFile = new File(backupFolder, areaName + "_" + backupId + ".yml");
+        if (!backupFile.exists()) {
+            plugin.getLogger().warning("Backup file not found: " + backupFile.getName());
+            return null;
+        }
         try {
-            File backupFile = new File(backupFolder, areaName + "_" + backupId + ".yml");
-            if (!backupFile.exists()) {
-                plugin.getLogger().warning("Backup file not found: " + backupFile.getName());
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(backupFile);
+            String id = config.getString("backup.id", backupId);
+            String timestampStr = config.getString("backup.timestamp");
+            if (timestampStr == null) {
+                plugin.getLogger().warning("No timestamp found in backup file: " + backupFile.getName());
                 return null;
             }
+            LocalDateTime timestamp = LocalDateTime.parse(timestampStr);
 
-            plugin.getLogger().fine("Loading backup file: " + backupFile.getName());
-            YamlConfiguration config = new YamlConfiguration();
-            config.load(backupFile);
-
-            try {
-                String id = config.getString("backup.id", backupId);
-                String timestampStr = config.getString("backup.timestamp");
-
-                if (timestampStr == null) {
-                    plugin.getLogger().warning("No timestamp found in backup file: " + backupFile.getName());
-                    return null;
-                }
-
-                LocalDateTime timestamp = LocalDateTime.parse(timestampStr);
-
-                Map<String, BlockInfo> blocks = new HashMap<>();
-
-                if (config.contains("backup.blocks")) {
-                    Object blocksObj = config.get("backup.blocks");
-                    if (blocksObj instanceof Map) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> blockData = (Map<String, Object>) blocksObj;
-
-                        int successfulBlocks = 0;
-                        int failedBlocks = 0;
-
-                        for (Map.Entry<String, Object> entry : blockData.entrySet()) {
-                            try {
-                                if (entry.getValue() instanceof Map) {
-                                    @SuppressWarnings("unchecked")
-                                    Map<String, Object> blockMap = (Map<String, Object>) entry.getValue();
-                                    BlockInfo blockInfo = BlockInfo.deserialize(blockMap);
-                                    blocks.put(entry.getKey(), blockInfo);
-                                    successfulBlocks++;
-                                } else {
-                                    plugin.getLogger()
-                                            .warning("Invalid block data type for position " + entry.getKey() +
-                                                    " in " + backupFile.getName());
-                                    failedBlocks++;
-                                }
-                            } catch (Exception blockError) {
-                                plugin.getLogger().warning("Failed to deserialize block " + entry.getKey() +
-                                        " in " + backupFile.getName() + ": " + blockError.getMessage()
-                                        + " - Using air block");
-                                blocks.put(entry.getKey(), new BlockInfo(org.bukkit.Material.AIR,
-                                        org.bukkit.Material.AIR.createBlockData()));
-                                failedBlocks++;
+            Map<String, BlockInfo> blocks = new HashMap<>();
+            org.bukkit.configuration.ConfigurationSection blocksSection = config
+                    .getConfigurationSection("backup.blocks");
+            if (blocksSection != null) {
+                for (String key : blocksSection.getKeys(false)) {
+                    try {
+                        org.bukkit.configuration.ConfigurationSection section = blocksSection
+                                .getConfigurationSection(key);
+                        if (section != null) {
+                            Map<String, Object> data = section.getValues(false);
+                            BlockInfo info = BlockInfo.deserialize(data);
+                            if (info != null) {
+                                blocks.put(key, info);
+                            } else {
+                                plugin.getLogger().warning("Failed to deserialize block at " + key);
                             }
                         }
-
-                        plugin.getLogger().fine("Block loading for " + backupFile.getName() +
-                                ": " + successfulBlocks + " successful, " + failedBlocks + " failed");
-                    } else {
-                        plugin.getLogger().warning("Invalid blocks data structure in " + backupFile.getName());
-                    }
-                } else {
-                    plugin.getLogger().warning("No blocks data found in " + backupFile.getName());
-                }
-
-                Map<String, Object> entities = new HashMap<>();
-                if (config.contains("backup.entities")) {
-                    Object entitiesObj = config.get("backup.entities");
-                    if (entitiesObj instanceof Map) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> entityData = (Map<String, Object>) entitiesObj;
-                        entities.putAll(entityData);
+                    } catch (Exception ex) {
+                        plugin.getLogger().warning("Error loading block at " + key + ": " + ex.getMessage());
                     }
                 }
-
-                AreaBackup backup = new AreaBackup(id, timestamp, blocks, entities);
-                plugin.getLogger().info("Successfully loaded backup: " + backupFile.getName() +
-                        " (Area: " + areaName + ", ID: " + id + ", Blocks: " + blocks.size() + ", Entities: "
-                        + entities.size() + ")");
-                return backup;
-
-            } catch (Exception manualError) {
-                plugin.getLogger().severe("Manual deserialization failed for " + backupFile.getName() +
-                        ": " + manualError.getMessage() + " - Trying legacy format");
-                manualError.printStackTrace();
+            } else {
+                plugin.getLogger().warning("No blocks data found in " + backupFile.getName());
             }
 
-            try {
-                Object backupObj = config.get("backup");
-                if (backupObj != null) {
-                    plugin.getLogger()
-                            .info("Detected legacy backup format for " + backupFile.getName() + " - skipping for now");
-                    return null;
+            Map<String, Object> entities = new HashMap<>();
+            org.bukkit.configuration.ConfigurationSection entitiesSection = config
+                    .getConfigurationSection("backup.entities");
+            if (entitiesSection != null) {
+                for (String key : entitiesSection.getKeys(false)) {
+                    entities.put(key, entitiesSection.get(key));
                 }
-            } catch (Exception legacyError) {
-                plugin.getLogger().warning("Legacy format loading also failed for " + backupFile.getName());
             }
 
-            return null;
-
+            return new AreaBackup(id, timestamp, blocks, entities);
         } catch (Exception e) {
             plugin.getLogger()
-                    .severe("Failed to load backup from file " + areaName + "_" + backupId + ".yml: " + e.getMessage());
+                    .severe("Failed to load backup from file " + backupFile.getName() + ": " + e.getMessage());
             e.printStackTrace();
             return null;
         }
