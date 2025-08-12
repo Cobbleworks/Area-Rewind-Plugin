@@ -32,7 +32,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         private final Map<UUID, Long> lastUsage = new HashMap<>();
 
         // Rate limiting
-        private static final long RATE_LIMIT_MS = 2000;
+        private static final long RATE_LIMIT_MS = 1000;
 
         public CommandHandler(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
                         GUIManager guiManager, VisualizationManager visualizationManager,
@@ -62,6 +62,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 commandRegistry.registerCommand(new SaveCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new ContractCommand(plugin, areaManager, backupManager, guiManager,
+                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
+                commandRegistry.registerCommand(new ExpandCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new DeleteCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
