@@ -6,7 +6,7 @@
 
     <groupId>arearewind</groupId>
     <artifactId>Area-Rewind</artifactId>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>1.0.6-SNAPSHOT</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

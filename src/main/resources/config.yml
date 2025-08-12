@@ -10,3 +10,10 @@ performance:
 
 visualization:
   particle-distance: 50
+
+selection:
+  # Wooden hoe selection mode settings
+  wooden-hoe:
+    enabled: false # Disabled by default, WorldEdit takes priority
+    force-enabled: false # Can be enabled per-player via command
+    auto-fallback: true # Automatically enable if WorldEdit fails or is unavailable

@@ -1,0 +1,87 @@
+package arearewind.commands.backup;
+
+import arearewind.commands.base.BaseCommand;
+import arearewind.data.ProtectedArea;
+import arearewind.managers.*;
+import arearewind.util.ConfigurationManager;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Command for redoing changes
+ */
+public class RedoCommand extends BaseCommand {
+
+    public RedoCommand(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
+            GUIManager guiManager, VisualizationManager visualizationManager,
+            PermissionManager permissionManager, ConfigurationManager configManager,
+            FileManager fileManager, IntervalManager intervalManager) {
+        super(plugin, areaManager, backupManager, guiManager, visualizationManager,
+                permissionManager, configManager, fileManager, intervalManager);
+    }
+
+    @Override
+    public boolean execute(Player player, String[] args) {
+        if (!validateMinArgs(player, args, 1)) {
+            return true;
+        }
+
+        String areaName = args[0];
+        ProtectedArea area = validateAndGetArea(player, areaName);
+        if (area == null) {
+            return true;
+        }
+
+        if (!permissionManager.canUndoRedo(player, area)) {
+            player.sendMessage(ChatColor.RED + "You don't have permission to redo changes to this area!");
+            return true;
+        }
+
+        if (!backupManager.canRedo(areaName)) {
+            player.sendMessage(ChatColor.RED + "No redo available for '" + areaName + "'!");
+            return true;
+        }
+
+        player.sendMessage(ChatColor.YELLOW + "Redoing last undo for '" + areaName + "'...");
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            boolean success = backupManager.redoArea(areaName, area, player);
+            if (!success) {
+                player.sendMessage(ChatColor.RED + "Redo failed!");
+                return;
+            }
+        });
+
+        return true;
+    }
+
+    @Override
+    public List<String> getTabCompletions(Player player, String[] args) {
+        if (args.length == 1) {
+            return getAreaCompletions().stream()
+                    .filter(area -> area.toLowerCase().startsWith(args[0].toLowerCase()))
+                    .collect(Collectors.toList());
+        }
+        return List.of();
+    }
+
+    @Override
+    public String getName() {
+        return "redo";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Redo the last undo operation";
+    }
+
+    @Override
+    public String getUsage() {
+        return "/rewind redo <area>";
+    }
+}

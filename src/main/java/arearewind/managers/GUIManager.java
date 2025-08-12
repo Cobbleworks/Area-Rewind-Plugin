@@ -1,76 +1,160 @@
 package arearewind.managers;
 
-import arearewind.gui.EnhancedGUIManager;
-import org.bukkit.ChatColor;
+import arearewind.managers.gui.AreaSettingsGUIPage;
+import arearewind.managers.gui.AreasGUIPage;
+import arearewind.managers.gui.BackupsGUIPage;
+import arearewind.managers.gui.GUIPaginationHelper;
+import arearewind.managers.gui.MaterialSelectorGUIPage;
+import arearewind.managers.gui.MyAreasGUIPage;
+import arearewind.managers.gui.SettingsGUIPage;
+import arearewind.util.ConfigurationManager;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import java.util.*;
 
-/**
- * GUI Manager - delegates to the enhanced GUI system
- * Maintains backwards compatibility while using the new GUI framework
- */
 public class GUIManager implements Listener {
-    private final EnhancedGUIManager enhancedGUIManager;
+    private final Map<UUID, String> openGUIs = new HashMap<>();
+
+    // GUI Pages
+    private final AreasGUIPage areasPage;
+    private final MyAreasGUIPage myAreasPage;
+    private final BackupsGUIPage backupsPage;
+    private final SettingsGUIPage settingsPage;
+    private final AreaSettingsGUIPage areaSettingsPage;
+    private final MaterialSelectorGUIPage materialSelectorPage;
 
     public GUIManager(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
-            PermissionManager permissionManager) {
-        // Initialize the enhanced GUI system
-        this.enhancedGUIManager = new EnhancedGUIManager(plugin, areaManager, backupManager, permissionManager);
+            PermissionManager permissionManager, ConfigurationManager configManager, FileManager fileManager,
+            IntervalManager intervalManager) {
+
+        // Initialize GUI pages
+        this.areasPage = new AreasGUIPage(this, areaManager, backupManager, permissionManager, intervalManager);
+        this.myAreasPage = new MyAreasGUIPage(this, areaManager, backupManager, permissionManager, intervalManager);
+        this.backupsPage = new BackupsGUIPage(this, areaManager, backupManager, permissionManager, intervalManager);
+        this.settingsPage = new SettingsGUIPage(this, permissionManager, configManager);
+        this.areaSettingsPage = new AreaSettingsGUIPage(this, areaManager, backupManager, permissionManager);
+        this.materialSelectorPage = new MaterialSelectorGUIPage(this, areaManager, backupManager, permissionManager,
+                fileManager);
     }
 
-    /**
-     * Open the main menu GUI
-     */
-    public void openMainMenu(Player player) {
-        enhancedGUIManager.openMainMenu(player);
-    }
-
-    /**
-     * Open areas GUI (backwards compatibility - redirects to main menu)
-     */
+    // Public methods for opening specific GUIs
     public void openAreasGUI(Player player) {
-        enhancedGUIManager.openMainMenu(player);
-        player.sendMessage(ChatColor.GREEN + "Opening AreaRewind main menu...");
+        areasPage.openGUI(player);
     }
 
-    /**
-     * Open backups GUI (backwards compatibility - redirects to main menu)
-     */
+    public void openAreasGUI(Player player, int page) {
+        areasPage.openGUI(player, page);
+    }
+
+    public void openMyAreasGUI(Player player) {
+        myAreasPage.openGUI(player);
+    }
+
+    public void openMyAreasGUI(Player player, int page) {
+        myAreasPage.openGUI(player, page);
+    }
+
     public void openBackupsGUI(Player player, String areaName) {
-        enhancedGUIManager.openMainMenu(player);
-        player.sendMessage(ChatColor.GREEN + "Opening AreaRewind main menu...");
-        player.sendMessage(ChatColor.YELLOW + "Navigate to Area Management → " + areaName + " → View Backups");
+        backupsPage.openBackupsGUI(player, areaName);
     }
 
-    /**
-     * Open area info GUI (backwards compatibility - redirects to main menu)
-     */
-    public void openAreaInfoGUI(Player player, String areaName) {
-        enhancedGUIManager.openMainMenu(player);
-        player.sendMessage(ChatColor.GREEN + "Opening AreaRewind main menu...");
-        player.sendMessage(ChatColor.YELLOW + "Navigate to Area Management → " + areaName + " → Area Info");
+    public void openBackupsGUI(Player player, String areaName, int page) {
+        backupsPage.openBackupsGUI(player, areaName, page);
     }
 
-    /**
-     * Check if a player has any GUI open (delegates to enhanced system)
-     */
-    public boolean hasGUIOpen(Player player) {
-        return enhancedGUIManager.hasGUIOpen(player);
+    public void openSettingsGUI(Player player) {
+        settingsPage.openGUI(player);
     }
 
-    /**
-     * Close any open GUI for a player (delegates to enhanced system)
-     */
+    public void openAreaSettingsGUI(Player player, String areaName) {
+        areaSettingsPage.openAreaSettingsGUI(player, areaName);
+    }
+
+    public void openMaterialSelector(Player player, String type, String areaName, String backupId) {
+        materialSelectorPage.openMaterialSelector(player, type, areaName, backupId, 0);
+    }
+
+    public void openMaterialSelector(Player player, String type, String areaName, String backupId, int page) {
+        materialSelectorPage.openMaterialSelector(player, type, areaName, backupId, page);
+    }
+
+    // GUI state management methods
+    public void registerOpenGUI(Player player, String guiType) {
+        openGUIs.put(player.getUniqueId(), guiType);
+    }
+
     public void closeGUI(Player player) {
-        enhancedGUIManager.closeGUI(player);
+        openGUIs.remove(player.getUniqueId());
+        // Clear pagination data when GUI is closed
+        GUIPaginationHelper.clearPaginationData(player.getUniqueId());
     }
 
-    /**
-     * Get the type of GUI a player has open (backwards compatibility)
-     */
+    public boolean hasGUIOpen(Player player) {
+        return openGUIs.containsKey(player.getUniqueId());
+    }
+
     public String getOpenGUIType(Player player) {
-        // For backwards compatibility, return a generic type
-        return hasGUIOpen(player) ? "enhanced" : null;
+        return openGUIs.get(player.getUniqueId());
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player))
+            return;
+        Player player = (Player) event.getWhoClicked();
+
+        if (!openGUIs.containsKey(player.getUniqueId()))
+            return;
+
+        // Only cancel clicks in the plugin's GUI, not the player's inventory
+        if (event.getClickedInventory() == null ||
+                !isPluginGUI(event.getView().getTitle())) {
+            return;
+        }
+
+        event.setCancelled(true);
+
+        String guiType = openGUIs.get(player.getUniqueId());
+
+        if (guiType.equals("all-areas")) {
+            areasPage.handleClick(player, event);
+        } else if (guiType.equals("my-areas")) {
+            myAreasPage.handleClick(player, event);
+        } else if (guiType.startsWith("backups:")) {
+            backupsPage.handleClick(player, event);
+        } else if (guiType.equals("settings")) {
+            settingsPage.handleClick(player, event);
+        } else if (guiType.startsWith("area-settings:")) {
+            areaSettingsPage.handleClick(player, event);
+        } else if (guiType.startsWith("material-selector:")) {
+            materialSelectorPage.handleClick(player, event);
+        }
+    }
+
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player))
+            return;
+        Player player = (Player) event.getPlayer();
+
+        // Check if the closed inventory is one of our plugin GUIs
+        String title = event.getView().getTitle();
+        if (isPluginGUI(title)) {
+            openGUIs.remove(player.getUniqueId());
+            // Clear pagination data when GUI is closed
+            GUIPaginationHelper.clearPaginationData(player.getUniqueId());
+        }
+    }
+
+    private boolean isPluginGUI(String title) {
+        return title.contains("Protected Areas") ||
+                title.contains("Area Management:") ||
+                title.contains("Area Rewind Settings") ||
+                title.contains("Area Settings:") ||
+                title.contains("Set Icon:");
     }
 }
