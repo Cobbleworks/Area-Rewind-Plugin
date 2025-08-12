@@ -168,6 +168,10 @@ public class BackupManager {
     }
 
     public void restoreFromBackup(ProtectedArea area, AreaBackup backup, Player player) {
+        restoreFromBackup(area, backup, player, "✓ Restoration complete!");
+    }
+
+    public void restoreFromBackup(ProtectedArea area, AreaBackup backup, Player player, String completionMessage) {
         Location min = area.getMin();
         Location max = area.getMax();
         World world = min.getWorld();
@@ -255,20 +259,26 @@ public class BackupManager {
 
                     if (index >= containerKeys.size()) {
                         if (player != null) {
-                            player.sendMessage(ChatColor.GREEN + "✓ Restoration complete!");
+                            player.sendMessage(ChatColor.GREEN + completionMessage);
                             player.sendMessage(ChatColor.GRAY + "Restored: " + total + " blocks, " +
                                     containerCount + " containers with contents");
                         }
                         plugin.getLogger().info("Restoration completed: " + total + " blocks, " +
                                 containerCount + " containers restored");
                         this.cancel();
+                    } else if (player != null && containerKeys.size() > 20 && index % 10 == 0 && index > 0) {
+                        // Progress for container restoration phase (only show if there are many
+                        // containers)
+                        int containerProgress = (int) ((double) index / containerKeys.size() * 100);
+                        player.sendMessage(ChatColor.YELLOW + "Container progress: " + containerProgress + "% (" +
+                                index + "/" + containerKeys.size() + " containers)");
                     }
                 }
 
-                if (player != null && phase == 1 && index % 500 == 0 && index > 0) {
+                if (player != null && phase == 1 && index % 100 == 0 && index > 0) {
                     int progress = (int) ((double) index / total * 100);
                     player.sendMessage(ChatColor.YELLOW + "Progress: " + progress + "% (" +
-                            index + "/" + total + ")");
+                            index + "/" + total + " blocks)");
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
@@ -616,6 +626,11 @@ public class BackupManager {
     }
 
     public boolean restoreArea(String areaName, ProtectedArea area, int backupIndex, boolean createBackupFirst) {
+        return restoreArea(areaName, area, backupIndex, createBackupFirst, null);
+    }
+
+    public boolean restoreArea(String areaName, ProtectedArea area, int backupIndex, boolean createBackupFirst,
+            Player player) {
         AreaBackup backup = getBackup(areaName, backupIndex);
         if (backup == null)
             return false;
@@ -630,7 +645,7 @@ public class BackupManager {
             // The backup we want to restore from is still at the same index
         }
 
-        restoreFromBackup(area, backup);
+        restoreFromBackup(area, backup, player);
 
         // Set the undo pointer to the backup that was actually restored from
         // This allows the user to undo/redo from this point
@@ -640,6 +655,10 @@ public class BackupManager {
     }
 
     public boolean undoArea(String areaName, ProtectedArea area) {
+        return undoArea(areaName, area, null);
+    }
+
+    public boolean undoArea(String areaName, ProtectedArea area, Player player) {
         AreaBackup beforeRestoreBackup = beforeRestoreBackups.get(areaName);
         if (beforeRestoreBackup == null) {
             return false; // No undo available - need to restore a backup first
@@ -649,7 +668,8 @@ public class BackupManager {
         AreaBackup beforeUndoBackup = createHiddenBackup(area);
 
         // Restore from the beforeRestore backup
-        restoreFromBackup(area, beforeRestoreBackup);
+        restoreFromBackup(area, beforeRestoreBackup, player,
+                "✓ Undo successful! Restored to state before last backup restore.");
 
         // Store the beforeUndo backup as the new beforeRestore (for redo)
         beforeRestoreBackups.put(areaName, beforeUndoBackup);
@@ -658,6 +678,10 @@ public class BackupManager {
     }
 
     public boolean redoArea(String areaName, ProtectedArea area) {
+        return redoArea(areaName, area, null);
+    }
+
+    public boolean redoArea(String areaName, ProtectedArea area, Player player) {
         AreaBackup beforeRestoreBackup = beforeRestoreBackups.get(areaName);
         if (beforeRestoreBackup == null) {
             return false; // No redo available
@@ -667,7 +691,7 @@ public class BackupManager {
         AreaBackup beforeRedoBackup = createHiddenBackup(area);
 
         // Restore from the beforeRestore backup
-        restoreFromBackup(area, beforeRestoreBackup);
+        restoreFromBackup(area, beforeRestoreBackup, player, "✓ Redo successful! Restored to state before last undo.");
 
         // Store the beforeRedo backup as the new beforeRestore (for undo)
         beforeRestoreBackups.put(areaName, beforeRedoBackup);

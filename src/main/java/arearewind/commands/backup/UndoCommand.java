@@ -51,13 +51,11 @@ public class UndoCommand extends BaseCommand {
         player.sendMessage(ChatColor.YELLOW + "Undoing last restore for '" + areaName + "'...");
 
         Bukkit.getScheduler().runTask(plugin, () -> {
-            boolean success = backupManager.undoArea(areaName, area);
+            boolean success = backupManager.undoArea(areaName, area, player);
             if (!success) {
                 player.sendMessage(ChatColor.RED + "Undo failed!");
                 return;
             }
-
-            player.sendMessage(ChatColor.GREEN + "Undo successful! Restored to state before last backup restore.");
         });
 
         return true;

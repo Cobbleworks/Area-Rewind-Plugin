@@ -50,13 +50,11 @@ public class RedoCommand extends BaseCommand {
         player.sendMessage(ChatColor.YELLOW + "Redoing last undo for '" + areaName + "'...");
 
         Bukkit.getScheduler().runTask(plugin, () -> {
-            boolean success = backupManager.redoArea(areaName, area);
+            boolean success = backupManager.redoArea(areaName, area, player);
             if (!success) {
                 player.sendMessage(ChatColor.RED + "Redo failed!");
                 return;
             }
-
-            player.sendMessage(ChatColor.GREEN + "Redo successful! Restored to state before last undo.");
         });
 
         return true;
