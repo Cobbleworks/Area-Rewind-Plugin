@@ -40,6 +40,7 @@ public class HelpCommand extends BaseCommand {
         player.sendMessage(ChatColor.YELLOW + "Backup Operations:");
         player.sendMessage(ChatColor.GRAY + "  /rewind backup <area> - Create backup");
         player.sendMessage(ChatColor.GRAY + "  /rewind restore <area> <id> - Restore backup");
+        player.sendMessage(ChatColor.GRAY + "  /rewind restoreblock <area> <id> [world] - Restore via command block");
         player.sendMessage(ChatColor.GRAY + "  /rewind history <area> - View backup history");
         player.sendMessage(ChatColor.GRAY + "  /rewind seticon backup <area> <id> <material> - Set backup icon");
 

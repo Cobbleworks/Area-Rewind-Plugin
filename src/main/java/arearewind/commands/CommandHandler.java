@@ -30,6 +30,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
 
         private final CommandRegistry commandRegistry;
         private final Map<UUID, Long> lastUsage = new HashMap<>();
+        private final RestoreBlockCommand restoreBlockCommand;
 
         // Rate limiting
         private static final long RATE_LIMIT_MS = 1000;
@@ -39,6 +40,10 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                         PermissionManager permissionManager, ConfigurationManager configManager,
                         FileManager fileManager, IntervalManager intervalManager) {
                 this.commandRegistry = new CommandRegistry();
+
+                // Initialize the special command block command
+                this.restoreBlockCommand = new RestoreBlockCommand(plugin, areaManager, backupManager, guiManager,
+                                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
 
                 // Register all commands
                 registerCommands(plugin, areaManager, backupManager, guiManager, visualizationManager,
@@ -71,6 +76,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new RestoreCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
+                commandRegistry.registerCommand(restoreBlockCommand);
                 commandRegistry.registerCommand(new RollbackCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new UndoCommand(plugin, areaManager, backupManager, guiManager,
@@ -134,9 +140,17 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
 
         @Override
         public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+                // Special handling for command blocks and console with restoreblock command
                 if (!(sender instanceof Player)) {
-                        sender.sendMessage(ChatColor.RED + "Only players can use this command!");
-                        return true;
+                        if (args.length > 0 && args[0].equalsIgnoreCase("restoreblock")) {
+                                String[] commandArgs = Arrays.copyOfRange(args, 1, args.length);
+                                return restoreBlockCommand.executeForCommandBlock(sender, commandArgs);
+                        } else {
+                                sender.sendMessage(ChatColor.RED + "Only players can use this command!");
+                                sender.sendMessage(ChatColor.GRAY
+                                                + "Command blocks can use: /rewind restoreblock <area> <backup_id> [world]");
+                                return true;
+                        }
                 }
 
                 Player player = (Player) sender;
