@@ -1,6 +1,7 @@
 # AreaRewind
 
 Advanced area protection and backup system for Minecraft servers
+🎉 **Special thanks to Bernd Hagen, the original author of AreaRewind!** 🎉
 
 ## Overview
 
@@ -26,21 +27,43 @@ AreaRewind is a powerful Minecraft plugin that allows server administrators and 
 
 ## Commands
 
-All commands are accessed via `/rewind` (aliases: `/gr`, `/arearewind`, `/backup`, `/protect`).
+AreaRewind provides a rich set of commands for managing protected areas, backups, permissions, and more. Below is a comprehensive list of all available commands:
 
-- `/rewind` — Main command for AreaRewind plugin
-- `/rewind teleport <area>` — Teleport to a protected area
-- `/rewind backup <area>` — Create a backup of an area
-- `/rewind restore <area> <backupId>` — Restore an area to a previous backup
-- `/rewind preview <area> <backupId>` — Preview a backup
-- `/rewind diff <area>` — Compare current state with a backup
-- `/rewind undo <area>` — Undo last change
-- `/rewind redo <area>` — Redo last undo
-- `/rewind permissions <area>` — View and manage permissions
-- `/rewind expand <area> <direction> <amount>` — Expand area boundaries
-- `/rewind contract <area> <direction> <amount>` — Contract area boundaries
-- `/rewind delete <area>` — Delete an area
-- `/rewind rename <area> <new_name>` — Rename an area
+| Command      | Usage                                                                                     | Description                                                    | Aliases            |
+| ------------ | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------ |
+| reload       | /rewind reload                                                                            | Reload plugin configuration                                    |                    |
+| diff         | /rewind diff <area> <id1> <id2>                                                           | Compare two backups and show differences                       | compare            |
+| scan         | /rewind scan <area>                                                                       | Scan for changes since the last backup                         |                    |
+| contract     | /rewind contract <area> <direction> <amount>                                              | Contract an area in a specific direction                       |                    |
+| delete       | /rewind delete <area>                                                                     | Delete an area and all its backups                             |                    |
+| expand       | /rewind expand <area> <direction> <amount>                                                | Expand an area in a specific direction                         |                    |
+| pos1         | /rewind pos1                                                                              | Set the first position for area selection                      |                    |
+| pos2         | /rewind pos2                                                                              | Set the second position for area selection                     |                    |
+| rename       | /rewind rename <old_name> <new_name>                                                      | Rename an area                                                 |                    |
+| save         | /rewind save <name>                                                                       | Save the selected area with a name                             |                    |
+| backup       | /rewind backup <area>                                                                     | Create a backup of an area                                     |                    |
+| redo         | /rewind redo <area>                                                                       | Redo the last undo operation                                   |                    |
+| rollback     | /rewind rollback <area> <time>                                                            | Rollback an area to a specific time ago                        |                    |
+| undo         | /rewind undo <area>                                                                       | Undo the last backup restore operation                         |                    |
+| restoreblock | /rewind restoreblock <area> <backup_id\|latest\|oldest> [world]                           | Restore an area from a backup (for command blocks and console) |                    |
+| restore      | /rewind restore <area> <backup_id\|latest\|oldest>                                        | Restore an area from a backup                                  |                    |
+| history      | /rewind history <area> [page]                                                             | View backup history for an area                                |                    |
+| info         | /rewind info <area>                                                                       | View detailed information about an area                        |                    |
+| list         | /rewind list [all\|owned\|trusted]                                                        | List protected areas                                           |                    |
+| cleanup      | /rewind cleanup <area> [days]                                                             | Clean up old backups for an area                               |                    |
+| permission   | /rewind permission <add\|remove\|list> <area> [player]                                    | Manage area permissions                                        | perm, permissions  |
+| seticon      | /rewind seticon <area> <material> OR /rewind seticon backup <area> <backup_id> <material> | Set custom icons for areas and backups                         | icon, setitem      |
+| trust        | /rewind trust <area> <player>                                                             | Add a player as trusted for an area                            |                    |
+| untrust      | /rewind untrust <area> <player>                                                           | Remove a player's trust for an area                            |                    |
+| interval     | /rewind interval <set\|remove\|check> <area> [minutes] [backup_id]                        | Manage automatic backup intervals                              | timer, schedule    |
+| teleport     | /rewind teleport <area>                                                                   | Teleport to an area                                            | tp                 |
+| gui          | /rewind gui                                                                               | Open the AreaRewind management GUI                             | menu               |
+| help         | /rewind help                                                                              | Show help information                                          |                    |
+| hide         | /rewind hide [area]                                                                       | Hide area visualization                                        | clear              |
+| preview      | /rewind preview <area> [backup_id] [particle_type]                                        | Show a visual preview of a backup with particles               | particle           |
+| show         | /rewind show <area>                                                                       | Show area visualization                                        | display, visualize |
+| status       | /rewind status                                                                            | Show system status and statistics                              |                    |
+| tool         | /rewind tool                                                                              | Get the area selection tool                                    | wand, item         |
 
 ## Permissions
 
