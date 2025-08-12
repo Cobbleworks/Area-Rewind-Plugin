@@ -1,6 +1,7 @@
 # AreaRewind
 
 Advanced area protection and backup system for Minecraft servers
+
 🎉 **Special thanks to Bernd Hagen, the original author of AreaRewind!** 🎉
 
 ## Overview
