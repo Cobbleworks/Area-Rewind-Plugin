@@ -47,7 +47,7 @@ public class PreviewCommand extends BaseCommand {
             backupId = id;
         }
 
-        String particleType = "SMOKE_NORMAL"; // Default particle
+        String particleType = "FLAME"; // Default particle
         if (args.length > 2) {
             particleType = args[2].toUpperCase();
         }
@@ -100,8 +100,12 @@ public class PreviewCommand extends BaseCommand {
                     .filter(id -> id.startsWith(args[1]))
                     .collect(Collectors.toList());
         } else if (args.length == 3) {
-            List<String> particles = Arrays.asList("SMOKE_NORMAL", "FLAME", "REDSTONE",
-                    "CLOUD", "ENCHANTMENT_TABLE", "VILLAGER_HAPPY");
+            List<String> particles = Arrays.asList(
+                    "SMOKE_NORMAL", "FLAME", "SOUL_FIRE_FLAME", "REDSTONE", "CLOUD", "ENCHANTMENT_TABLE",
+                    "VILLAGER_HAPPY",
+                    "HEART", "CRIT", "SPELL", "NOTE", "PORTAL", "EXPLOSION_NORMAL", "LAVA", "WATER_SPLASH",
+                    "SLIME", "SNOWBALL", "TOTEM", "DRAGON_BREATH", "FIREWORKS_SPARK", "BUBBLE_POP", "COMPOSTER",
+                    "SNEEZE", "ASH", "SOUL_FIRE_FLAME", "SOUL", "WAX_ON", "WAX_OFF", "ELECTRIC_SPARK");
             return particles.stream()
                     .filter(p -> p.toLowerCase().startsWith(args[2].toLowerCase()))
                     .collect(Collectors.toList());

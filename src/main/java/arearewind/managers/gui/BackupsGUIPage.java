@@ -132,9 +132,6 @@ public class BackupsGUIPage implements IGUIPage {
                     NAVIGATION_ROW_START, NAVIGATION_ROW_START + 8, -1); // No info button for backups page
         }
 
-        // Add area info in slots 35-44 (second row from bottom)
-        addAreaInfoItems(gui, area, areaName);
-
         // Add control items in bottom row (45-53)
         addControlItems(gui, areaName, area, player, paginationInfo);
 
@@ -292,8 +289,17 @@ public class BackupsGUIPage implements IGUIPage {
 
             if (event.getClick().isShiftClick()) {
                 player.closeInventory();
-                // Compare selected backup with current state (create a temporary backup)
-                player.performCommand("rewind diff " + areaName + " " + backupId + " current");
+                // Compare selected backup with current state
+                // Get current backup ID (the one that was last restored)
+                int currentBackupId = backupManager.canUndo(areaName) ? backupManager.getUndoPointer(areaName) : -1;
+
+                if (currentBackupId != -1) {
+                    // Compare the selected backup with the current backup
+                    player.performCommand("rewind diff " + areaName + " " + backupId + " " + currentBackupId);
+                } else {
+                    // If no current backup state, compare with live area state
+                    player.performCommand("rewind diff " + areaName + " " + backupId + " current");
+                }
             } else if (event.isLeftClick()) {
                 player.closeInventory();
                 player.performCommand("rewind restore " + areaName + " " + backupId);
@@ -325,36 +331,8 @@ public class BackupsGUIPage implements IGUIPage {
         }
     }
 
-    private void addAreaInfoItems(Inventory gui, ProtectedArea area, String areaName) {
-        // Area Information
-        ItemStack infoItem = new ItemStack(Material.PAPER);
-        ItemMeta infoMeta = infoItem.getItemMeta();
-        infoMeta.setDisplayName(ChatColor.GREEN + "Area Information");
-        List<String> infoLore = new ArrayList<>();
-        infoLore.add(ChatColor.GRAY + "Name: " + areaName);
-        infoLore.add(ChatColor.GRAY + "Owner: " + Bukkit.getOfflinePlayer(area.getOwner()).getName());
-        infoLore.add(ChatColor.GRAY + "World: " + area.getPos1().getWorld().getName());
-        infoLore.add(ChatColor.GRAY + "Size: " + area.getSize() + " blocks");
-
-        // Add interval information
-        var intervalConfig = intervalManager.getIntervalConfig(areaName);
-        if (intervalConfig != null) {
-            infoLore.add("");
-            infoLore.add(ChatColor.AQUA + "Auto-Restore: " + ChatColor.GREEN + "Active");
-            infoLore.add(ChatColor.GRAY + "Interval: " + intervalConfig.minutes + " minutes");
-            infoLore.add(ChatColor.GRAY + "Backup: #" + intervalConfig.backupId);
-        } else {
-            infoLore.add("");
-            infoLore.add(ChatColor.AQUA + "Auto-Restore: " + ChatColor.RED + "Inactive");
-        }
-
-        infoLore.add("");
-        infoLore.add(ChatColor.YELLOW + "For detailed settings, click Area Settings");
-        infoMeta.setLore(infoLore);
-        infoItem.setItemMeta(infoMeta);
-        gui.setItem(44, infoItem);
-
-        // Area Settings Button
+    private void addAreaSettingsButton(Inventory gui, ProtectedArea area, String areaName, int slot) {
+        // Area Settings Button (moved from addAreaInfoItems)
         ItemStack settingsItem = new ItemStack(Material.COMPARATOR);
         ItemMeta settingsMeta = settingsItem.getItemMeta();
         settingsMeta.setDisplayName(ChatColor.GOLD + "Area Settings");
@@ -366,7 +344,7 @@ public class BackupsGUIPage implements IGUIPage {
         settingsLore.add(ChatColor.YELLOW + "Click to open settings");
         settingsMeta.setLore(settingsLore);
         settingsItem.setItemMeta(settingsMeta);
-        gui.setItem(36, settingsItem);
+        gui.setItem(slot, settingsItem);
     }
 
     private void addControlItems(Inventory gui, String areaName, ProtectedArea area, Player player,
@@ -422,11 +400,38 @@ public class BackupsGUIPage implements IGUIPage {
             gui.setItem(teleportSlot, teleportItem);
         }
 
-        // Preview
+        // Preview Area - NOW WITH AREA INFO IN TOOLTIP
         if (permissionManager.canVisualize(player, area)) {
             ItemStack previewItem = new ItemStack(Material.SPYGLASS);
             ItemMeta previewMeta = previewItem.getItemMeta();
             previewMeta.setDisplayName(ChatColor.AQUA + "Preview Area");
+
+            // Add area information to the preview button tooltip
+            List<String> previewLore = new ArrayList<>();
+            previewLore.add(ChatColor.GRAY + "Visualize area boundaries");
+            previewLore.add("");
+            previewLore.add(ChatColor.GREEN + "Area Information:");
+            previewLore.add(ChatColor.GRAY + "Name: " + areaName);
+            previewLore.add(ChatColor.GRAY + "Owner: " + Bukkit.getOfflinePlayer(area.getOwner()).getName());
+            previewLore.add(ChatColor.GRAY + "World: " + area.getPos1().getWorld().getName());
+            previewLore.add(ChatColor.GRAY + "Size: " + area.getSize() + " blocks");
+
+            // Add interval information to preview button
+            var intervalConfig = intervalManager.getIntervalConfig(areaName);
+            if (intervalConfig != null) {
+                previewLore.add("");
+                previewLore.add(ChatColor.AQUA + "Auto-Restore: " + ChatColor.GREEN + "Active");
+                previewLore.add(ChatColor.GRAY + "Interval: " + intervalConfig.minutes + " minutes");
+                previewLore.add(ChatColor.GRAY + "Backup: #" + intervalConfig.backupId);
+            } else {
+                previewLore.add("");
+                previewLore.add(ChatColor.AQUA + "Auto-Restore: " + ChatColor.RED + "Inactive");
+            }
+
+            previewLore.add("");
+            previewLore.add(ChatColor.YELLOW + "Click to preview area boundaries");
+
+            previewMeta.setLore(previewLore);
             previewItem.setItemMeta(previewMeta);
             gui.setItem(previewSlot, previewItem);
         }
@@ -458,6 +463,9 @@ public class BackupsGUIPage implements IGUIPage {
 
             intervalItem.setItemMeta(intervalMeta);
             gui.setItem(intervalSlot, intervalItem);
+
+            // Place Area Settings button immediately after auto-restore settings
+            addAreaSettingsButton(gui, area, areaName, intervalSlot + 1);
         }
 
         // Back button

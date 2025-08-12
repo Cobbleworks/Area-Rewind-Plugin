@@ -5,6 +5,7 @@ import arearewind.managers.gui.AreasGUIPage;
 import arearewind.managers.gui.BackupsGUIPage;
 import arearewind.managers.gui.GUIPaginationHelper;
 import arearewind.managers.gui.MaterialSelectorGUIPage;
+import arearewind.managers.gui.MyAreasGUIPage;
 import arearewind.managers.gui.SettingsGUIPage;
 import arearewind.util.ConfigurationManager;
 import org.bukkit.entity.Player;
@@ -20,6 +21,7 @@ public class GUIManager implements Listener {
 
     // GUI Pages
     private final AreasGUIPage areasPage;
+    private final MyAreasGUIPage myAreasPage;
     private final BackupsGUIPage backupsPage;
     private final SettingsGUIPage settingsPage;
     private final AreaSettingsGUIPage areaSettingsPage;
@@ -31,6 +33,7 @@ public class GUIManager implements Listener {
 
         // Initialize GUI pages
         this.areasPage = new AreasGUIPage(this, areaManager, backupManager, permissionManager, intervalManager);
+        this.myAreasPage = new MyAreasGUIPage(this, areaManager, backupManager, permissionManager, intervalManager);
         this.backupsPage = new BackupsGUIPage(this, areaManager, backupManager, permissionManager, intervalManager);
         this.settingsPage = new SettingsGUIPage(this, permissionManager, configManager);
         this.areaSettingsPage = new AreaSettingsGUIPage(this, areaManager, backupManager, permissionManager);
@@ -45,6 +48,14 @@ public class GUIManager implements Listener {
 
     public void openAreasGUI(Player player, int page) {
         areasPage.openGUI(player, page);
+    }
+
+    public void openMyAreasGUI(Player player) {
+        myAreasPage.openGUI(player);
+    }
+
+    public void openMyAreasGUI(Player player, int page) {
+        myAreasPage.openGUI(player, page);
     }
 
     public void openBackupsGUI(Player player, String areaName) {
@@ -109,8 +120,10 @@ public class GUIManager implements Listener {
 
         String guiType = openGUIs.get(player.getUniqueId());
 
-        if (guiType.equals("areas")) {
+        if (guiType.equals("all-areas")) {
             areasPage.handleClick(player, event);
+        } else if (guiType.equals("my-areas")) {
+            myAreasPage.handleClick(player, event);
         } else if (guiType.startsWith("backups:")) {
             backupsPage.handleClick(player, event);
         } else if (guiType.equals("settings")) {
