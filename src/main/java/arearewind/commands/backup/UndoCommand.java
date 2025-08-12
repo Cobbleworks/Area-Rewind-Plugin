@@ -1,7 +1,6 @@
 package arearewind.commands.backup;
 
 import arearewind.commands.base.BaseCommand;
-import arearewind.data.AreaBackup;
 import arearewind.data.ProtectedArea;
 import arearewind.managers.*;
 import arearewind.util.ConfigurationManager;
@@ -10,7 +9,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,24 +43,21 @@ public class UndoCommand extends BaseCommand {
         }
 
         if (!backupManager.canUndo(areaName)) {
-            player.sendMessage(ChatColor.RED + "No undo history available for '" + areaName + "'!");
+            player.sendMessage(
+                    ChatColor.RED + "No undo available for '" + areaName + "'! You need to restore a backup first.");
             return true;
         }
 
-        player.sendMessage(ChatColor.YELLOW + "Undoing changes to '" + areaName + "'...");
+        player.sendMessage(ChatColor.YELLOW + "Undoing last restore for '" + areaName + "'...");
 
         Bukkit.getScheduler().runTask(plugin, () -> {
             boolean success = backupManager.undoArea(areaName, area);
             if (!success) {
-                player.sendMessage(ChatColor.RED + "Cannot undo further!");
+                player.sendMessage(ChatColor.RED + "Undo failed!");
                 return;
             }
 
-            AreaBackup backup = backupManager.getBackupHistory(areaName).get(backupManager.getUndoPointer(areaName));
-            player.sendMessage(ChatColor.GREEN + "Undo successful! Restored backup " +
-                    backupManager.getUndoPointer(areaName));
-            player.sendMessage(ChatColor.YELLOW + "From: " +
-                    backup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            player.sendMessage(ChatColor.GREEN + "Undo successful! Restored to state before last backup restore.");
         });
 
         return true;
@@ -85,7 +80,7 @@ public class UndoCommand extends BaseCommand {
 
     @Override
     public String getDescription() {
-        return "Undo the last change to an area";
+        return "Undo the last backup restore operation";
     }
 
     @Override

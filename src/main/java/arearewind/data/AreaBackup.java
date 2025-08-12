@@ -18,6 +18,7 @@ public class AreaBackup implements ConfigurationSerializable, Serializable {
     private Map<String, BlockInfo> blocks;
     private Map<String, Object> entities;
     private Material icon;
+    private boolean hidden; // For beforeRestore backups that shouldn't appear in lists
 
     public AreaBackup(LocalDateTime timestamp, Map<String, BlockInfo> blocks) {
         this.id = generateUniqueId();
@@ -25,6 +26,7 @@ public class AreaBackup implements ConfigurationSerializable, Serializable {
         this.blocks = blocks;
         this.entities = new HashMap<>();
         this.icon = Material.CHEST; // Default backup icon
+        this.hidden = false;
     }
 
     public AreaBackup(LocalDateTime timestamp, Map<String, BlockInfo> blocks, Map<String, Object> entities) {
@@ -33,6 +35,7 @@ public class AreaBackup implements ConfigurationSerializable, Serializable {
         this.blocks = blocks;
         this.entities = entities != null ? entities : new HashMap<>();
         this.icon = Material.CHEST; // Default backup icon
+        this.hidden = false;
     }
 
     public AreaBackup(String id, LocalDateTime timestamp, Map<String, BlockInfo> blocks) {
@@ -41,6 +44,7 @@ public class AreaBackup implements ConfigurationSerializable, Serializable {
         this.blocks = blocks;
         this.entities = new HashMap<>();
         this.icon = Material.CHEST; // Default backup icon
+        this.hidden = false;
     }
 
     public AreaBackup(String id, LocalDateTime timestamp, Map<String, BlockInfo> blocks, Map<String, Object> entities) {
@@ -49,6 +53,17 @@ public class AreaBackup implements ConfigurationSerializable, Serializable {
         this.blocks = blocks;
         this.entities = entities != null ? entities : new HashMap<>();
         this.icon = Material.CHEST; // Default backup icon
+        this.hidden = false;
+    }
+
+    public AreaBackup(String id, LocalDateTime timestamp, Map<String, BlockInfo> blocks, Map<String, Object> entities,
+            boolean hidden) {
+        this.id = id;
+        this.timestamp = timestamp;
+        this.blocks = blocks;
+        this.entities = entities != null ? entities : new HashMap<>();
+        this.icon = Material.CHEST; // Default backup icon
+        this.hidden = hidden;
     }
 
     private String generateUniqueId() {
@@ -82,6 +97,14 @@ public class AreaBackup implements ConfigurationSerializable, Serializable {
         this.icon = icon != null ? icon : Material.CHEST;
     }
 
+    public boolean isHidden() {
+        return hidden;
+    }
+
+    public void setHidden(boolean hidden) {
+        this.hidden = hidden;
+    }
+
     public int getBlockCount() {
         return blocks.size();
     }
@@ -106,6 +129,7 @@ public class AreaBackup implements ConfigurationSerializable, Serializable {
         map.put("blocks", blocks);
         map.put("entities", entities);
         map.put("icon", icon != null ? icon.name() : Material.CHEST.name());
+        map.put("hidden", hidden);
         return map;
     }
 
@@ -116,8 +140,9 @@ public class AreaBackup implements ConfigurationSerializable, Serializable {
                 : null;
         Map<String, BlockInfo> blocks = (Map<String, BlockInfo>) map.get("blocks");
         Map<String, Object> entities = (Map<String, Object>) map.getOrDefault("entities", new HashMap<>());
+        boolean hidden = (Boolean) map.getOrDefault("hidden", false);
 
-        AreaBackup backup = new AreaBackup(id, timestamp, blocks, entities);
+        AreaBackup backup = new AreaBackup(id, timestamp, blocks, entities, hidden);
 
         // Handle icon
         String iconName = (String) map.get("icon");

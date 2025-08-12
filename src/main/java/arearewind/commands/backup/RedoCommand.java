@@ -1,7 +1,6 @@
 package arearewind.commands.backup;
 
 import arearewind.commands.base.BaseCommand;
-import arearewind.data.AreaBackup;
 import arearewind.data.ProtectedArea;
 import arearewind.managers.*;
 import arearewind.util.ConfigurationManager;
@@ -10,7 +9,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,24 +43,20 @@ public class RedoCommand extends BaseCommand {
         }
 
         if (!backupManager.canRedo(areaName)) {
-            player.sendMessage(ChatColor.RED + "No redo history available for '" + areaName + "'!");
+            player.sendMessage(ChatColor.RED + "No redo available for '" + areaName + "'!");
             return true;
         }
 
-        player.sendMessage(ChatColor.YELLOW + "Redoing changes to '" + areaName + "'...");
+        player.sendMessage(ChatColor.YELLOW + "Redoing last undo for '" + areaName + "'...");
 
         Bukkit.getScheduler().runTask(plugin, () -> {
             boolean success = backupManager.redoArea(areaName, area);
             if (!success) {
-                player.sendMessage(ChatColor.RED + "Cannot redo further!");
+                player.sendMessage(ChatColor.RED + "Redo failed!");
                 return;
             }
 
-            AreaBackup backup = backupManager.getBackupHistory(areaName).get(backupManager.getUndoPointer(areaName));
-            player.sendMessage(ChatColor.GREEN + "Redo successful! Restored backup " +
-                    backupManager.getUndoPointer(areaName));
-            player.sendMessage(ChatColor.YELLOW + "From: " +
-                    backup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            player.sendMessage(ChatColor.GREEN + "Redo successful! Restored to state before last undo.");
         });
 
         return true;
@@ -85,7 +79,7 @@ public class RedoCommand extends BaseCommand {
 
     @Override
     public String getDescription() {
-        return "Redo the last undone change to an area";
+        return "Redo the last undo operation";
     }
 
     @Override

@@ -98,9 +98,10 @@ public class BackupsGUIPage implements IGUIPage {
                     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             lore.add(ChatColor.GRAY + "Blocks: " + backup.getBlocks().size());
 
-            int undoPointer = backupManager.getUndoPointer(areaName);
-            if (i == undoPointer) {
-                lore.add(ChatColor.YELLOW + "← Current State");
+            // Note: With the new undo system, we don't track a simple pointer
+            // Instead, we just show if there's an undo available for this area
+            if (backupManager.canUndo(areaName)) {
+                lore.add(ChatColor.GREEN + "Undo available");
             }
 
             lore.add("");
@@ -252,9 +253,8 @@ public class BackupsGUIPage implements IGUIPage {
 
             if (event.getClick().isShiftClick()) {
                 player.closeInventory();
-                // Compare selected backup with current state
-                int currentStateId = backupManager.getUndoPointer(areaName);
-                player.performCommand("rewind diff " + areaName + " " + backupId + " " + currentStateId);
+                // Compare selected backup with current state (create a temporary backup)
+                player.performCommand("rewind diff " + areaName + " " + backupId + " current");
             } else if (event.isLeftClick()) {
                 player.closeInventory();
                 player.performCommand("rewind restore " + areaName + " " + backupId);
@@ -340,7 +340,11 @@ public class BackupsGUIPage implements IGUIPage {
         if (permissionManager.canUndoRedo(player, area) && backupManager.canUndo(areaName)) {
             ItemStack undoItem = new ItemStack(Material.ARROW);
             ItemMeta undoMeta = undoItem.getItemMeta();
-            undoMeta.setDisplayName(ChatColor.YELLOW + "Undo Last Change");
+            undoMeta.setDisplayName(ChatColor.YELLOW + "Undo Last Restore");
+            List<String> undoLore = new ArrayList<>();
+            undoLore.add(ChatColor.GRAY + "Restore the area to its state");
+            undoLore.add(ChatColor.GRAY + "before the last backup restore");
+            undoMeta.setLore(undoLore);
             undoItem.setItemMeta(undoMeta);
             gui.setItem(undoSlot, undoItem);
         }
@@ -349,6 +353,9 @@ public class BackupsGUIPage implements IGUIPage {
             ItemStack redoItem = new ItemStack(Material.ARROW);
             ItemMeta redoMeta = redoItem.getItemMeta();
             redoMeta.setDisplayName(ChatColor.YELLOW + "Redo Last Undo");
+            List<String> redoLore = new ArrayList<>();
+            redoLore.add(ChatColor.GRAY + "Redo the last undo operation");
+            redoMeta.setLore(redoLore);
             redoItem.setItemMeta(redoMeta);
             gui.setItem(redoSlot, redoItem);
         }

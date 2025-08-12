@@ -26,6 +26,7 @@ public class BackupManager {
     private final FileManager fileManager;
     private final Map<String, List<AreaBackup>> backupHistory;
     private final Map<String, Integer> undoPointers;
+    private final Map<String, AreaBackup> beforeRestoreBackups; // Hidden backups for undo functionality
     private BukkitTask automaticBackupTask;
 
     public BackupManager(JavaPlugin plugin, ConfigurationManager configManager, FileManager fileManager) {
@@ -34,6 +35,7 @@ public class BackupManager {
         this.fileManager = fileManager;
         this.backupHistory = new ConcurrentHashMap<>();
         this.undoPointers = new ConcurrentHashMap<>();
+        this.beforeRestoreBackups = new ConcurrentHashMap<>();
     }
 
     private final Set<Material> POI_BLOCKS = Set.of(
@@ -150,6 +152,15 @@ public class BackupManager {
                 errorBlocks + " errors (replaced with air)");
 
         return new AreaBackup(LocalDateTime.now(), blocks);
+    }
+
+    /**
+     * Creates a hidden backup for undo purposes
+     */
+    private AreaBackup createHiddenBackup(ProtectedArea area) {
+        AreaBackup backup = createBackupFromArea(area);
+        backup.setHidden(true);
+        return backup;
     }
 
     public void restoreFromBackup(ProtectedArea area, AreaBackup backup) {
@@ -582,15 +593,22 @@ public class BackupManager {
     }
 
     public List<AreaBackup> getBackupHistory(String areaName) {
+        List<AreaBackup> allBackups = backupHistory.getOrDefault(areaName, new ArrayList<>());
+        return allBackups.stream()
+                .filter(backup -> !backup.isHidden())
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public List<AreaBackup> getAllBackups(String areaName) {
         return backupHistory.getOrDefault(areaName, new ArrayList<>());
     }
 
     public AreaBackup getBackup(String areaName, int index) {
-        List<AreaBackup> backups = backupHistory.get(areaName);
-        if (backups == null || index < 0 || index >= backups.size()) {
+        List<AreaBackup> visibleBackups = getBackupHistory(areaName); // This filters out hidden backups
+        if (visibleBackups == null || index < 0 || index >= visibleBackups.size()) {
             return null;
         }
-        return backups.get(index);
+        return visibleBackups.get(index);
     }
 
     public boolean restoreArea(String areaName, ProtectedArea area, int backupIndex) {
@@ -601,6 +619,10 @@ public class BackupManager {
         AreaBackup backup = getBackup(areaName, backupIndex);
         if (backup == null)
             return false;
+
+        // Create a hidden "beforeRestore" backup for undo functionality
+        AreaBackup beforeRestore = createHiddenBackup(area);
+        beforeRestoreBackups.put(areaName, beforeRestore);
 
         if (createBackupFirst) {
             createBackup(areaName, area);
@@ -618,43 +640,37 @@ public class BackupManager {
     }
 
     public boolean undoArea(String areaName, ProtectedArea area) {
-        if (!backupHistory.containsKey(areaName) || backupHistory.get(areaName).isEmpty()) {
-            return false;
+        AreaBackup beforeRestoreBackup = beforeRestoreBackups.get(areaName);
+        if (beforeRestoreBackup == null) {
+            return false; // No undo available - need to restore a backup first
         }
 
-        List<AreaBackup> backups = backupHistory.get(areaName);
-        int currentPointer = undoPointers.getOrDefault(areaName, backups.size() - 1);
+        // Create a backup for potential redo before undoing
+        AreaBackup beforeUndoBackup = createHiddenBackup(area);
 
-        if (currentPointer <= 0) {
-            return false;
-        }
+        // Restore from the beforeRestore backup
+        restoreFromBackup(area, beforeRestoreBackup);
 
-        currentPointer--;
-        undoPointers.put(areaName, currentPointer);
-
-        AreaBackup backup = backups.get(currentPointer);
-        restoreFromBackup(area, backup);
+        // Store the beforeUndo backup as the new beforeRestore (for redo)
+        beforeRestoreBackups.put(areaName, beforeUndoBackup);
 
         return true;
     }
 
     public boolean redoArea(String areaName, ProtectedArea area) {
-        if (!backupHistory.containsKey(areaName) || backupHistory.get(areaName).isEmpty()) {
-            return false;
+        AreaBackup beforeRestoreBackup = beforeRestoreBackups.get(areaName);
+        if (beforeRestoreBackup == null) {
+            return false; // No redo available
         }
 
-        List<AreaBackup> backups = backupHistory.get(areaName);
-        int currentPointer = undoPointers.getOrDefault(areaName, backups.size() - 1);
+        // Create a backup before redoing
+        AreaBackup beforeRedoBackup = createHiddenBackup(area);
 
-        if (currentPointer >= backups.size() - 1) {
-            return false;
-        }
+        // Restore from the beforeRestore backup
+        restoreFromBackup(area, beforeRestoreBackup);
 
-        currentPointer++;
-        undoPointers.put(areaName, currentPointer);
-
-        AreaBackup backup = backups.get(currentPointer);
-        restoreFromBackup(area, backup);
+        // Store the beforeRedo backup as the new beforeRestore (for undo)
+        beforeRestoreBackups.put(areaName, beforeRedoBackup);
 
         return true;
     }
@@ -708,6 +724,7 @@ public class BackupManager {
             }
         }
         undoPointers.remove(areaName);
+        beforeRestoreBackups.remove(areaName);
     }
 
     public void renameAreaBackups(String oldName, String newName) {
@@ -720,6 +737,11 @@ public class BackupManager {
         Integer undoPointer = undoPointers.remove(oldName);
         if (undoPointer != null) {
             undoPointers.put(newName, undoPointer);
+        }
+
+        AreaBackup beforeRestore = beforeRestoreBackups.remove(oldName);
+        if (beforeRestore != null) {
+            beforeRestoreBackups.put(newName, beforeRestore);
         }
     }
 
@@ -922,13 +944,10 @@ public class BackupManager {
     }
 
     public boolean canUndo(String areaName) {
-        return getUndoPointer(areaName) > 0;
+        return beforeRestoreBackups.containsKey(areaName);
     }
 
     public boolean canRedo(String areaName) {
-        List<AreaBackup> backups = backupHistory.get(areaName);
-        if (backups == null)
-            return false;
-        return getUndoPointer(areaName) < backups.size() - 1;
+        return beforeRestoreBackups.containsKey(areaName);
     }
 }
