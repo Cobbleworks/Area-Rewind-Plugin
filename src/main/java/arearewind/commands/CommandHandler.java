@@ -36,13 +36,9 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
 
         public CommandHandler(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
                         GUIManager guiManager, VisualizationManager visualizationManager,
-                        PermissionManager permissionManager, ConfigurationManager configManager) {
+                        PermissionManager permissionManager, ConfigurationManager configManager,
+                        FileManager fileManager, IntervalManager intervalManager) {
                 this.commandRegistry = new CommandRegistry();
-
-                // Create shared dependencies
-                FileManager fileManager = new FileManager(plugin, configManager);
-                IntervalManager intervalManager = new IntervalManager(plugin, backupManager, areaManager);
-                fileManager.setupFiles();
 
                 // Register all commands
                 registerCommands(plugin, areaManager, backupManager, guiManager, visualizationManager,

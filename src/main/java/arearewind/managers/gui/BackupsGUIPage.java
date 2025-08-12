@@ -5,6 +5,7 @@ import arearewind.data.ProtectedArea;
 import arearewind.managers.AreaManager;
 import arearewind.managers.BackupManager;
 import arearewind.managers.GUIManager;
+import arearewind.managers.IntervalManager;
 import arearewind.managers.PermissionManager;
 import arearewind.managers.gui.GUIPaginationHelper.PaginationInfo;
 import org.bukkit.Bukkit;
@@ -29,18 +30,19 @@ public class BackupsGUIPage implements IGUIPage {
     private final AreaManager areaManager;
     private final BackupManager backupManager;
     private final PermissionManager permissionManager;
+    private final IntervalManager intervalManager;
 
     // Pagination constants
     private static final int ITEMS_PER_PAGE = 28; // 4 rows of 7 items (slots 0-27)
-    private static final int INFO_ROW_START = 35; // Row for area info (35-44)
     private static final int NAVIGATION_ROW_START = 45; // Bottom row for navigation
 
     public BackupsGUIPage(GUIManager guiManager, AreaManager areaManager,
-            BackupManager backupManager, PermissionManager permissionManager) {
+            BackupManager backupManager, PermissionManager permissionManager, IntervalManager intervalManager) {
         this.guiManager = guiManager;
         this.areaManager = areaManager;
         this.backupManager = backupManager;
         this.permissionManager = permissionManager;
+        this.intervalManager = intervalManager;
     }
 
     @Override
@@ -98,8 +100,16 @@ public class BackupsGUIPage implements IGUIPage {
                     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             lore.add(ChatColor.GRAY + "Blocks: " + backup.getBlocks().size());
 
+            // Check if this backup is used for auto-restore
+            var intervalConfig = intervalManager.getIntervalConfig(areaName);
+            if (intervalConfig != null && intervalConfig.backupId == i) {
+                lore.add(ChatColor.GREEN + "Used for auto-restore (" + intervalConfig.minutes + "m)");
+            }
+
             // Note: With the new undo system, we don't track a simple pointer
             // Instead, we just show if there's an undo available for this area
+            // But this should be changed. It should show on the backup that got last
+            // restored the text "← Current State"
             if (backupManager.canUndo(areaName)) {
                 lore.add(ChatColor.GREEN + "Undo available");
             }
@@ -221,6 +231,38 @@ public class BackupsGUIPage implements IGUIPage {
             player.closeInventory();
             player.performCommand("rewind preview " + areaName);
             return;
+        } else if (displayName.contains("Auto-Restore Settings")) {
+            player.closeInventory();
+
+            var intervalConfig = intervalManager.getIntervalConfig(areaName);
+            if (intervalConfig != null) {
+                if (event.isLeftClick()) {
+                    // Disable auto-restore
+                    intervalManager.clearInterval(areaName);
+                    player.sendMessage(ChatColor.GREEN + "Auto-restore disabled for " + areaName);
+                } else if (event.isRightClick()) {
+                    // Show current settings and how to change them
+                    player.sendMessage(ChatColor.AQUA + "Current auto-restore settings for " + areaName + ":");
+                    player.sendMessage(ChatColor.GRAY + "Interval: " + intervalConfig.minutes + " minutes");
+                    player.sendMessage(ChatColor.GRAY + "Backup: #" + intervalConfig.backupId);
+                    player.sendMessage(ChatColor.YELLOW + "To change settings: /rewind interval set " + areaName
+                            + " <minutes> <backup_id>");
+                    player.sendMessage(ChatColor.YELLOW + "To disable: /rewind interval remove " + areaName);
+                }
+            } else {
+                // No interval set, show help
+                var backups = backupManager.getBackupHistory(areaName);
+                if (backups.isEmpty()) {
+                    player.sendMessage(ChatColor.RED + "No backups available! Create a backup first.");
+                } else {
+                    player.sendMessage(ChatColor.YELLOW + "Set up auto-restore for " + areaName + ":");
+                    player.sendMessage(
+                            ChatColor.GRAY + "Usage: /rewind interval set " + areaName + " <minutes> <backup_id>");
+                    player.sendMessage(ChatColor.GRAY + "Available backups: 0-" + (backups.size() - 1));
+                    player.sendMessage(ChatColor.GRAY + "Example: /rewind interval set " + areaName + " 30 0");
+                }
+            }
+            return;
         } else if (displayName.contains("Area Settings")) {
             player.closeInventory();
             guiManager.openAreaSettingsGUI(player, areaName);
@@ -296,6 +338,19 @@ public class BackupsGUIPage implements IGUIPage {
         infoLore.add(ChatColor.GRAY + "Owner: " + Bukkit.getOfflinePlayer(area.getOwner()).getName());
         infoLore.add(ChatColor.GRAY + "World: " + area.getPos1().getWorld().getName());
         infoLore.add(ChatColor.GRAY + "Size: " + area.getSize() + " blocks");
+
+        // Add interval information
+        var intervalConfig = intervalManager.getIntervalConfig(areaName);
+        if (intervalConfig != null) {
+            infoLore.add("");
+            infoLore.add(ChatColor.AQUA + "Auto-Restore: " + ChatColor.GREEN + "Active");
+            infoLore.add(ChatColor.GRAY + "Interval: " + intervalConfig.minutes + " minutes");
+            infoLore.add(ChatColor.GRAY + "Backup: #" + intervalConfig.backupId);
+        } else {
+            infoLore.add("");
+            infoLore.add(ChatColor.AQUA + "Auto-Restore: " + ChatColor.RED + "Inactive");
+        }
+
         infoLore.add("");
         infoLore.add(ChatColor.YELLOW + "For detailed settings, click Area Settings");
         infoMeta.setLore(infoLore);
@@ -325,6 +380,7 @@ public class BackupsGUIPage implements IGUIPage {
         int redoSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 3 : NAVIGATION_ROW_START + 2;
         int teleportSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 4 : NAVIGATION_ROW_START + 3;
         int previewSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 5 : NAVIGATION_ROW_START + 4;
+        int intervalSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 6 : NAVIGATION_ROW_START + 5;
         int backSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 7 : NAVIGATION_ROW_START + 8;
 
         // Create Backup
@@ -376,6 +432,35 @@ public class BackupsGUIPage implements IGUIPage {
             previewMeta.setDisplayName(ChatColor.AQUA + "Preview Area");
             previewItem.setItemMeta(previewMeta);
             gui.setItem(previewSlot, previewItem);
+        }
+
+        // Interval Management
+        if (permissionManager.canModifyBoundaries(player, area)) {
+            var intervalConfig = intervalManager.getIntervalConfig(areaName);
+            ItemStack intervalItem = new ItemStack(intervalConfig != null ? Material.CLOCK : Material.GRAY_DYE);
+            ItemMeta intervalMeta = intervalItem.getItemMeta();
+
+            if (intervalConfig != null) {
+                intervalMeta.setDisplayName(ChatColor.AQUA + "Auto-Restore Settings");
+                List<String> intervalLore = new ArrayList<>();
+                intervalLore.add(ChatColor.GREEN + "Auto-restore is active");
+                intervalLore.add(ChatColor.GRAY + "Interval: " + intervalConfig.minutes + " minutes");
+                intervalLore.add(ChatColor.GRAY + "Backup: #" + intervalConfig.backupId);
+                intervalLore.add("");
+                intervalLore.add(ChatColor.YELLOW + "Left Click: Disable auto-restore");
+                intervalLore.add(ChatColor.YELLOW + "Right Click: Configure settings");
+                intervalMeta.setLore(intervalLore);
+            } else {
+                intervalMeta.setDisplayName(ChatColor.GRAY + "Auto-Restore Settings");
+                List<String> intervalLore = new ArrayList<>();
+                intervalLore.add(ChatColor.RED + "Auto-restore is inactive");
+                intervalLore.add("");
+                intervalLore.add(ChatColor.YELLOW + "Click to set up auto-restore");
+                intervalMeta.setLore(intervalLore);
+            }
+
+            intervalItem.setItemMeta(intervalMeta);
+            gui.setItem(intervalSlot, intervalItem);
         }
 
         // Back button

@@ -4,6 +4,7 @@ import arearewind.data.ProtectedArea;
 import arearewind.managers.AreaManager;
 import arearewind.managers.BackupManager;
 import arearewind.managers.GUIManager;
+import arearewind.managers.IntervalManager;
 import arearewind.managers.PermissionManager;
 import arearewind.managers.gui.GUIPaginationHelper.PaginationInfo;
 import org.bukkit.Bukkit;
@@ -28,6 +29,7 @@ public class AreasGUIPage implements IGUIPage {
     private final AreaManager areaManager;
     private final BackupManager backupManager;
     private final PermissionManager permissionManager;
+    private final IntervalManager intervalManager;
 
     // Pagination constants
     private static final int ITEMS_PER_PAGE = 35; // 5 rows of 7 items (slots 0-34)
@@ -35,11 +37,12 @@ public class AreasGUIPage implements IGUIPage {
     private static final int FIRST_PAGE = 0; // Used for resetting to the first page
 
     public AreasGUIPage(GUIManager guiManager, AreaManager areaManager,
-            BackupManager backupManager, PermissionManager permissionManager) {
+            BackupManager backupManager, PermissionManager permissionManager, IntervalManager intervalManager) {
         this.guiManager = guiManager;
         this.areaManager = areaManager;
         this.backupManager = backupManager;
         this.permissionManager = permissionManager;
+        this.intervalManager = intervalManager;
     }
 
     @Override
@@ -97,6 +100,16 @@ public class AreasGUIPage implements IGUIPage {
             lore.add(ChatColor.GRAY + "Size: " + area.getSize() + " blocks");
             lore.add(ChatColor.GRAY + "Backups: " + backupManager.getBackupHistory(areaName).size());
             lore.add(ChatColor.GRAY + "Permission: " + permissionManager.getPermissionLevelString(player, area));
+
+            // Add interval information
+            var intervalConfig = intervalManager.getIntervalConfig(areaName);
+            if (intervalConfig != null) {
+                lore.add(ChatColor.AQUA + "Auto-Restore: " + ChatColor.GREEN + intervalConfig.minutes + "m (#"
+                        + intervalConfig.backupId + ")");
+            } else {
+                lore.add(ChatColor.AQUA + "Auto-Restore: " + ChatColor.RED + "Inactive");
+            }
+
             lore.add("");
             lore.add(ChatColor.YELLOW + "Click: Manage Area & Backups");
 

@@ -26,11 +26,12 @@ public class GUIManager implements Listener {
     private final MaterialSelectorGUIPage materialSelectorPage;
 
     public GUIManager(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
-            PermissionManager permissionManager, ConfigurationManager configManager, FileManager fileManager) {
+            PermissionManager permissionManager, ConfigurationManager configManager, FileManager fileManager,
+            IntervalManager intervalManager) {
 
         // Initialize GUI pages
-        this.areasPage = new AreasGUIPage(this, areaManager, backupManager, permissionManager);
-        this.backupsPage = new BackupsGUIPage(this, areaManager, backupManager, permissionManager);
+        this.areasPage = new AreasGUIPage(this, areaManager, backupManager, permissionManager, intervalManager);
+        this.backupsPage = new BackupsGUIPage(this, areaManager, backupManager, permissionManager, intervalManager);
         this.settingsPage = new SettingsGUIPage(this, permissionManager, configManager);
         this.areaSettingsPage = new AreaSettingsGUIPage(this, areaManager, backupManager, permissionManager);
         this.materialSelectorPage = new MaterialSelectorGUIPage(this, areaManager, backupManager, permissionManager,

@@ -18,6 +18,7 @@ public class AreaRewindPlugin extends JavaPlugin {
     private GUIManager guiManager;
     private VisualizationManager visualizationManager;
     private PermissionManager permissionManager;
+    private IntervalManager intervalManager;
     private CommandHandler commandHandler;
     private PlayerInteractionListener playerListener;
 
@@ -32,10 +33,12 @@ public class AreaRewindPlugin extends JavaPlugin {
         areaManager = new AreaManager(this, fileManager);
         backupManager = new BackupManager(this, configManager, fileManager);
         permissionManager = new PermissionManager();
-        guiManager = new GUIManager(this, areaManager, backupManager, permissionManager, configManager, fileManager);
+        intervalManager = new IntervalManager(this, backupManager, areaManager);
+        guiManager = new GUIManager(this, areaManager, backupManager, permissionManager, configManager, fileManager,
+                intervalManager);
         visualizationManager = new VisualizationManager(this, areaManager);
         commandHandler = new CommandHandler(this, areaManager, backupManager,
-                guiManager, visualizationManager, permissionManager, configManager);
+                guiManager, visualizationManager, permissionManager, configManager, fileManager, intervalManager);
         playerListener = new PlayerInteractionListener(this, areaManager, configManager);
 
         // Set the player listener reference in the command handler for tool commands
@@ -79,10 +82,12 @@ public class AreaRewindPlugin extends JavaPlugin {
         areaManager = new AreaManager(this, fileManager);
         backupManager = new BackupManager(this, configManager, fileManager);
         permissionManager = new PermissionManager();
-        guiManager = new GUIManager(this, areaManager, backupManager, permissionManager, configManager, fileManager);
+        intervalManager = new IntervalManager(this, backupManager, areaManager);
+        guiManager = new GUIManager(this, areaManager, backupManager, permissionManager, configManager, fileManager,
+                intervalManager);
         visualizationManager = new VisualizationManager(this, areaManager);
         commandHandler = new CommandHandler(this, areaManager, backupManager,
-                guiManager, visualizationManager, permissionManager, configManager);
+                guiManager, visualizationManager, permissionManager, configManager, fileManager, intervalManager);
         playerListener = new PlayerInteractionListener(this, areaManager, configManager);
 
         // Set the player listener reference in the command handler for tool commands
@@ -108,6 +113,7 @@ public class AreaRewindPlugin extends JavaPlugin {
         areaManager.saveAreas();
         visualizationManager.stopVisualizationTask();
         backupManager.stopAutomaticBackup();
+        intervalManager.stopAll();
         getLogger().info("Area Rewind Plugin disabled!");
     }
 
@@ -147,5 +153,9 @@ public class AreaRewindPlugin extends JavaPlugin {
 
     public PermissionManager getPermissionManager() {
         return permissionManager;
+    }
+
+    public IntervalManager getIntervalManager() {
+        return intervalManager;
     }
 }

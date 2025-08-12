@@ -41,16 +41,38 @@ public class IntervalCommand extends BaseCommand {
 
         switch (action) {
             case "set":
+                if (args.length < 4) {
+                    player.sendMessage(ChatColor.RED + "Usage: /rewind interval set <area> <minutes> <backup_id>");
+                    return true;
+                }
+
                 Integer interval = parseInteger(player, args[2], "interval");
                 if (interval == null || interval < 1) {
                     player.sendMessage(ChatColor.RED + "Interval must be a positive number (minutes)!");
                     return true;
                 }
 
-                // For now, this is a placeholder - actual implementation would require
-                // extending IntervalManager with these methods
-                player.sendMessage(ChatColor.YELLOW + "Interval commands need implementation in IntervalManager");
-                player.sendMessage(ChatColor.GRAY + "Use the existing setInterval method with backup ID");
+                Integer backupId = parseInteger(player, args[3], "backup ID");
+                if (backupId == null || backupId < 0) {
+                    player.sendMessage(ChatColor.RED + "Backup ID must be a non-negative number!");
+                    return true;
+                }
+
+                // Check if backup exists
+                var backups = backupManager.getBackupHistory(areaName);
+                if (backupId >= backups.size()) {
+                    player.sendMessage(ChatColor.RED + "Backup ID " + backupId + " does not exist! Available: 0-"
+                            + (backups.size() - 1));
+                    return true;
+                }
+
+                boolean success = intervalManager.setInterval(areaName, interval, backupId, player.getUniqueId());
+                if (success) {
+                    player.sendMessage(ChatColor.GREEN + "Set automatic restore interval for " + areaName +
+                            " to " + interval + " minutes (backup #" + backupId + ")");
+                } else {
+                    player.sendMessage(ChatColor.RED + "Failed to set interval!");
+                }
                 break;
 
             case "remove":
@@ -90,6 +112,16 @@ public class IntervalCommand extends BaseCommand {
             return Arrays.asList("1", "5", "10", "15", "30", "60", "120").stream()
                     .filter(time -> time.startsWith(args[2]))
                     .collect(Collectors.toList());
+        } else if (args.length == 4 && args[0].equalsIgnoreCase("set")) {
+            // Get backup IDs for the area
+            String areaName = args[1];
+            if (areaManager.areaExists(areaName)) {
+                var backups = backupManager.getBackupHistory(areaName);
+                return java.util.stream.IntStream.range(0, backups.size())
+                        .mapToObj(String::valueOf)
+                        .filter(id -> id.startsWith(args[3]))
+                        .collect(Collectors.toList());
+            }
         }
         return List.of();
     }
@@ -111,6 +143,6 @@ public class IntervalCommand extends BaseCommand {
 
     @Override
     public String getUsage() {
-        return "/rewind interval <set|remove|check> <area> [minutes]";
+        return "/rewind interval <set|remove|check> <area> [minutes] [backup_id]";
     }
 }
