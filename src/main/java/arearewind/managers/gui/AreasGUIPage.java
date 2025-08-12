@@ -151,14 +151,14 @@ public class AreasGUIPage implements IGUIPage {
         } else if (displayName.equals("My Areas")) {
             // Switch to "My Areas" filter
             GUIPaginationHelper.updateFilterType(player.getUniqueId(), "my", getPageType(), null);
-            openGUI(player, GUIPaginationHelper.FIRST_PAGE); // Reset to first page
+            player.closeInventory();
             openGUI(player, FIRST_PAGE); // Reset to first page
             return;
         } else if (displayName.equals("All Areas")) {
             // Switch to "All Areas" filter
             GUIPaginationHelper.updateFilterType(player.getUniqueId(), "all", getPageType(), null);
             player.closeInventory();
-            openGUI(player, 0); // Reset to first page
+            openGUI(player, FIRST_PAGE); // Reset to first page
             return;
         }
 
