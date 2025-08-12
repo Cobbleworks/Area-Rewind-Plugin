@@ -611,6 +611,7 @@ public class BackupManager {
         restoreFromBackup(area, backup);
 
         // Set the undo pointer to the backup that was actually restored from
+        // This allows the user to undo/redo from this point
         undoPointers.put(areaName, backupIndex);
 
         return true;

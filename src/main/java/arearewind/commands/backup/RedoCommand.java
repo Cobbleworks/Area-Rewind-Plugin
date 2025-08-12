@@ -49,23 +49,20 @@ public class RedoCommand extends BaseCommand {
             return true;
         }
 
-        boolean success = backupManager.redoArea(areaName, area);
-        if (!success) {
-            player.sendMessage(ChatColor.RED + "Cannot redo further!");
-            return true;
-        }
-
-        AreaBackup backup = backupManager.getBackupHistory(areaName).get(backupManager.getUndoPointer(areaName));
         player.sendMessage(ChatColor.YELLOW + "Redoing changes to '" + areaName + "'...");
 
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            backupManager.restoreFromBackup(area, backup);
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                player.sendMessage(ChatColor.GREEN + "Redo successful! Restored backup " +
-                        backupManager.getUndoPointer(areaName));
-                player.sendMessage(ChatColor.YELLOW + "From: " +
-                        backup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-            });
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            boolean success = backupManager.redoArea(areaName, area);
+            if (!success) {
+                player.sendMessage(ChatColor.RED + "Cannot redo further!");
+                return;
+            }
+
+            AreaBackup backup = backupManager.getBackupHistory(areaName).get(backupManager.getUndoPointer(areaName));
+            player.sendMessage(ChatColor.GREEN + "Redo successful! Restored backup " +
+                    backupManager.getUndoPointer(areaName));
+            player.sendMessage(ChatColor.YELLOW + "From: " +
+                    backup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         });
 
         return true;
