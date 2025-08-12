@@ -80,14 +80,30 @@ public class GUIPaginationHelper {
         public void setFilterType(String filterType) {
             this.filterType = filterType;
         }
+
+        public void setAreaName(String areaName) {
+            this.areaName = areaName;
+        }
     }
 
     /**
      * Get or create pagination data for a player
      */
     public static PaginationData getPaginationData(UUID playerId, String guiType, String areaName) {
-        return paginationData.computeIfAbsent(playerId,
-                k -> new PaginationData(0, 0, guiType, areaName));
+        PaginationData existingData = paginationData.get(playerId);
+
+        if (existingData != null && existingData.getGuiType().equals(guiType)) {
+            // Update area name if needed, but preserve filter type and other data
+            if (areaName != null && !areaName.equals(existingData.getAreaName())) {
+                existingData.setAreaName(areaName);
+            }
+            return existingData;
+        }
+
+        // Create new data with default filter "all"
+        PaginationData newData = new PaginationData(0, 0, guiType, areaName, "all");
+        paginationData.put(playerId, newData);
+        return newData;
     }
 
     /**

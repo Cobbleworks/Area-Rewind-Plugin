@@ -223,6 +223,11 @@ public class AreasGUIPage implements IGUIPage {
     private List<Map.Entry<String, ProtectedArea>> getFilteredAreas(Player player, String filterType) {
         List<Map.Entry<String, ProtectedArea>> filteredAreas = new ArrayList<>();
 
+        // Ensure filterType is not null and default to "all" if it is
+        if (filterType == null) {
+            filterType = "all";
+        }
+
         for (Map.Entry<String, ProtectedArea> entry : areaManager.getProtectedAreas().entrySet()) {
             ProtectedArea area = entry.getValue();
 

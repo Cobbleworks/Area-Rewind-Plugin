@@ -85,6 +85,17 @@ public class AreaBackup implements ConfigurationSerializable, Serializable {
         return blocks;
     }
 
+    public Map<String, BlockInfo> getBlocksNonAirOnly() {
+        Map<String, BlockInfo> nonAirBlocks = new HashMap<>();
+        for (Map.Entry<String, BlockInfo> entry : blocks.entrySet()) {
+            Material material = entry.getValue().getMaterial();
+            if (material != null && material != Material.AIR) {
+                nonAirBlocks.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return nonAirBlocks;
+    }
+
     public Map<String, Object> getEntities() {
         return entities;
     }
