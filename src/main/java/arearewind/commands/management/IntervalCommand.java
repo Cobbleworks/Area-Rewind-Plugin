@@ -26,7 +26,9 @@ public class IntervalCommand extends BaseCommand {
 
     @Override
     public boolean execute(Player player, String[] args) {
-        if (!validateMinArgs(player, args, 3)) {
+        // Require at least action and area for remove/check, set action will enforce
+        // its own min args
+        if (!validateMinArgs(player, args, 2)) {
             player.sendMessage(ChatColor.YELLOW + "Usage: " + getUsage());
             return true;
         }

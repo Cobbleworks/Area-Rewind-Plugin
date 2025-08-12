@@ -106,12 +106,9 @@ public class BackupsGUIPage implements IGUIPage {
                 lore.add(ChatColor.GREEN + "Used for auto-restore (" + intervalConfig.minutes + "m)");
             }
 
-            // Note: With the new undo system, we don't track a simple pointer
-            // Instead, we just show if there's an undo available for this area
-            // But this should be changed. It should show on the backup that got last
-            // restored the text "← Current State"
-            if (backupManager.canUndo(areaName)) {
-                lore.add(ChatColor.GREEN + "Undo available");
+            // Show "← Current State" on the backup that was last restored
+            if (backupManager.canUndo(areaName) && backupManager.getUndoPointer(areaName) == i) {
+                lore.add(ChatColor.GREEN + "← Current State");
             }
 
             lore.add("");
