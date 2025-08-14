@@ -103,9 +103,9 @@ public class AreaSettingsGUIPage implements IGUIPage {
             player.closeInventory();
             guiManager.openBackupsGUI(player, areaName);
             return;
-        } else if (displayName.contains("Back to Areas")) {
+        } else if (displayName.contains("Back to My Areas")) {
             player.closeInventory();
-            guiManager.openAreasGUI(player);
+            guiManager.openMyAreasGUI(player);
             return;
         }
 
@@ -395,7 +395,7 @@ public class AreaSettingsGUIPage implements IGUIPage {
         // Back to Areas
         ItemStack backToAreasItem = new ItemStack(Material.BARRIER);
         ItemMeta backToAreasMeta = backToAreasItem.getItemMeta();
-        backToAreasMeta.setDisplayName(ChatColor.GRAY + "Back to Areas");
+        backToAreasMeta.setDisplayName(ChatColor.GRAY + "Back to My Areas");
         backToAreasItem.setItemMeta(backToAreasMeta);
         gui.setItem(40, backToAreasItem);
     }

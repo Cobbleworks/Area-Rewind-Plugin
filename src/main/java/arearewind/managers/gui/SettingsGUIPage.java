@@ -107,7 +107,7 @@ public class SettingsGUIPage implements IGUIPage {
         // Back button
         ItemStack backItem = new ItemStack(Material.BARRIER);
         ItemMeta backMeta = backItem.getItemMeta();
-        backMeta.setDisplayName(ChatColor.GRAY + "Back to Areas");
+        backMeta.setDisplayName(ChatColor.GRAY + "Back to My Areas");
         backItem.setItemMeta(backMeta);
         gui.setItem(49, backItem);
 
@@ -123,9 +123,9 @@ public class SettingsGUIPage implements IGUIPage {
 
         String displayName = item.getItemMeta().getDisplayName();
 
-        if (displayName.contains("Back to Areas")) {
+        if (displayName.contains("Back to My Areas")) {
             player.closeInventory();
-            guiManager.openAreasGUI(player);
+            guiManager.openMyAreasGUI(player);
             return;
         }
 

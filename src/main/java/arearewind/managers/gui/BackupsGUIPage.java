@@ -106,8 +106,9 @@ public class BackupsGUIPage implements IGUIPage {
                 lore.add(ChatColor.GREEN + "Used for auto-restore (" + intervalConfig.minutes + "m)");
             }
 
-            // Show "← Current State" on the backup that was last restored
-            if (backupManager.canUndo(areaName) && backupManager.getUndoPointer(areaName) == i) {
+            // Show "← Current State" on the backup that represents the current state of the
+            // area
+            if (backupManager.getUndoPointer(areaName) == i) {
                 lore.add(ChatColor.GREEN + "← Current State");
             }
 
@@ -201,9 +202,9 @@ public class BackupsGUIPage implements IGUIPage {
         }
 
         // Handle navigation and control buttons
-        if (displayName.contains("Back to Areas")) {
+        if (displayName.contains("Back to My Areas")) {
             player.closeInventory();
-            guiManager.openAreasGUI(player);
+            guiManager.openMyAreasGUI(player);
             return;
         } else if (displayName.contains("Create Backup")) {
             player.closeInventory();
@@ -491,7 +492,7 @@ public class BackupsGUIPage implements IGUIPage {
         // Back button
         ItemStack backItem = new ItemStack(Material.BARRIER);
         ItemMeta backMeta = backItem.getItemMeta();
-        backMeta.setDisplayName(ChatColor.GRAY + "Back to Areas");
+        backMeta.setDisplayName(ChatColor.GRAY + "Back to My Areas");
         backItem.setItemMeta(backMeta);
         gui.setItem(backSlot, backItem);
 

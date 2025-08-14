@@ -889,11 +889,21 @@ public class BackupManager {
             List<AreaBackup> backups = backupHistory.get(areaName);
             backups.add(backup);
 
+            // Always set the current state pointer to the newest backup
+            undoPointers.put(areaName, backups.size() - 1);
+            plugin.getLogger().info("Set current state pointer to newest backup for area: " + areaName);
+
             int maxBackups = configManager.getMaxBackupsPerArea();
             if (backups.size() > maxBackups) {
                 AreaBackup removed = backups.remove(0);
                 fileManager.deleteBackupFile(areaName, removed.getId());
                 plugin.getLogger().info("Removed oldest backup for area: " + areaName);
+
+                // Adjust current state pointer after removing oldest backup
+                Integer currentPointer = undoPointers.get(areaName);
+                if (currentPointer != null && currentPointer > 0) {
+                    undoPointers.put(areaName, currentPointer - 1);
+                }
             }
 
             try {
@@ -958,9 +968,10 @@ public class BackupManager {
 
         restoreFromBackup(area, backup, player);
 
-        // Set the undo pointer to the backup that was actually restored from
-        // This allows the user to undo/redo from this point
+        // Set the current state pointer to the backup that was restored
         undoPointers.put(areaName, backupIndex);
+        plugin.getLogger()
+                .info("Set current state pointer to restored backup #" + backupIndex + " for area: " + areaName);
 
         return true;
     }
@@ -975,15 +986,13 @@ public class BackupManager {
             return false; // No undo available - need to restore a backup first
         }
 
-        // Create a backup for potential redo before undoing
-        AreaBackup beforeUndoBackup = createHiddenBackup(area);
-
-        // Restore from the beforeRestore backup
+        // Restore from the beforeRestore backup (go back to state before last restore)
         restoreFromBackup(area, beforeRestoreBackup, player,
                 "✓ Undo successful! Restored to state before last backup restore.");
 
-        // Store the beforeUndo backup as the new beforeRestore (for redo)
-        beforeRestoreBackups.put(areaName, beforeUndoBackup);
+        // Clear the undo state since we've used it
+        beforeRestoreBackups.remove(areaName);
+        plugin.getLogger().info("Undo completed for area: " + areaName + " - cleared undo state");
 
         return true;
     }
@@ -993,21 +1002,8 @@ public class BackupManager {
     }
 
     public boolean redoArea(String areaName, ProtectedArea area, Player player) {
-        AreaBackup beforeRestoreBackup = beforeRestoreBackups.get(areaName);
-        if (beforeRestoreBackup == null) {
-            return false; // No redo available
-        }
-
-        // Create a backup before redoing
-        AreaBackup beforeRedoBackup = createHiddenBackup(area);
-
-        // Restore from the beforeRestore backup
-        restoreFromBackup(area, beforeRestoreBackup, player, "✓ Redo successful! Restored to state before last undo.");
-
-        // Store the beforeRedo backup as the new beforeRestore (for undo)
-        beforeRestoreBackups.put(areaName, beforeRedoBackup);
-
-        return true;
+        // Simplified: No redo functionality in the new streamlined approach
+        return false;
     }
 
     public AreaBackup findClosestBackup(String areaName, LocalDateTime targetTime) {
@@ -1279,6 +1275,12 @@ public class BackupManager {
         return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
     }
 
+    /**
+     * Gets the current state pointer for an area.
+     * This points to the backup that represents the current state of the area.
+     * Note: Method name kept as getUndoPointer for compatibility with existing
+     * code.
+     */
     public int getUndoPointer(String areaName) {
         List<AreaBackup> backups = backupHistory.get(areaName);
         if (backups == null)
@@ -1291,7 +1293,8 @@ public class BackupManager {
     }
 
     public boolean canRedo(String areaName) {
-        return beforeRestoreBackups.containsKey(areaName);
+        // Simplified: No redo functionality in the new streamlined approach
+        return false;
     }
 
 }

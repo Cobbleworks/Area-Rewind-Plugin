@@ -30,8 +30,8 @@ public class GUICommand extends BaseCommand {
             return true;
         }
 
-        // Open the protected areas GUI as the main menu
-        guiManager.openAreasGUI(player);
+        // Open the My Areas GUI as the main menu (start with player's own areas)
+        guiManager.openMyAreasGUI(player);
         player.sendMessage(ChatColor.GREEN + "Opening AreaRewind areas menu...");
         return true;
     }
