@@ -962,6 +962,32 @@ public class BackupManager {
         return removedCount;
     }
 
+    public boolean deleteBackup(String areaName, int backupIndex) {
+        List<AreaBackup> backups = backupHistory.get(areaName);
+        if (backups == null || backupIndex < 0 || backupIndex >= backups.size()) {
+            return false;
+        }
+
+        AreaBackup backupToDelete = backups.remove(backupIndex);
+        fileManager.deleteBackupFile(areaName, backupToDelete.getId());
+
+        // Update undo pointer if necessary
+        Integer undoPointer = undoPointers.get(areaName);
+        if (undoPointer != null) {
+            if (undoPointer == backupIndex) {
+                // If the deleted backup was the current undo pointer, clear undo state
+                undoPointers.remove(areaName);
+                beforeRestoreBackups.remove(areaName);
+            } else if (undoPointer > backupIndex) {
+                // If the undo pointer was after the deleted backup, adjust it
+                undoPointers.put(areaName, undoPointer - 1);
+            }
+        }
+
+        plugin.getLogger().info("Deleted backup #" + backupIndex + " for area: " + areaName);
+        return true;
+    }
+
     public void deleteAllBackups(String areaName) {
         List<AreaBackup> backups = backupHistory.remove(areaName);
         if (backups != null) {

@@ -106,6 +106,9 @@ public class AreasGUIPage implements IGUIPage {
 
             lore.add("");
             lore.add(ChatColor.YELLOW + "Click: Manage Area & Backups");
+            if (permissionManager.canModifyBoundaries(player, area)) {
+                lore.add(ChatColor.YELLOW + "Middle Click: Set Icon");
+            }
 
             meta.setLore(lore);
             item.setItemMeta(meta);
@@ -162,7 +165,8 @@ public class AreasGUIPage implements IGUIPage {
             return;
         }
 
-        // Handle area selection - only left click to open backup management
+        // Handle area selection - left click to open backup management, middle click
+        // for icon selection
         ProtectedArea area = areaManager.getArea(displayName);
         if (area == null)
             return;
@@ -170,6 +174,14 @@ public class AreasGUIPage implements IGUIPage {
         if (event.isLeftClick()) {
             player.closeInventory();
             guiManager.openBackupsGUI(player, displayName);
+        } else if (event.getClick().name().contains("MIDDLE")) {
+            // Middle click to set area icon
+            if (permissionManager.canModifyBoundaries(player, area)) {
+                player.closeInventory();
+                guiManager.openMaterialSelector(player, "area", displayName, null);
+            } else {
+                player.sendMessage(ChatColor.RED + "You don't have permission to modify this area!");
+            }
         }
     }
 

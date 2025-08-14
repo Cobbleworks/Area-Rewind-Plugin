@@ -115,8 +115,8 @@ public class BackupsGUIPage implements IGUIPage {
             if (permissionManager.canRestoreBackup(player, area)) {
                 lore.add(ChatColor.YELLOW + "Left Click: Restore");
             }
-            lore.add(ChatColor.YELLOW + "Right Click: Preview");
             lore.add(ChatColor.YELLOW + "Shift+Click: Compare with current");
+            lore.add(ChatColor.RED + "Shift+Right Click: Delete Backup");
             if (permissionManager.canModifyBoundaries(player, area)) {
                 lore.add(ChatColor.YELLOW + "Middle Click: Set Icon");
             }
@@ -287,9 +287,31 @@ public class BackupsGUIPage implements IGUIPage {
         if (displayName.contains("Backup #")) {
             String backupId = displayName.replaceAll(".*#", "");
 
-            if (event.getClick().isShiftClick()) {
+            if (event.getClick().isShiftClick() && event.isRightClick()) {
+                // Shift + Right Click: Delete backup
                 player.closeInventory();
-                // Compare selected backup with current state
+                try {
+                    int backupIndex = Integer.parseInt(backupId);
+                    ProtectedArea area = areaManager.getArea(areaName);
+
+                    if (area != null && permissionManager.canCreateBackup(player, area)) {
+                        boolean success = backupManager.deleteBackup(areaName, backupIndex);
+                        if (success) {
+                            player.sendMessage(ChatColor.GREEN + "Backup #" + backupIndex + " deleted for area '"
+                                    + areaName + "'!");
+                        } else {
+                            player.sendMessage(ChatColor.RED + "Failed to delete backup #" + backupIndex + "!");
+                        }
+                    } else {
+                        player.sendMessage(
+                                ChatColor.RED + "You don't have permission to delete backups for this area!");
+                    }
+                } catch (NumberFormatException e) {
+                    player.sendMessage(ChatColor.RED + "Invalid backup ID!");
+                }
+            } else if (event.getClick().isShiftClick()) {
+                // Shift + Left Click: Compare with current
+                player.closeInventory();
                 // Get current backup ID (the one that was last restored)
                 int currentBackupId = backupManager.canUndo(areaName) ? backupManager.getUndoPointer(areaName) : -1;
 
@@ -303,9 +325,6 @@ public class BackupsGUIPage implements IGUIPage {
             } else if (event.isLeftClick()) {
                 player.closeInventory();
                 player.performCommand("rewind restore " + areaName + " " + backupId);
-            } else if (event.isRightClick()) {
-                player.closeInventory();
-                player.performCommand("rewind preview " + areaName + " " + backupId);
             } else if (event.getClick().name().contains("MIDDLE")) {
                 // Middle click to set icon - pass the actual index instead of extracting from
                 // display name
@@ -350,13 +369,17 @@ public class BackupsGUIPage implements IGUIPage {
     private void addControlItems(Inventory gui, String areaName, ProtectedArea area, Player player,
             PaginationInfo paginationInfo) {
         // Adjust slot positions based on whether pagination is present
+        // New order: create backup, undo + redo, teleport to, return to areas, preview,
+        // interval, empty, "Area Settings"
         int createSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 1 : NAVIGATION_ROW_START;
         int undoSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 2 : NAVIGATION_ROW_START + 1;
         int redoSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 3 : NAVIGATION_ROW_START + 2;
         int teleportSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 4 : NAVIGATION_ROW_START + 3;
-        int previewSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 5 : NAVIGATION_ROW_START + 4;
-        int intervalSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 6 : NAVIGATION_ROW_START + 5;
-        int backSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 7 : NAVIGATION_ROW_START + 8;
+        int backSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 5 : NAVIGATION_ROW_START + 4;
+        int previewSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 6 : NAVIGATION_ROW_START + 5;
+        int intervalSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 7 : NAVIGATION_ROW_START + 6;
+        // Slot 7/8 is empty
+        int settingsSlot = NAVIGATION_ROW_START + 8; // Always at the end
 
         // Create Backup
         if (permissionManager.canCreateBackup(player, area)) {
@@ -463,9 +486,6 @@ public class BackupsGUIPage implements IGUIPage {
 
             intervalItem.setItemMeta(intervalMeta);
             gui.setItem(intervalSlot, intervalItem);
-
-            // Place Area Settings button immediately after auto-restore settings
-            addAreaSettingsButton(gui, area, areaName, intervalSlot + 1);
         }
 
         // Back button
@@ -474,5 +494,8 @@ public class BackupsGUIPage implements IGUIPage {
         backMeta.setDisplayName(ChatColor.GRAY + "Back to Areas");
         backItem.setItemMeta(backMeta);
         gui.setItem(backSlot, backItem);
+
+        // Area Settings button (always at the end)
+        addAreaSettingsButton(gui, area, areaName, settingsSlot);
     }
 }
