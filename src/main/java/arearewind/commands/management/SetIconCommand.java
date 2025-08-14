@@ -8,6 +8,7 @@ import arearewind.util.ConfigurationManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
@@ -47,12 +48,12 @@ public class SetIconCommand extends BaseCommand {
 
     private boolean handleAreaIcon(Player player, String[] args) {
         if (args.length != 2) {
-            player.sendMessage(ChatColor.RED + "Usage: /rewind seticon <area> <material>");
+            player.sendMessage(ChatColor.RED + "Usage: /rewind seticon <area> <material|hand>");
             return true;
         }
 
         String areaName = args[0];
-        String materialName = args[1].toUpperCase();
+        String materialName = args[1];
 
         // Check if area exists
         ProtectedArea area = areaManager.getArea(areaName);
@@ -67,7 +68,31 @@ public class SetIconCommand extends BaseCommand {
             return true;
         }
 
+        // Check if using item in hand
+        if (materialName.equalsIgnoreCase("hand") || materialName.equalsIgnoreCase("held")) {
+            ItemStack handItem = player.getInventory().getItemInMainHand();
+            if (handItem == null || handItem.getType() == Material.AIR) {
+                player.sendMessage(ChatColor.RED + "You must hold an item to use as an icon!");
+                return true;
+            }
+
+            // Check if it's a custom player head
+            if (isCustomPlayerHead(handItem)) {
+                area.setIconItem(handItem);
+                player.sendMessage(ChatColor.GREEN + "Set custom icon for area '" + areaName + "' to " +
+                        ChatColor.YELLOW + "custom player head" + ChatColor.GREEN + "!");
+            } else {
+                area.setIcon(handItem.getType());
+                player.sendMessage(ChatColor.GREEN + "Set icon for area '" + areaName + "' to " +
+                        ChatColor.YELLOW + handItem.getType().name() + ChatColor.GREEN + "!");
+            }
+
+            areaManager.saveAreas();
+            return true;
+        }
+
         // Validate material
+        materialName = materialName.toUpperCase();
         Material material;
         try {
             material = Material.valueOf(materialName);
@@ -95,13 +120,13 @@ public class SetIconCommand extends BaseCommand {
 
     private boolean handleBackupIcon(Player player, String[] args) {
         if (args.length != 4) {
-            player.sendMessage(ChatColor.RED + "Usage: /rewind seticon backup <area> <backup_id> <material>");
+            player.sendMessage(ChatColor.RED + "Usage: /rewind seticon backup <area> <backup_id> <material|hand>");
             return true;
         }
 
         String areaName = args[1];
         String backupId = args[2];
-        String materialName = args[3].toUpperCase();
+        String materialName = args[3];
 
         // Check if area exists
         ProtectedArea area = areaManager.getArea(areaName);
@@ -132,7 +157,33 @@ public class SetIconCommand extends BaseCommand {
             return true;
         }
 
+        // Check if using item in hand
+        if (materialName.equalsIgnoreCase("hand") || materialName.equalsIgnoreCase("held")) {
+            ItemStack handItem = player.getInventory().getItemInMainHand();
+            if (handItem == null || handItem.getType() == Material.AIR) {
+                player.sendMessage(ChatColor.RED + "You must hold an item to use as an icon!");
+                return true;
+            }
+
+            // Check if it's a custom player head
+            if (isCustomPlayerHead(handItem)) {
+                targetBackup.setIconItem(handItem);
+                player.sendMessage(ChatColor.GREEN + "Set custom icon for backup '" + backupId + "' in area '"
+                        + areaName + "' to " +
+                        ChatColor.YELLOW + "custom player head" + ChatColor.GREEN + "!");
+            } else {
+                targetBackup.setIcon(handItem.getType());
+                player.sendMessage(
+                        ChatColor.GREEN + "Set icon for backup '" + backupId + "' in area '" + areaName + "' to " +
+                                ChatColor.YELLOW + handItem.getType().name() + ChatColor.GREEN + "!");
+            }
+
+            fileManager.saveBackupToFile(areaName, targetBackup);
+            return true;
+        }
+
         // Validate material
+        materialName = materialName.toUpperCase();
         Material material;
         try {
             material = Material.valueOf(materialName);
@@ -177,7 +228,8 @@ public class SetIconCommand extends BaseCommand {
                         .filter(area -> area.toLowerCase().startsWith(args[1].toLowerCase()))
                         .collect(Collectors.toList()));
             } else {
-                // Second argument for area icon: material suggestions
+                // Second argument for area icon: material suggestions + hand
+                completions.add("hand");
                 completions.addAll(getCommonMaterials().stream()
                         .filter(material -> material.toLowerCase().startsWith(args[1].toLowerCase()))
                         .collect(Collectors.toList()));
@@ -194,7 +246,9 @@ public class SetIconCommand extends BaseCommand {
                         .collect(Collectors.toList()));
             }
         } else if (args.length == 4 && args[0].equalsIgnoreCase("backup")) {
-            // Fourth argument after "backup <area> <backup_id>": material suggestions
+            // Fourth argument after "backup <area> <backup_id>": material suggestions +
+            // hand
+            completions.add("hand");
             completions.addAll(getCommonMaterials().stream()
                     .filter(material -> material.toLowerCase().startsWith(args[3].toLowerCase()))
                     .collect(Collectors.toList()));
@@ -222,6 +276,28 @@ public class SetIconCommand extends BaseCommand {
                 "PAPER", "MAP", "FILLED_MAP", "NAME_TAG", "LEAD");
     }
 
+    /**
+     * Checks if an ItemStack is a custom player head (has skull meta with texture
+     * data)
+     */
+    private boolean isCustomPlayerHead(ItemStack item) {
+        if (item == null || item.getType() != Material.PLAYER_HEAD) {
+            return false;
+        }
+
+        // Check if the item has skull meta with custom texture data
+        if (item.hasItemMeta() && item.getItemMeta() instanceof org.bukkit.inventory.meta.SkullMeta) {
+            org.bukkit.inventory.meta.SkullMeta skullMeta = (org.bukkit.inventory.meta.SkullMeta) item.getItemMeta();
+
+            // Check if it has a custom texture (either from player profile or texture URL)
+            return skullMeta.hasOwner() ||
+                    (skullMeta.getOwnerProfile() != null && skullMeta.getOwnerProfile().getTextures() != null) ||
+                    skullMeta.getOwningPlayer() != null;
+        }
+
+        return false;
+    }
+
     @Override
     public String getName() {
         return "seticon";
@@ -239,7 +315,7 @@ public class SetIconCommand extends BaseCommand {
 
     @Override
     public String getUsage() {
-        return "/rewind seticon <area> <material> OR /rewind seticon backup <area> <backup_id> <material>";
+        return "/rewind seticon <area> <material|hand> OR /rewind seticon backup <area> <backup_id> <material|hand>";
     }
 
     @Override

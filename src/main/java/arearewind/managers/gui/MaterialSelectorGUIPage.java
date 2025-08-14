@@ -221,7 +221,7 @@ public class MaterialSelectorGUIPage implements IGUIPage {
                 player.sendMessage(ChatColor.RED + "You must hold an item to use as an icon!");
                 return;
             }
-            setIcon(player, type, areaName, backupId, handItem.getType());
+            setIconFromItem(player, type, areaName, backupId, handItem);
             return;
         }
 
@@ -301,6 +301,111 @@ public class MaterialSelectorGUIPage implements IGUIPage {
         }
     }
 
+    private void setIconFromItem(Player player, String type, String areaName, String backupId, ItemStack item) {
+        if (type.equals("area")) {
+            ProtectedArea area = areaManager.getArea(areaName);
+            if (area == null) {
+                player.sendMessage(ChatColor.RED + "Area not found!");
+                return;
+            }
+
+            if (!permissionManager.canModifyBoundaries(player, area)) {
+                player.sendMessage(ChatColor.RED + "You don't have permission to modify this area!");
+                return;
+            }
+
+            // For player heads or other special items, use the full ItemStack
+            // For regular materials, just use the material
+            if (isCustomPlayerHead(item)) {
+                area.setIconItem(item);
+                player.sendMessage(ChatColor.GREEN + "Set custom icon for area '" + areaName + "' to " +
+                        ChatColor.YELLOW + "custom player head" + ChatColor.GREEN + "!");
+            } else {
+                area.setIcon(item.getType());
+                player.sendMessage(ChatColor.GREEN + "Set icon for area '" + areaName + "' to " +
+                        ChatColor.YELLOW + formatMaterialName(item.getType()) + ChatColor.GREEN + "!");
+            }
+
+            areaManager.saveAreas();
+            player.closeInventory();
+            guiManager.openAreaSettingsGUI(player, areaName);
+
+        } else {
+            ProtectedArea area = areaManager.getArea(areaName);
+            if (area == null) {
+                player.sendMessage(ChatColor.RED + "Area not found!");
+                return;
+            }
+
+            if (!permissionManager.canModifyBoundaries(player, area)) {
+                player.sendMessage(ChatColor.RED + "You don't have permission to modify this area!");
+                return;
+            }
+
+            List<AreaBackup> backups = backupManager.getBackupHistory(areaName);
+            AreaBackup targetBackup = null;
+
+            try {
+                // backupId is now the index as a string
+                int backupIndex = Integer.parseInt(backupId);
+                if (backupIndex >= 0 && backupIndex < backups.size()) {
+                    targetBackup = backups.get(backupIndex);
+                }
+            } catch (NumberFormatException e) {
+                // Fallback to old ID-based lookup for compatibility
+                for (AreaBackup backup : backups) {
+                    if (backup.getId().equals(backupId)) {
+                        targetBackup = backup;
+                        break;
+                    }
+                }
+            }
+
+            if (targetBackup == null) {
+                player.sendMessage(ChatColor.RED + "Backup not found!");
+                return;
+            }
+
+            // For player heads or other special items, use the full ItemStack
+            // For regular materials, just use the material
+            if (isCustomPlayerHead(item)) {
+                targetBackup.setIconItem(item);
+                player.sendMessage(ChatColor.GREEN + "Set custom icon for backup #" + backupId + " to " +
+                        ChatColor.YELLOW + "custom player head" + ChatColor.GREEN + "!");
+            } else {
+                targetBackup.setIcon(item.getType());
+                player.sendMessage(ChatColor.GREEN + "Set icon for backup #" + backupId + " to " +
+                        ChatColor.YELLOW + formatMaterialName(item.getType()) + ChatColor.GREEN + "!");
+            }
+
+            fileManager.saveBackupToFile(areaName, targetBackup);
+            player.closeInventory();
+            guiManager.openBackupsGUI(player, areaName);
+        }
+    }
+
+    /**
+     * Checks if an ItemStack is a custom player head (has skull meta with texture
+     * data)
+     */
+    private boolean isCustomPlayerHead(ItemStack item) {
+        if (item == null || item.getType() != Material.PLAYER_HEAD) {
+            return false;
+        }
+
+        // Check if the item has skull meta with custom texture data
+        if (item.hasItemMeta() && item.getItemMeta() instanceof org.bukkit.inventory.meta.SkullMeta) {
+            org.bukkit.inventory.meta.SkullMeta skullMeta = (org.bukkit.inventory.meta.SkullMeta) item.getItemMeta();
+
+            // Check if it has a custom texture (either from player profile or texture URL)
+            return skullMeta.hasOwner() ||
+                    (skullMeta.getOwnerProfile() != null && skullMeta.getOwnerProfile().getTextures() != null) ||
+                    skullMeta.getOwningPlayer() != null;
+        }
+
+        return false;
+    }
+
     private void addInfoAndNavigationItems(Inventory gui, String type, String areaName, String backupId) {
         // Info item
         ItemStack infoItem = new ItemStack(Material.PAPER);
@@ -312,6 +417,10 @@ public class MaterialSelectorGUIPage implements IGUIPage {
         infoLore.add("");
         infoLore.add(ChatColor.YELLOW + "Click any material to select it");
         infoLore.add(ChatColor.YELLOW + "Or use the item in your hand");
+        infoLore.add("");
+        infoLore.add(ChatColor.AQUA + "Pro tip: Hold a custom player head");
+        infoLore.add(ChatColor.AQUA + "and use 'Use Item in Hand' to set");
+        infoLore.add(ChatColor.AQUA + "a custom head with textures!");
         infoMeta.setLore(infoLore);
         infoItem.setItemMeta(infoMeta);
         gui.setItem(INFO_ROW_START + 4, infoItem);
@@ -323,6 +432,9 @@ public class MaterialSelectorGUIPage implements IGUIPage {
         List<String> handLore = new ArrayList<>();
         handLore.add(ChatColor.GRAY + "Use the item you're currently holding");
         handLore.add(ChatColor.GRAY + "as the icon material");
+        handLore.add("");
+        handLore.add(ChatColor.AQUA + "Supports custom player heads with");
+        handLore.add(ChatColor.AQUA + "textures and special properties!");
         handLore.add("");
         handLore.add(ChatColor.YELLOW + "Click to use held item");
         handMeta.setLore(handLore);

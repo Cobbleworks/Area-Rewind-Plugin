@@ -5,6 +5,7 @@ import arearewind.data.BlockInfo;
 import arearewind.data.ProtectedArea;
 import arearewind.util.ConfigurationManager;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import java.io.*;
 import java.time.LocalDateTime;
@@ -66,8 +67,11 @@ public class FileManager {
                 config.set("backup.entities", backup.getEntities());
             }
 
-            // Save icon
-            config.set("backup.icon", backup.getIcon().name());
+            // Save icon as ItemStack
+            ItemStack iconItem = backup.getIconItem();
+            if (iconItem != null) {
+                config.set("backup.iconItem", iconItem.serialize());
+            }
 
             config.save(backupFile);
             plugin.getLogger().fine("Successfully saved backup file: " + backupFile.getName());
@@ -130,15 +134,32 @@ public class FileManager {
 
             AreaBackup backup = new AreaBackup(id, timestamp, blocks, entities);
 
-            // Load icon
-            String iconName = config.getString("backup.icon");
-            if (iconName != null) {
-                try {
-                    backup.setIcon(org.bukkit.Material.valueOf(iconName));
-                } catch (IllegalArgumentException e) {
-                    plugin.getLogger().warning("Invalid backup icon material '" + iconName + "' in file "
-                            + backupFile.getName() + ", using default");
-                    backup.setIcon(org.bukkit.Material.CHEST);
+            // Load icon - support both new ItemStack format and legacy Material format
+            if (config.contains("backup.iconItem")) {
+                // New ItemStack format
+                Object iconData = config.get("backup.iconItem");
+                if (iconData instanceof Map) {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        ItemStack iconItem = ItemStack.deserialize((Map<String, Object>) iconData);
+                        backup.setIconItem(iconItem);
+                    } catch (Exception e) {
+                        plugin.getLogger().warning("Invalid backup icon item data in file "
+                                + backupFile.getName() + ", using default");
+                        backup.setIcon(org.bukkit.Material.CHEST);
+                    }
+                }
+            } else if (config.contains("backup.icon")) {
+                // Legacy Material format
+                String iconName = config.getString("backup.icon");
+                if (iconName != null) {
+                    try {
+                        backup.setIcon(org.bukkit.Material.valueOf(iconName));
+                    } catch (IllegalArgumentException e) {
+                        plugin.getLogger().warning("Invalid backup icon material '" + iconName + "' in file "
+                                + backupFile.getName() + ", using default");
+                        backup.setIcon(org.bukkit.Material.CHEST);
+                    }
                 }
             }
 

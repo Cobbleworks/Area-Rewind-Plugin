@@ -84,8 +84,8 @@ public class AreasGUIPage implements IGUIPage {
             ProtectedArea area = entry.getValue();
 
             // Use custom icon if set, otherwise default to GRASS_BLOCK
-            Material iconMaterial = area.getIcon() != null ? area.getIcon() : Material.GRASS_BLOCK;
-            ItemStack item = new ItemStack(iconMaterial);
+            ItemStack item = area.getIconItem() != null ? area.getIconItem().clone()
+                    : new ItemStack(Material.GRASS_BLOCK);
             ItemMeta meta = item.getItemMeta();
             meta.setDisplayName(ChatColor.GREEN + areaName);
 

@@ -4,6 +4,7 @@ import arearewind.data.ProtectedArea;
 import org.bukkit.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -258,15 +259,33 @@ public class AreaManager {
 
                     protectedAreas.put(key, area);
 
-                    // Load icon
-                    String iconName = areasConfig.getString(key + ".icon");
-                    if (iconName != null) {
-                        try {
-                            area.setIcon(org.bukkit.Material.valueOf(iconName));
-                        } catch (IllegalArgumentException e) {
-                            plugin.getLogger().warning(
-                                    "Invalid icon material '" + iconName + "' for area '" + key + "', using default");
-                            area.setIcon(org.bukkit.Material.GRASS_BLOCK);
+                    // Load icon - support both old Material format and new ItemStack format
+                    if (areasConfig.contains(key + ".iconItem")) {
+                        // New ItemStack format
+                        Object iconData = areasConfig.get(key + ".iconItem");
+                        if (iconData instanceof Map) {
+                            try {
+                                @SuppressWarnings("unchecked")
+                                ItemStack iconItem = ItemStack.deserialize((Map<String, Object>) iconData);
+                                area.setIconItem(iconItem);
+                            } catch (Exception e) {
+                                plugin.getLogger().warning(
+                                        "Invalid icon item data for area '" + key + "', using default");
+                                area.setIcon(org.bukkit.Material.GRASS_BLOCK);
+                            }
+                        }
+                    } else if (areasConfig.contains(key + ".icon")) {
+                        // Legacy Material format
+                        String iconName = areasConfig.getString(key + ".icon");
+                        if (iconName != null) {
+                            try {
+                                area.setIcon(org.bukkit.Material.valueOf(iconName));
+                            } catch (IllegalArgumentException e) {
+                                plugin.getLogger().warning(
+                                        "Invalid icon material '" + iconName + "' for area '" + key
+                                                + "', using default");
+                                area.setIcon(org.bukkit.Material.GRASS_BLOCK);
+                            }
                         }
                     }
 
@@ -304,8 +323,11 @@ public class AreaManager {
                         .collect(Collectors.toList());
                 areasConfig.set(name + ".trusted", trustedList);
 
-                // Save icon
-                areasConfig.set(name + ".icon", area.getIcon().name());
+                // Save icon as ItemStack
+                ItemStack iconItem = area.getIconItem();
+                if (iconItem != null) {
+                    areasConfig.set(name + ".iconItem", iconItem.serialize());
+                }
             }
 
             areasConfig.save(fileManager.getAreasFile());

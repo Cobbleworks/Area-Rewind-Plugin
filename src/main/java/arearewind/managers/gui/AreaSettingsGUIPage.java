@@ -306,7 +306,8 @@ public class AreaSettingsGUIPage implements IGUIPage {
 
         // Set Icon
         if (permissionManager.canModifyBoundaries(player, area)) {
-            ItemStack iconItem = new ItemStack(area.getIcon() != null ? area.getIcon() : Material.GRASS_BLOCK);
+            ItemStack iconItem = area.getIconItem() != null ? area.getIconItem().clone()
+                    : new ItemStack(Material.GRASS_BLOCK);
             ItemMeta iconMeta = iconItem.getItemMeta();
             iconMeta.setDisplayName(ChatColor.AQUA + "Set Icon");
             List<String> iconLore = new ArrayList<>();

@@ -2,6 +2,7 @@ package arearewind.data;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
@@ -12,7 +13,7 @@ public class ProtectedArea implements Serializable {
     private Location pos1, pos2;
     private UUID owner;
     private Set<UUID> trustedPlayers;
-    private Material icon;
+    private ItemStack iconItem;
     private Integer customRestoreSpeed; // Custom restore speed (blocks per tick), null = use dynamic
 
     public ProtectedArea(String name, Location pos1, Location pos2, UUID owner) {
@@ -21,7 +22,7 @@ public class ProtectedArea implements Serializable {
         this.pos2 = pos2;
         this.owner = owner;
         this.trustedPlayers = new HashSet<>();
-        this.icon = Material.GRASS_BLOCK; // Default icon
+        this.iconItem = new ItemStack(Material.GRASS_BLOCK); // Default icon
         this.customRestoreSpeed = null; // Use dynamic sizing by default
     }
 
@@ -50,11 +51,19 @@ public class ProtectedArea implements Serializable {
     }
 
     public Material getIcon() {
-        return icon;
+        return iconItem != null ? iconItem.getType() : Material.GRASS_BLOCK;
+    }
+
+    public ItemStack getIconItem() {
+        return iconItem != null ? iconItem.clone() : new ItemStack(Material.GRASS_BLOCK);
     }
 
     public void setIcon(Material icon) {
-        this.icon = icon != null ? icon : Material.GRASS_BLOCK;
+        this.iconItem = new ItemStack(icon != null ? icon : Material.GRASS_BLOCK);
+    }
+
+    public void setIconItem(ItemStack iconItem) {
+        this.iconItem = iconItem != null ? iconItem.clone() : new ItemStack(Material.GRASS_BLOCK);
     }
 
     public Integer getCustomRestoreSpeed() {
