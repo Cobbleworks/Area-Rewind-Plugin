@@ -11,6 +11,8 @@ import java.io.*;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.zip.GZIPOutputStream;
+import java.util.zip.GZIPInputStream;
 
 public class FileManager {
     private final JavaPlugin plugin;
@@ -19,6 +21,11 @@ public class FileManager {
     private File backupFolder;
     private File areasFile;
     private File exportsFolder;
+
+    // Compression settings
+    private static final boolean USE_COMPRESSION = true;
+    private static final String COMPRESSED_EXTENSION = ".yml.gz";
+    private static final String UNCOMPRESSED_EXTENSION = ".yml";
 
     public FileManager(JavaPlugin plugin, ConfigurationManager configManager) {
         this.plugin = plugin;
@@ -39,29 +46,25 @@ public class FileManager {
             exportsFolder.mkdirs();
         }
         areasFile = new File(dataFolder, "areas.yml");
-        plugin.getLogger().info("File structure initialized");
+        plugin.getLogger().info("File structure initialized with compression " +
+                (USE_COMPRESSION ? "enabled" : "disabled"));
     }
 
     public void saveBackupToFile(String areaName, AreaBackup backup) {
         try {
-            File backupFile = new File(backupFolder, areaName + "_" + backup.getId() + ".yml");
+            String extension = USE_COMPRESSION ? COMPRESSED_EXTENSION : UNCOMPRESSED_EXTENSION;
+            File backupFile = new File(backupFolder, areaName + "_" + backup.getId() + extension);
             backupFile.getParentFile().mkdirs();
 
             YamlConfiguration config = new YamlConfiguration();
 
             config.set("backup.id", backup.getId());
             config.set("backup.timestamp", backup.getTimestamp().toString());
+            config.set("backup.compressed", USE_COMPRESSION);
 
-            Map<String, Object> blockData = new HashMap<>();
-            for (Map.Entry<String, BlockInfo> entry : backup.getBlocks().entrySet()) {
-                try {
-                    blockData.put(entry.getKey(), entry.getValue().serialize());
-                } catch (Exception blockError) {
-                    plugin.getLogger().warning("Failed to serialize block at " + entry.getKey() +
-                            ": " + blockError.getMessage() + " - Skipping this block");
-                }
-            }
-            config.set("backup.blocks", blockData);
+            // Optimize block data storage
+            Map<String, Object> optimizedBlockData = optimizeBlockData(backup.getBlocks());
+            config.set("backup.blocks", optimizedBlockData);
 
             if (backup.getEntities() != null && !backup.getEntities().isEmpty()) {
                 config.set("backup.entities", backup.getEntities());
@@ -71,22 +74,27 @@ public class FileManager {
             ItemStack iconItem = backup.getIconItem();
             if (iconItem != null) {
                 if (iconItem.getType() == org.bukkit.Material.PLAYER_HEAD) {
-                    // Use Base64 serialization for player heads to preserve texture data
                     String base64Data = saveItemStackAsBase64(iconItem);
                     if (base64Data != null) {
                         config.set("backup.iconItem-base64", base64Data);
                     } else {
-                        // Fallback to standard serialization
                         config.set("backup.iconItem", iconItem.serialize());
                     }
                 } else {
-                    // Standard serialization for non-player-head items
                     config.set("backup.iconItem", iconItem.serialize());
                 }
             }
 
-            config.save(backupFile);
-            plugin.getLogger().fine("Successfully saved backup file: " + backupFile.getName());
+            // Save with or without compression
+            if (USE_COMPRESSION) {
+                saveCompressedYaml(config, backupFile);
+            } else {
+                config.save(backupFile);
+            }
+
+            long fileSize = backupFile.length();
+            plugin.getLogger().info(String.format("Successfully saved backup file: %s (Size: %s)",
+                    backupFile.getName(), formatFileSize(fileSize)));
 
         } catch (Exception e) {
             plugin.getLogger().severe("Failed to save backup to file: " + e.getMessage());
@@ -95,13 +103,23 @@ public class FileManager {
     }
 
     public AreaBackup loadBackupFromFile(String areaName, String backupId) {
-        File backupFile = new File(backupFolder, areaName + "_" + backupId + ".yml");
-        if (!backupFile.exists()) {
-            plugin.getLogger().warning("Backup file not found: " + backupFile.getName());
+        // Try to find the backup file (compressed or uncompressed)
+        File backupFile = findBackupFile(areaName, backupId);
+        if (backupFile == null) {
+            plugin.getLogger().warning("Backup file not found for: " + areaName + "_" + backupId);
             return null;
         }
+
         try {
-            YamlConfiguration config = YamlConfiguration.loadConfiguration(backupFile);
+            YamlConfiguration config;
+            boolean isCompressed = backupFile.getName().endsWith(COMPRESSED_EXTENSION);
+
+            if (isCompressed) {
+                config = loadCompressedYaml(backupFile);
+            } else {
+                config = YamlConfiguration.loadConfiguration(backupFile);
+            }
+
             String id = config.getString("backup.id", backupId);
             String timestampStr = config.getString("backup.timestamp");
             if (timestampStr == null) {
@@ -110,30 +128,8 @@ public class FileManager {
             }
             LocalDateTime timestamp = LocalDateTime.parse(timestampStr);
 
-            Map<String, BlockInfo> blocks = new HashMap<>();
-            org.bukkit.configuration.ConfigurationSection blocksSection = config
-                    .getConfigurationSection("backup.blocks");
-            if (blocksSection != null) {
-                for (String key : blocksSection.getKeys(false)) {
-                    try {
-                        org.bukkit.configuration.ConfigurationSection section = blocksSection
-                                .getConfigurationSection(key);
-                        if (section != null) {
-                            Map<String, Object> data = section.getValues(false);
-                            BlockInfo info = BlockInfo.deserialize(data);
-                            if (info != null) {
-                                blocks.put(key, info);
-                            } else {
-                                plugin.getLogger().warning("Failed to deserialize block at " + key);
-                            }
-                        }
-                    } catch (Exception ex) {
-                        plugin.getLogger().warning("Error loading block at " + key + ": " + ex.getMessage());
-                    }
-                }
-            } else {
-                plugin.getLogger().warning("No blocks data found in " + backupFile.getName());
-            }
+            // Load and restore block data
+            Map<String, BlockInfo> blocks = loadOptimizedBlockData(config);
 
             Map<String, Object> entities = new HashMap<>();
             org.bukkit.configuration.ConfigurationSection entitiesSection = config
@@ -146,61 +142,12 @@ public class FileManager {
 
             AreaBackup backup = new AreaBackup(id, timestamp, blocks, entities);
 
-            // Load icon - support Base64 format, ItemStack format, and legacy Material
-            // format
-            if (config.contains("backup.iconItem-base64")) {
-                // Base64 format (for complex player heads)
-                String base64Data = config.getString("backup.iconItem-base64");
-                if (base64Data != null) {
-                    try {
-                        ItemStack iconItem = loadItemStackFromBase64(base64Data);
-                        if (iconItem != null) {
-                            backup.setIconItem(iconItem);
-                            plugin.getLogger()
-                                    .info("Loaded Base64 icon for backup " + backupId + ": " + iconItem.getType());
-                        } else {
-                            backup.setIcon(org.bukkit.Material.CHEST);
-                        }
-                    } catch (Exception e) {
-                        plugin.getLogger().warning("Error loading Base64 backup icon: " + e.getMessage());
-                        backup.setIcon(org.bukkit.Material.CHEST);
-                    }
-                }
-            } else if (config.contains("backup.iconItem")) {
-                // New ItemStack format
-                org.bukkit.configuration.ConfigurationSection iconSection = config
-                        .getConfigurationSection("backup.iconItem");
-                if (iconSection != null) {
-                    try {
-                        // Convert ConfigurationSection to Map for ItemStack deserialization
-                        Map<String, Object> iconData = new HashMap<>();
-                        for (String iconKey : iconSection.getKeys(true)) {
-                            iconData.put(iconKey, iconSection.get(iconKey));
-                        }
-                        ItemStack iconItem = ItemStack.deserialize(iconData);
-                        backup.setIconItem(iconItem);
-                        plugin.getLogger()
-                                .fine("Loaded custom icon for backup " + backupId + ": " + iconItem.getType());
-                    } catch (Exception e) {
-                        plugin.getLogger().warning("Invalid backup icon item data in file "
-                                + backupFile.getName() + ", using default: " + e.getMessage());
-                        backup.setIcon(org.bukkit.Material.CHEST);
-                    }
-                }
-            } else if (config.contains("backup.icon")) {
-                // Legacy Material format
-                String iconName = config.getString("backup.icon");
-                if (iconName != null) {
-                    try {
-                        backup.setIcon(org.bukkit.Material.valueOf(iconName));
-                        plugin.getLogger().fine("Loaded legacy icon for backup " + backupId + ": " + iconName);
-                    } catch (IllegalArgumentException e) {
-                        plugin.getLogger().warning("Invalid backup icon material '" + iconName + "' in file "
-                                + backupFile.getName() + ", using default");
-                        backup.setIcon(org.bukkit.Material.CHEST);
-                    }
-                }
-            }
+            // Load icon (same logic as before)
+            loadBackupIcon(config, backup, backupId, backupFile);
+
+            plugin.getLogger().fine(String.format("Loaded backup %s (%s, %d blocks)",
+                    backupId, isCompressed ? "compressed" : "uncompressed",
+                    blocks.size()));
 
             return backup;
         } catch (Exception e) {
@@ -211,17 +158,369 @@ public class FileManager {
         }
     }
 
+    /**
+     * Optimizes block data by grouping similar blocks and reducing redundancy
+     */
+    private Map<String, Object> optimizeBlockData(Map<String, BlockInfo> blocks) {
+        Map<String, Object> optimized = new HashMap<>();
+        Map<String, Object> blockPalette = new HashMap<>();
+        Map<String, String> positionMappings = new HashMap<>();
+        Map<String, String> signatureToPaletteKey = new HashMap<>(); // Efficient lookup
+
+        int paletteIndex = 0;
+
+        for (Map.Entry<String, BlockInfo> entry : blocks.entrySet()) {
+            try {
+                Map<String, Object> blockData = entry.getValue().serialize();
+                String blockSignature = createBlockSignature(blockData);
+
+                String paletteKey;
+                if (signatureToPaletteKey.containsKey(blockSignature)) {
+                    // Reuse existing palette entry
+                    paletteKey = signatureToPaletteKey.get(blockSignature);
+                } else {
+                    // Add new block type to palette
+                    paletteKey = "b" + paletteIndex++;
+                    blockPalette.put(paletteKey, blockData);
+                    signatureToPaletteKey.put(blockSignature, paletteKey);
+                }
+
+                positionMappings.put(entry.getKey(), paletteKey);
+
+            } catch (Exception blockError) {
+                plugin.getLogger().warning("Failed to optimize block at " + entry.getKey() +
+                        ": " + blockError.getMessage() + " - Using fallback storage");
+                optimized.put(entry.getKey(), entry.getValue().serialize());
+            }
+        }
+
+        // Only use palette optimization if it actually saves space
+        if (blockPalette.size() < blocks.size() * 0.8) {
+            optimized.put("palette", blockPalette);
+            optimized.put("positions", positionMappings);
+            plugin.getLogger().fine(String.format("Block palette optimization: %d unique types from %d blocks",
+                    blockPalette.size(), blocks.size()));
+        } else {
+            // Fallback to original method if optimization doesn't help much
+            for (Map.Entry<String, BlockInfo> entry : blocks.entrySet()) {
+                try {
+                    optimized.put(entry.getKey(), entry.getValue().serialize());
+                } catch (Exception blockError) {
+                    plugin.getLogger().warning("Failed to serialize block at " + entry.getKey() +
+                            ": " + blockError.getMessage() + " - Skipping this block");
+                }
+            }
+        }
+
+        return optimized;
+    }
+
+    /**
+     * Loads optimized block data back into the standard format
+     */
+    private Map<String, BlockInfo> loadOptimizedBlockData(YamlConfiguration config) {
+        Map<String, BlockInfo> blocks = new HashMap<>();
+        org.bukkit.configuration.ConfigurationSection blocksSection = config
+                .getConfigurationSection("backup.blocks");
+
+        if (blocksSection == null) {
+            plugin.getLogger().warning("No blocks data found in backup file");
+            return blocks;
+        }
+
+        // Check if this uses palette optimization
+        if (blocksSection.contains("palette") && blocksSection.contains("positions")) {
+            // Load palette-optimized data
+            org.bukkit.configuration.ConfigurationSection paletteSection = blocksSection
+                    .getConfigurationSection("palette");
+            org.bukkit.configuration.ConfigurationSection positionsSection = blocksSection
+                    .getConfigurationSection("positions");
+
+            if (paletteSection != null && positionsSection != null) {
+                // Build palette lookup
+                Map<String, Map<String, Object>> palette = new HashMap<>();
+                for (String paletteKey : paletteSection.getKeys(false)) {
+                    org.bukkit.configuration.ConfigurationSection blockSection = paletteSection
+                            .getConfigurationSection(paletteKey);
+                    if (blockSection != null) {
+                        palette.put(paletteKey, blockSection.getValues(false));
+                    }
+                }
+
+                // Apply palette to positions
+                for (String position : positionsSection.getKeys(false)) {
+                    String paletteKey = positionsSection.getString(position);
+                    if (paletteKey != null && palette.containsKey(paletteKey)) {
+                        try {
+                            BlockInfo info = BlockInfo.deserialize(palette.get(paletteKey));
+                            if (info != null) {
+                                blocks.put(position, info);
+                            }
+                        } catch (Exception ex) {
+                            plugin.getLogger().warning("Error loading palette block at " + position +
+                                    ": " + ex.getMessage());
+                        }
+                    }
+                }
+
+                plugin.getLogger().fine("Loaded " + blocks.size() + " blocks from palette optimization");
+            }
+        } else {
+            // Load standard block data
+            for (String key : blocksSection.getKeys(false)) {
+                if ("palette".equals(key) || "positions".equals(key))
+                    continue;
+
+                try {
+                    org.bukkit.configuration.ConfigurationSection section = blocksSection
+                            .getConfigurationSection(key);
+                    if (section != null) {
+                        Map<String, Object> data = section.getValues(false);
+                        BlockInfo info = BlockInfo.deserialize(data);
+                        if (info != null) {
+                            blocks.put(key, info);
+                        } else {
+                            plugin.getLogger().warning("Failed to deserialize block at " + key);
+                        }
+                    }
+                } catch (Exception ex) {
+                    plugin.getLogger().warning("Error loading block at " + key + ": " + ex.getMessage());
+                }
+            }
+        }
+
+        return blocks;
+    }
+
+    /**
+     * Creates a signature string for a block to identify duplicates
+     */
+    private String createBlockSignature(Map<String, Object> blockData) {
+        StringBuilder signature = new StringBuilder();
+
+        // Key components that make blocks unique
+        signature.append(blockData.get("material"));
+        if (blockData.containsKey("blockDataString")) {
+            signature.append(":").append(blockData.get("blockDataString"));
+        }
+
+        // Include special data to make blocks more unique
+        if (blockData.containsKey("bannerPatterns")) {
+            signature.append(":banner:").append(blockData.get("bannerPatterns").toString().hashCode());
+        }
+        if (blockData.containsKey("signLines")) {
+            signature.append(":sign:").append(blockData.get("signLines").toString().hashCode());
+        }
+        if (blockData.containsKey("containerContentsBase64")) {
+            signature.append(":container:").append(blockData.get("containerContentsBase64").toString().hashCode());
+        }
+        if (blockData.containsKey("jukeboxRecord")) {
+            signature.append(":jukebox:").append(blockData.get("jukeboxRecord").toString().hashCode());
+        }
+        if (blockData.containsKey("skullOwner")) {
+            signature.append(":skull:").append(blockData.get("skullOwner"));
+        }
+        if (blockData.containsKey("skullData")) {
+            signature.append(":skullData:").append(blockData.get("skullData").toString().hashCode());
+        }
+        if (blockData.containsKey("flowerPotItem")) {
+            signature.append(":pot:").append(blockData.get("flowerPotItem"));
+        }
+        if (blockData.containsKey("nbtData")) {
+            signature.append(":nbt:").append(blockData.get("nbtData").toString().hashCode());
+        }
+
+        return signature.toString();
+    }
+
+    /**
+     * Saves YAML configuration with GZIP compression
+     */
+    private void saveCompressedYaml(YamlConfiguration config, File file) throws IOException {
+        String yamlContent = config.saveToString();
+
+        try (FileOutputStream fos = new FileOutputStream(file);
+                GZIPOutputStream gzos = new GZIPOutputStream(fos);
+                OutputStreamWriter writer = new OutputStreamWriter(gzos, "UTF-8")) {
+
+            writer.write(yamlContent);
+        }
+    }
+
+    /**
+     * Loads YAML configuration from GZIP compressed file
+     */
+    private YamlConfiguration loadCompressedYaml(File file) throws IOException {
+        StringBuilder yamlContent = new StringBuilder();
+
+        try (FileInputStream fis = new FileInputStream(file);
+                GZIPInputStream gzis = new GZIPInputStream(fis);
+                InputStreamReader reader = new InputStreamReader(gzis, "UTF-8");
+                BufferedReader br = new BufferedReader(reader)) {
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                yamlContent.append(line).append('\n');
+            }
+        }
+
+        YamlConfiguration config = new YamlConfiguration();
+        try {
+            config.loadFromString(yamlContent.toString());
+        } catch (org.bukkit.configuration.InvalidConfigurationException e) {
+            throw new IOException("Invalid YAML configuration in compressed file: " + file.getName(), e);
+        }
+        return config;
+    }
+
+    /**
+     * Finds backup file, trying both compressed and uncompressed versions
+     */
+    private File findBackupFile(String areaName, String backupId) {
+        // Try compressed first
+        File compressedFile = new File(backupFolder, areaName + "_" + backupId + COMPRESSED_EXTENSION);
+        if (compressedFile.exists()) {
+            return compressedFile;
+        }
+
+        // Try uncompressed
+        File uncompressedFile = new File(backupFolder, areaName + "_" + backupId + UNCOMPRESSED_EXTENSION);
+        if (uncompressedFile.exists()) {
+            return uncompressedFile;
+        }
+
+        return null;
+    }
+
+    /**
+     * Loads backup icon with all the existing logic
+     */
+    private void loadBackupIcon(YamlConfiguration config, AreaBackup backup, String backupId, File backupFile) {
+        if (config.contains("backup.iconItem-base64")) {
+            // Base64 format (for complex player heads)
+            String base64Data = config.getString("backup.iconItem-base64");
+            if (base64Data != null) {
+                try {
+                    ItemStack iconItem = loadItemStackFromBase64(base64Data);
+                    if (iconItem != null) {
+                        backup.setIconItem(iconItem);
+                        plugin.getLogger()
+                                .fine("Loaded Base64 icon for backup " + backupId + ": " + iconItem.getType());
+                    } else {
+                        backup.setIcon(org.bukkit.Material.CHEST);
+                    }
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Error loading Base64 backup icon: " + e.getMessage());
+                    backup.setIcon(org.bukkit.Material.CHEST);
+                }
+            }
+        } else if (config.contains("backup.iconItem")) {
+            // New ItemStack format
+            org.bukkit.configuration.ConfigurationSection iconSection = config
+                    .getConfigurationSection("backup.iconItem");
+            if (iconSection != null) {
+                try {
+                    Map<String, Object> iconData = new HashMap<>();
+                    for (String iconKey : iconSection.getKeys(true)) {
+                        iconData.put(iconKey, iconSection.get(iconKey));
+                    }
+                    ItemStack iconItem = ItemStack.deserialize(iconData);
+                    backup.setIconItem(iconItem);
+                    plugin.getLogger()
+                            .fine("Loaded custom icon for backup " + backupId + ": " + iconItem.getType());
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Invalid backup icon item data in file "
+                            + backupFile.getName() + ", using default: " + e.getMessage());
+                    backup.setIcon(org.bukkit.Material.CHEST);
+                }
+            }
+        } else if (config.contains("backup.icon")) {
+            // Legacy Material format
+            String iconName = config.getString("backup.icon");
+            if (iconName != null) {
+                try {
+                    backup.setIcon(org.bukkit.Material.valueOf(iconName));
+                    plugin.getLogger().fine("Loaded legacy icon for backup " + backupId + ": " + iconName);
+                } catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("Invalid backup icon material '" + iconName + "' in file "
+                            + backupFile.getName() + ", using default");
+                    backup.setIcon(org.bukkit.Material.CHEST);
+                }
+            }
+        }
+    }
+
+    /**
+     * Migrates existing uncompressed backups to compressed format
+     */
+    public void migrateToCompressedBackups() {
+        if (!USE_COMPRESSION) {
+            plugin.getLogger().info("Compression disabled, skipping migration");
+            return;
+        }
+
+        File[] uncompressedFiles = backupFolder
+                .listFiles((dir, name) -> name.endsWith(UNCOMPRESSED_EXTENSION) && !name.endsWith(".legacy"));
+
+        if (uncompressedFiles == null || uncompressedFiles.length == 0) {
+            plugin.getLogger().info("No uncompressed backup files found to migrate");
+            return;
+        }
+
+        int migrated = 0;
+        long spaceSaved = 0;
+
+        for (File oldFile : uncompressedFiles) {
+            try {
+                YamlConfiguration config = YamlConfiguration.loadConfiguration(oldFile);
+
+                String newFileName = oldFile.getName().replace(UNCOMPRESSED_EXTENSION, COMPRESSED_EXTENSION);
+                File newFile = new File(backupFolder, newFileName);
+
+                long oldSize = oldFile.length();
+                saveCompressedYaml(config, newFile);
+                long newSize = newFile.length();
+
+                if (newFile.exists() && newSize > 0) {
+                    oldFile.delete();
+                    migrated++;
+                    spaceSaved += (oldSize - newSize);
+
+                    plugin.getLogger().fine(String.format("Migrated %s: %s -> %s (%.1f%% reduction)",
+                            oldFile.getName(), formatFileSize(oldSize), formatFileSize(newSize),
+                            ((double) (oldSize - newSize) / oldSize) * 100));
+                }
+
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to migrate backup file " + oldFile.getName() +
+                        ": " + e.getMessage());
+            }
+        }
+
+        if (migrated > 0) {
+            plugin.getLogger()
+                    .info(String.format("Successfully migrated %d backup files to compressed format. Space saved: %s",
+                            migrated, formatFileSize(spaceSaved)));
+        }
+    }
+
+    // Rest of the existing methods remain unchanged...
+
     public void cleanupLegacyBackups() {
         try {
-            File[] files = backupFolder.listFiles((dir, name) -> name.endsWith(".yml"));
+            File[] files = backupFolder.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".yml.gz"));
             if (files == null)
                 return;
 
             int cleaned = 0;
             for (File file : files) {
                 try {
-                    YamlConfiguration config = new YamlConfiguration();
-                    config.load(file);
+                    YamlConfiguration config;
+                    if (file.getName().endsWith(".gz")) {
+                        config = loadCompressedYaml(file);
+                    } else {
+                        config = YamlConfiguration.loadConfiguration(file);
+                    }
 
                     if (config.contains("backup") && !config.contains("backup.id")) {
                         File backupFile = new File(file.getParentFile(), file.getName() + ".legacy");
@@ -231,7 +530,7 @@ public class FileManager {
                         }
                     }
                 } catch (Exception e) {
-
+                    // Skip problematic files
                 }
             }
 
@@ -245,8 +544,8 @@ public class FileManager {
     }
 
     public void deleteBackupFile(String areaName, String backupId) {
-        File backupFile = new File(backupFolder, areaName + "_" + backupId + ".yml");
-        if (backupFile.exists()) {
+        File backupFile = findBackupFile(areaName, backupId);
+        if (backupFile != null && backupFile.exists()) {
             if (backupFile.delete()) {
                 plugin.getLogger().fine("Deleted backup file: " + backupFile.getName());
             } else {
@@ -256,25 +555,42 @@ public class FileManager {
     }
 
     public void deleteBackupFiles(String areaName) {
-        File[] files = backupFolder.listFiles((dir, name) -> name.startsWith(areaName + "_") && name.endsWith(".yml"));
+        File[] compressedFiles = backupFolder
+                .listFiles((dir, name) -> name.startsWith(areaName + "_") && name.endsWith(COMPRESSED_EXTENSION));
+        File[] uncompressedFiles = backupFolder
+                .listFiles((dir, name) -> name.startsWith(areaName + "_") && name.endsWith(UNCOMPRESSED_EXTENSION));
 
-        if (files != null) {
-            int deletedCount = 0;
-            for (File file : files) {
+        int deletedCount = 0;
+
+        if (compressedFiles != null) {
+            for (File file : compressedFiles) {
                 if (file.delete()) {
                     deletedCount++;
                 }
             }
-            plugin.getLogger().info("Deleted " + deletedCount + " backup files for area: " + areaName);
         }
+
+        if (uncompressedFiles != null) {
+            for (File file : uncompressedFiles) {
+                if (file.delete()) {
+                    deletedCount++;
+                }
+            }
+        }
+
+        plugin.getLogger().info("Deleted " + deletedCount + " backup files for area: " + areaName);
     }
 
     public void renameBackupFiles(String oldName, String newName) {
-        File[] files = backupFolder.listFiles((dir, name) -> name.startsWith(oldName + "_") && name.endsWith(".yml"));
+        File[] compressedFiles = backupFolder
+                .listFiles((dir, name) -> name.startsWith(oldName + "_") && name.endsWith(COMPRESSED_EXTENSION));
+        File[] uncompressedFiles = backupFolder
+                .listFiles((dir, name) -> name.startsWith(oldName + "_") && name.endsWith(UNCOMPRESSED_EXTENSION));
 
-        if (files != null) {
-            int renamedCount = 0;
-            for (File file : files) {
+        int renamedCount = 0;
+
+        if (compressedFiles != null) {
+            for (File file : compressedFiles) {
                 String fileName = file.getName();
                 String newFileName = fileName.replace(oldName + "_", newName + "_");
                 File newFile = new File(backupFolder, newFileName);
@@ -282,9 +598,21 @@ public class FileManager {
                     renamedCount++;
                 }
             }
-            plugin.getLogger()
-                    .info("Renamed " + renamedCount + " backup files from '" + oldName + "' to '" + newName + "'");
         }
+
+        if (uncompressedFiles != null) {
+            for (File file : uncompressedFiles) {
+                String fileName = file.getName();
+                String newFileName = fileName.replace(oldName + "_", newName + "_");
+                File newFile = new File(backupFolder, newFileName);
+                if (file.renameTo(newFile)) {
+                    renamedCount++;
+                }
+            }
+        }
+
+        plugin.getLogger()
+                .info("Renamed " + renamedCount + " backup files from '" + oldName + "' to '" + newName + "'");
     }
 
     public long getTotalBackupFileSize() {
@@ -303,11 +631,29 @@ public class FileManager {
     }
 
     public File[] getBackupFiles(String areaName) {
-        return backupFolder.listFiles((dir, name) -> name.startsWith(areaName + "_") && name.endsWith(".yml"));
+        File[] compressedFiles = backupFolder
+                .listFiles((dir, name) -> name.startsWith(areaName + "_") && name.endsWith(COMPRESSED_EXTENSION));
+        File[] uncompressedFiles = backupFolder
+                .listFiles((dir, name) -> name.startsWith(areaName + "_") && name.endsWith(UNCOMPRESSED_EXTENSION));
+
+        // Combine both arrays
+        if (compressedFiles == null && uncompressedFiles == null) {
+            return new File[0];
+        } else if (compressedFiles == null) {
+            return uncompressedFiles;
+        } else if (uncompressedFiles == null) {
+            return compressedFiles;
+        } else {
+            File[] combined = new File[compressedFiles.length + uncompressedFiles.length];
+            System.arraycopy(compressedFiles, 0, combined, 0, compressedFiles.length);
+            System.arraycopy(uncompressedFiles, 0, combined, compressedFiles.length, uncompressedFiles.length);
+            return combined;
+        }
     }
 
     public File[] getAllBackupFiles() {
-        return backupFolder.listFiles((dir, name) -> name.endsWith(".yml"));
+        return backupFolder
+                .listFiles((dir, name) -> name.endsWith(COMPRESSED_EXTENSION) || name.endsWith(UNCOMPRESSED_EXTENSION));
     }
 
     public String getDiskUsageStats() {
@@ -315,10 +661,11 @@ public class FileManager {
         long freeSpace = dataFolder.getFreeSpace();
         long totalSpace = dataFolder.getTotalSpace();
 
-        return String.format("Backup storage: %s | Free space: %s | Total space: %s",
+        return String.format("Backup storage: %s | Free space: %s | Total space: %s | Compression: %s",
                 formatFileSize(backupSize),
                 formatFileSize(freeSpace),
-                formatFileSize(totalSpace));
+                formatFileSize(totalSpace),
+                USE_COMPRESSION ? "enabled" : "disabled");
     }
 
     private String formatFileSize(long bytes) {
