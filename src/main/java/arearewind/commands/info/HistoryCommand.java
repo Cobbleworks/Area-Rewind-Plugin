@@ -66,7 +66,7 @@ public class HistoryCommand extends BaseCommand {
 
         for (int i = startIndex; i < endIndex; i++) {
             AreaBackup backup = backups.get(i);
-            String timestamp = backup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            String timestamp = backup.getTimestamp().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"));
             int blockCount = backup.getBlocks().size();
 
             ChatColor color = (i == backupManager.getUndoPointer(areaName)) ? ChatColor.YELLOW : ChatColor.GREEN;

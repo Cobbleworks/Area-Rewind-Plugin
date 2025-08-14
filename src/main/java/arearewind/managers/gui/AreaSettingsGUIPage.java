@@ -213,11 +213,11 @@ public class AreaSettingsGUIPage implements IGUIPage {
         if (!backups.isEmpty()) {
             AreaBackup lastBackup = backups.get(backups.size() - 1);
             backupLore.add(ChatColor.GRAY + "Last Backup: " +
-                    lastBackup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+                    lastBackup.getTimestamp().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
 
             AreaBackup firstBackup = backups.get(0);
             backupLore.add(ChatColor.GRAY + "First Backup: " +
-                    firstBackup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+                    firstBackup.getTimestamp().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
         }
 
         int undoPointer = backupManager.getUndoPointer(areaName);

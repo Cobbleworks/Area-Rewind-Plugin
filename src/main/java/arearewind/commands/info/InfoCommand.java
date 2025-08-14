@@ -57,7 +57,7 @@ public class InfoCommand extends BaseCommand {
         if (!backups.isEmpty()) {
             AreaBackup lastBackup = backups.get(backups.size() - 1);
             player.sendMessage(ChatColor.GREEN + "Last Backup: " + ChatColor.WHITE +
-                    lastBackup.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                    lastBackup.getTimestamp().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss")));
         }
 
         if (!area.getTrustedPlayers().isEmpty()) {
