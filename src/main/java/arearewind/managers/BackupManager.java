@@ -46,8 +46,8 @@ public class BackupManager {
         if (playerListener != null) {
             return playerListener.getPlayerProgressLoggingMode(player);
         }
-        // Fallback to global config if player listener is not available
-        return configManager.isRestoreProgressLoggingEnabled();
+        // Default to true if player listener is not available
+        return true;
     }
 
     private final Set<Material> POI_BLOCKS = Set.of(
@@ -330,10 +330,30 @@ public class BackupManager {
                                                                                  // large areas
                         }
 
-                        if (totalProcessed > 0 && totalProcessed % reportInterval == 0) {
+                        // Show progress at regular intervals OR when crossing percentage milestones
+                        if (totalProcessed > 0) {
+                            boolean showProgress = false;
+
+                            // Check if we hit the reportInterval
+                            if (totalProcessed % reportInterval == 0) {
+                                showProgress = true;
+                            }
+
+                            // Also show progress at 25%, 50%, 75% milestones for better feedback
                             int progress = (int) ((double) totalProcessed / totalToProcess * 100);
-                            player.sendMessage(ChatColor.YELLOW + "Progress: " + progress + "% (" +
-                                    totalProcessed + "/" + totalToProcess + " blocks)");
+                            int lastProgress = (int) ((double) (totalProcessed - Math.min(batchSize, totalProcessed))
+                                    / totalToProcess * 100);
+
+                            if ((progress >= 25 && lastProgress < 25) ||
+                                    (progress >= 50 && lastProgress < 50) ||
+                                    (progress >= 75 && lastProgress < 75)) {
+                                showProgress = true;
+                            }
+
+                            if (showProgress) {
+                                player.sendMessage(ChatColor.YELLOW + "Progress: " + progress + "% (" +
+                                        totalProcessed + "/" + totalToProcess + " blocks)");
+                            }
                         }
                     }
 

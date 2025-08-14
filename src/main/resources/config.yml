@@ -12,18 +12,11 @@ performance:
     # Lower values = slower restoration but less server impact
     max-batch-size: 400 # Maximum blocks per tick for large areas
     min-batch-size: 100 # Minimum blocks per tick for small areas
-    # Note: Container and special block batch sizes are automatically calculated
-    # as fractions of the main batch size for consistencyvisualization:
+visualization:
   particle-distance: 50
-
-# Restoration settings
-restore:
-  # Show progress messages during restoration
-  progress-logging: true
 
 selection:
   # Wooden hoe selection mode settings
   wooden-hoe:
-    enabled: false # Disabled by default, WorldEdit takes priority
     force-enabled: false # Can be enabled per-player via command
     auto-fallback: true # Automatically enable if WorldEdit fails or is unavailable

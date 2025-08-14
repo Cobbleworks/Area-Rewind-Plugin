@@ -42,7 +42,7 @@ public class GUIManager implements Listener {
         this.areasPage = new AreasGUIPage(this, areaManager, backupManager, permissionManager, intervalManager);
         this.myAreasPage = new MyAreasGUIPage(this, areaManager, backupManager, permissionManager, intervalManager);
         this.backupsPage = new BackupsGUIPage(this, areaManager, backupManager, permissionManager, intervalManager);
-        this.settingsPage = new SettingsGUIPage(this, permissionManager, configManager);
+        this.settingsPage = new SettingsGUIPage(this, permissionManager);
         this.areaSettingsPage = new AreaSettingsGUIPage(this, areaManager, backupManager, permissionManager);
         this.materialSelectorPage = new MaterialSelectorGUIPage(this, areaManager, backupManager, permissionManager,
                 fileManager);

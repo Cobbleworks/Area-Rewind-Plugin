@@ -10,9 +10,7 @@ public class ConfigurationManager {
     private int maxAreaSize = 1000000;
     private int rateLimitCooldown = 1000;
     private int visualizationParticleDistance = 50;
-    private boolean woodenHoeEnabled = false;
     private boolean woodenHoeAutoFallback = true;
-    private boolean restoreProgressLogging = true;
 
     // Performance settings for restoration
     private int restoreMaxBatchSize = 400;
@@ -32,9 +30,7 @@ public class ConfigurationManager {
             maxAreaSize = config.getInt("performance.max-area-size", 1000000);
             rateLimitCooldown = config.getInt("performance.rate-limit-cooldown", 1000);
             visualizationParticleDistance = config.getInt("visualization.particle-distance", 50);
-            woodenHoeEnabled = config.getBoolean("selection.wooden-hoe.enabled", false);
             woodenHoeAutoFallback = config.getBoolean("selection.wooden-hoe.auto-fallback", true);
-            restoreProgressLogging = config.getBoolean("restore.progress-logging", true);
 
             // Load performance settings
             restoreMaxBatchSize = config.getInt("performance.restore.max-batch-size", 400);
@@ -42,8 +38,6 @@ public class ConfigurationManager {
             plugin.getLogger().info("Configuration loaded successfully");
             plugin.getLogger().info("Max area size: " + maxAreaSize + " blocks");
             plugin.getLogger().info("Max backups per area: " + maxBackupsPerArea);
-            plugin.getLogger().info("Wooden hoe selection: " + (woodenHoeEnabled ? "enabled" : "disabled"));
-            plugin.getLogger().info("Progress logging: " + (restoreProgressLogging ? "enabled" : "disabled"));
             plugin.getLogger()
                     .info("Restore batch sizes - Regular: " + restoreMinBatchSize + "-" + restoreMaxBatchSize);
 
@@ -54,9 +48,7 @@ public class ConfigurationManager {
             maxAreaSize = 1000000;
             rateLimitCooldown = 1000;
             visualizationParticleDistance = 50;
-            woodenHoeEnabled = false;
             woodenHoeAutoFallback = true;
-            restoreProgressLogging = true;
             restoreMaxBatchSize = 400;
             restoreMinBatchSize = 100;
         }
@@ -83,28 +75,8 @@ public class ConfigurationManager {
         return visualizationParticleDistance;
     }
 
-    public boolean isWoodenHoeEnabled() {
-        return woodenHoeEnabled;
-    }
-
     public boolean isWoodenHoeAutoFallbackEnabled() {
         return woodenHoeAutoFallback;
-    }
-
-    public void setWoodenHoeEnabled(boolean enabled) {
-        this.woodenHoeEnabled = enabled;
-        config.set("selection.wooden-hoe.enabled", enabled);
-        plugin.saveConfig();
-    }
-
-    public boolean isRestoreProgressLoggingEnabled() {
-        return restoreProgressLogging;
-    }
-
-    public void setRestoreProgressLoggingEnabled(boolean enabled) {
-        this.restoreProgressLogging = enabled;
-        config.set("restore.progress-logging", enabled);
-        plugin.saveConfig();
     }
 
     // Performance settings getters

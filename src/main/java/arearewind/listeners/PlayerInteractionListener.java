@@ -75,11 +75,6 @@ public class PlayerInteractionListener implements Listener {
             return playerWoodenHoeEnabled.get(playerId);
         }
 
-        // Check global config setting
-        if (configManager.isWoodenHoeEnabled()) {
-            return true;
-        }
-
         // Check auto-fallback setting if WorldEdit is not available or failed
         if (configManager.isWoodenHoeAutoFallbackEnabled()) {
             return !worldEditEnabled || hasWorldEditFailed(player);
@@ -138,8 +133,8 @@ public class PlayerInteractionListener implements Listener {
             return playerProgressLoggingEnabled.get(playerId);
         }
 
-        // Check global config setting
-        return configManager.isRestoreProgressLoggingEnabled();
+        // Default to true if no preference is set
+        return true;
     }
 
     @EventHandler(priority = EventPriority.HIGH)

@@ -3,7 +3,6 @@ package arearewind.managers.gui;
 import arearewind.listeners.PlayerInteractionListener;
 import arearewind.managers.GUIManager;
 import arearewind.managers.PermissionManager;
-import arearewind.util.ConfigurationManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -17,20 +16,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Comprehensive GUI page for both personal and admin settings
+ * GUI page for personal settings
  */
 public class SettingsGUIPage implements IGUIPage {
 
     private final GUIManager guiManager;
     private final PermissionManager permissionManager;
-    private final ConfigurationManager configManager;
     private PlayerInteractionListener playerListener;
 
-    public SettingsGUIPage(GUIManager guiManager, PermissionManager permissionManager,
-            ConfigurationManager configManager) {
+    public SettingsGUIPage(GUIManager guiManager, PermissionManager permissionManager) {
         this.guiManager = guiManager;
         this.permissionManager = permissionManager;
-        this.configManager = configManager;
     }
 
     public void setPlayerInteractionListener(PlayerInteractionListener playerListener) {
@@ -45,7 +41,6 @@ public class SettingsGUIPage implements IGUIPage {
         }
 
         Inventory gui = Bukkit.createInventory(null, 54, ChatColor.DARK_PURPLE + "Area Rewind Settings");
-        boolean isAdmin = permissionManager.hasAdminPermission(player);
 
         // === PERSONAL SETTINGS (Always available) ===
         if (playerListener != null) {
@@ -93,65 +88,6 @@ public class SettingsGUIPage implements IGUIPage {
             gui.setItem(12, progressItem);
         }
 
-        // === GLOBAL SETTINGS (Admin only) ===
-        if (isAdmin) {
-            // Global Wooden Hoe Toggle
-            boolean globalHoeEnabled = configManager.isWoodenHoeEnabled();
-            ItemStack globalHoeItem = new ItemStack(globalHoeEnabled ? Material.GOLDEN_HOE : Material.GRAY_DYE);
-            ItemMeta globalHoeMeta = globalHoeItem.getItemMeta();
-            globalHoeMeta.setDisplayName(ChatColor.GOLD + "Global Wooden Hoe");
-            List<String> globalHoeLore = new ArrayList<>();
-            globalHoeLore.add(ChatColor.GRAY + "Global default for wooden hoe selection");
-            globalHoeLore.add(ChatColor.GRAY + "Players can override this individually");
-            globalHoeLore.add("");
-            globalHoeLore.add(ChatColor.YELLOW + "Current: " +
-                    (globalHoeEnabled ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled"));
-            globalHoeLore.add("");
-            if (globalHoeEnabled) {
-                globalHoeLore.add(ChatColor.RED + "Click to disable");
-            } else {
-                globalHoeLore.add(ChatColor.GREEN + "Click to enable");
-            }
-            globalHoeMeta.setLore(globalHoeLore);
-            globalHoeItem.setItemMeta(globalHoeMeta);
-            gui.setItem(28, globalHoeItem);
-
-            // Global Progress Logging Toggle
-            boolean globalProgressEnabled = configManager.isRestoreProgressLoggingEnabled();
-            ItemStack globalProgressItem = new ItemStack(
-                    globalProgressEnabled ? Material.WRITABLE_BOOK : Material.GRAY_DYE);
-            ItemMeta globalProgressMeta = globalProgressItem.getItemMeta();
-            globalProgressMeta.setDisplayName(ChatColor.GOLD + "Global Progress Logging");
-            List<String> globalProgressLore = new ArrayList<>();
-            globalProgressLore.add(ChatColor.GRAY + "Global default for progress logging");
-            globalProgressLore.add(ChatColor.GRAY + "Players can override this individually");
-            globalProgressLore.add("");
-            globalProgressLore.add(ChatColor.YELLOW + "Current: " +
-                    (globalProgressEnabled ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled"));
-            globalProgressLore.add("");
-            if (globalProgressEnabled) {
-                globalProgressLore.add(ChatColor.RED + "Click to disable");
-            } else {
-                globalProgressLore.add(ChatColor.GREEN + "Click to enable");
-            }
-            globalProgressMeta.setLore(globalProgressLore);
-            globalProgressItem.setItemMeta(globalProgressMeta);
-            gui.setItem(30, globalProgressItem);
-
-            // Reload Configuration
-            ItemStack reloadItem = new ItemStack(Material.EMERALD);
-            ItemMeta reloadMeta = reloadItem.getItemMeta();
-            reloadMeta.setDisplayName(ChatColor.GREEN + "Reload Configuration");
-            List<String> reloadLore = new ArrayList<>();
-            reloadLore.add(ChatColor.GRAY + "Reload plugin configuration");
-            reloadLore.add(ChatColor.GRAY + "Apply configuration changes");
-            reloadLore.add("");
-            reloadLore.add(ChatColor.YELLOW + "Click to reload");
-            reloadMeta.setLore(reloadLore);
-            reloadItem.setItemMeta(reloadMeta);
-            gui.setItem(16, reloadItem);
-        }
-
         // === INFORMATION ===
         ItemStack infoItem = new ItemStack(Material.BOOK);
         ItemMeta infoMeta = infoItem.getItemMeta();
@@ -163,11 +99,6 @@ public class SettingsGUIPage implements IGUIPage {
         infoLore.add("");
         if (playerListener != null) {
             infoLore.add(ChatColor.AQUA + "Personal Settings Available");
-        }
-        if (isAdmin) {
-            infoLore.add(ChatColor.LIGHT_PURPLE + "Admin Settings Available");
-        } else {
-            infoLore.add(ChatColor.GRAY + "Admin settings require permission");
         }
         infoMeta.setLore(infoLore);
         infoItem.setItemMeta(infoMeta);
@@ -191,7 +122,6 @@ public class SettingsGUIPage implements IGUIPage {
             return;
 
         String displayName = item.getItemMeta().getDisplayName();
-        boolean isAdmin = permissionManager.hasAdminPermission(player);
 
         if (displayName.contains("Back to Areas")) {
             player.closeInventory();
@@ -210,7 +140,7 @@ public class SettingsGUIPage implements IGUIPage {
                 player.closeInventory();
                 openGUI(player);
                 return;
-            } else if (displayName.contains("Progress Logging") && !displayName.contains("Global")) {
+            } else if (displayName.contains("Progress Logging")) {
                 // Toggle personal progress logging setting
                 boolean current = playerListener.getPlayerProgressLoggingMode(player);
                 playerListener.setPlayerProgressLoggingMode(player, !current);
@@ -220,42 +150,6 @@ public class SettingsGUIPage implements IGUIPage {
                 openGUI(player);
                 return;
             }
-        }
-
-        // === ADMIN SETTINGS ===
-        if (!isAdmin) {
-            player.sendMessage(ChatColor.RED + "You need admin permissions to change global settings!");
-            return;
-        }
-
-        if (displayName.contains("Global Wooden Hoe")) {
-            // Toggle global wooden hoe setting
-            boolean current = configManager.isWoodenHoeEnabled();
-            configManager.setWoodenHoeEnabled(!current);
-
-            player.sendMessage(ChatColor.GREEN + "Global wooden hoe selection " +
-                    (!current ? "enabled" : "disabled") + "!");
-
-            // Refresh the GUI to show the new state
-            player.closeInventory();
-            openGUI(player);
-            return;
-        } else if (displayName.contains("Global Progress Logging")) {
-            // Toggle global progress logging setting
-            boolean current = configManager.isRestoreProgressLoggingEnabled();
-            configManager.setRestoreProgressLoggingEnabled(!current);
-
-            player.sendMessage(ChatColor.GREEN + "Global progress logging " +
-                    (!current ? "enabled" : "disabled") + "!");
-
-            // Refresh the GUI to show the new state
-            player.closeInventory();
-            openGUI(player);
-            return;
-        } else if (displayName.contains("Reload Configuration")) {
-            player.closeInventory();
-            player.performCommand("rewind reload");
-            return;
         }
     }
 
