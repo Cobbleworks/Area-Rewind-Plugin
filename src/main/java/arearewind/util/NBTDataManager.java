@@ -319,27 +319,39 @@ public class NBTDataManager {
                 org.bukkit.block.Skull currentSkull = (org.bukkit.block.Skull) currentState;
                 org.bukkit.block.Skull restoredSkull = (org.bukkit.block.Skull) restoredState;
 
+                // Copy the owning player if it exists
                 if (restoredSkull.getOwningPlayer() != null) {
                     currentSkull.setOwningPlayer(restoredSkull.getOwningPlayer());
                 }
 
-                // Try to copy owner profile for custom textures
+                // Try to copy player profile for custom textures using modern API
                 try {
-                    java.lang.reflect.Method getOwnerProfile = restoredSkull.getClass().getMethod("getOwnerProfile");
-                    Object profile = getOwnerProfile.invoke(restoredSkull);
+                    // Try the modern PlayerProfile API first
+                    java.lang.reflect.Method getPlayerProfile = restoredSkull.getClass().getMethod("getPlayerProfile");
+                    Object profile = getPlayerProfile.invoke(restoredSkull);
                     if (profile != null) {
-                        try {
+                        java.lang.reflect.Method setPlayerProfile = currentSkull.getClass()
+                                .getMethod("setPlayerProfile", profile.getClass());
+                        setPlayerProfile.invoke(currentSkull, profile);
+                        plugin.getLogger().fine("Copied player profile for skull at " + block.getLocation());
+                    }
+                } catch (Exception e) {
+                    // Fallback to older methods if needed
+                    try {
+                        java.lang.reflect.Method getOwnerProfile = restoredSkull.getClass()
+                                .getMethod("getOwnerProfile");
+                        Object profile = getOwnerProfile.invoke(restoredSkull);
+                        if (profile != null) {
                             java.lang.reflect.Method setOwnerProfile = currentSkull.getClass()
                                     .getMethod("setOwnerProfile", profile.getClass());
                             setOwnerProfile.invoke(currentSkull, profile);
-                        } catch (Exception e) {
-                            java.lang.reflect.Method setPlayerProfile = currentSkull.getClass()
-                                    .getMethod("setPlayerProfile", profile.getClass());
-                            setPlayerProfile.invoke(currentSkull, profile);
+                            plugin.getLogger().fine("Copied owner profile for skull at " + block.getLocation());
                         }
+                    } catch (Exception e2) {
+                        plugin.getLogger().fine(
+                                "Could not copy skull profile using reflection, using basic owner: " + e2.getMessage());
+                        // Just use the basic owner setting which we already did above
                     }
-                } catch (Exception e) {
-                    plugin.getLogger().fine("Could not copy skull profile: " + e.getMessage());
                 }
 
                 currentSkull.update(true, false);

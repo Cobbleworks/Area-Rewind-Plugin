@@ -264,11 +264,14 @@ public class BackupManager {
             String key = entry.getKey();
             BlockInfo info = entry.getValue();
 
-            // Special handling for blocks that need both container AND NBT restoration
             Material blockType = info.getMaterial();
-            boolean needsSpecialNBTHandling = (blockType == Material.LECTERN ||
-                    blockType == Material.CHISELED_BOOKSHELF ||
-                    blockType == Material.PLAYER_HEAD ||
+
+            // Prioritize container blocks first - these need inventory restoration
+            if (info.hasContainerContents()) {
+                containerBlocks.add(key);
+            }
+            // Then handle blocks that need NBT restoration but are NOT containers
+            else if ((blockType == Material.PLAYER_HEAD ||
                     blockType == Material.PLAYER_WALL_HEAD ||
                     blockType.name().contains("BANNER") ||
                     blockType.name().contains("SIGN") ||
@@ -277,16 +280,15 @@ public class BackupManager {
                     blockType == Material.REPEATING_COMMAND_BLOCK ||
                     blockType == Material.CHAIN_COMMAND_BLOCK ||
                     blockType == Material.STRUCTURE_BLOCK ||
-                    blockType == Material.JIGSAW) && info.getNbtData() != null;
-
-            if (needsSpecialNBTHandling) {
-                // These blocks need NBT restoration regardless of container contents
+                    blockType == Material.JIGSAW) && info.getNbtData() != null) {
                 specialBlocks.add(key);
-            } else if (info.hasContainerContents()) {
-                containerBlocks.add(key);
-            } else if (hasSpecialProperties(info)) {
+            }
+            // Handle other blocks with special properties (legacy approach)
+            else if (hasSpecialProperties(info)) {
                 specialBlocks.add(key);
-            } else {
+            }
+            // Everything else is a regular block
+            else {
                 regularBlocks.add(key);
             }
         }
@@ -558,26 +560,7 @@ public class BackupManager {
                     plugin.getLogger().fine(
                             "Successfully restored " + block.getType() + " from NBT data at " + block.getLocation());
 
-                    // For blocks that are both NBT-dependent AND containers (lecterns, chiseled
-                    // bookshelves),
-                    // also restore container contents if NBT restoration didn't handle them
-                    Material blockType = block.getType();
-                    if ((blockType == Material.LECTERN || blockType == Material.CHISELED_BOOKSHELF)
-                            && info.hasContainerContents()) {
-                        // Delay container restoration to allow NBT restoration to complete first
-                        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                            try {
-                                restoreContainerContents(block, info);
-                                plugin.getLogger().fine("Restored container contents for " + blockType +
-                                        " at " + block.getLocation() + " after NBT restoration");
-                            } catch (Exception e) {
-                                plugin.getLogger().warning("Failed to restore container contents for " + blockType +
-                                        " at " + block.getLocation() + ": " + e.getMessage());
-                            }
-                        }, 1L);
-                    }
-
-                    // For NBT-restored blocks, still handle POI updates but skip legacy methods
+                    // For NBT-restored blocks, handle POI updates
                     if (isPOIBlock(block.getType())) {
                         scheduleBlockStateUpdate(block);
                     }
@@ -587,8 +570,6 @@ public class BackupManager {
 
             // Priority 2: Fallback to legacy specialized restoration methods for backwards
             // compatibility
-            // Note: Skulls are no longer specially handled here - they rely entirely on NBT
-            // restoration
             restoreLegacySpecialData(block, info);
 
         } catch (Exception e) {
@@ -810,106 +791,42 @@ public class BackupManager {
         try {
             if (!(block.getState() instanceof org.bukkit.block.Container)) {
                 plugin.getLogger().warning("Block at " + block.getLocation() +
-                        " is not a container but has container contents! Type: " + block.getType() +
-                        ", State: " + block.getState().getClass().getSimpleName());
+                        " is not a container but has container contents! Type: " + block.getType());
                 return false;
             }
-
-            plugin.getLogger().info("Restoring container at " + block.getLocation() +
-                    " - Type: " + block.getType() + ", State: " + block.getState().getClass().getSimpleName());
 
             org.bukkit.block.Container container = (org.bukkit.block.Container) block.getState();
             ItemStack[] contents = info.getContainerContents();
 
             if (contents != null) {
-                // Note: If NBT data was successfully restored above, it may have already
-                // handled the container contents. Only restore regular contents if needed.
+                // For containers with NBT data, try NBT restoration first
                 if (info.getNbtData() != null) {
-                    plugin.getLogger().fine("Container has NBT data - contents may already be restored by NBT system");
+                    boolean nbtRestored = nbtManager.restoreCompleteNBTData(block, info.getNbtData());
+                    if (nbtRestored) {
+                        plugin.getLogger().fine("Successfully restored " + block.getType() +
+                                " container from NBT data at " + block.getLocation());
+                        return true;
+                    }
+                    plugin.getLogger().fine("NBT restoration failed, falling back to manual container restore");
                 }
 
+                // Manual container restoration
                 container.getInventory().clear();
-
-                // Special handling for lecterns with NBT data (fallback)
-                if (block.getType() == Material.LECTERN && info.getNbtData() != null && contents.length > 0) {
-                    // Try to restore the book from NBT data first
-                    try {
-                        ItemStack bookFromNbt = nbtManager.loadItemStackFromBase64(info.getNbtData());
-                        if (bookFromNbt != null && (bookFromNbt.getType() == Material.WRITTEN_BOOK
-                                || bookFromNbt.getType() == Material.WRITABLE_BOOK)) {
-                            container.getInventory().setItem(0, bookFromNbt);
-                            container.update(true, true);
-                            plugin.getLogger().info("Restored lectern book from NBT data at " + block.getLocation());
-                            return true;
-                        }
-                    } catch (Exception nbtEx) {
-                        plugin.getLogger()
-                                .warning("Failed to restore lectern book from NBT, falling back to normal method: "
-                                        + nbtEx.getMessage());
+                for (int i = 0; i < contents.length && i < container.getInventory().getSize(); i++) {
+                    if (contents[i] != null && contents[i].getType() != Material.AIR) {
+                        container.getInventory().setItem(i, contents[i].clone());
                     }
                 }
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    try {
-                        org.bukkit.block.Container freshContainer = (org.bukkit.block.Container) block.getState();
+                container.update(true, false);
 
-                        ItemStack[] currentContents = freshContainer.getInventory().getContents();
-                        plugin.getLogger().info("Container before restore: " + getContainerSummary(currentContents));
-
-                        ItemStack[] safeCopy = new ItemStack[freshContainer.getInventory().getSize()];
-                        for (int i = 0; i < safeCopy.length && i < contents.length; i++) {
-                            if (contents[i] != null && contents[i].getType() != Material.AIR) {
-                                safeCopy[i] = contents[i].clone();
-                            }
-                        }
-
-                        freshContainer.getInventory().setContents(safeCopy);
-                        freshContainer.update(true, true);
-
-                        try {
-                            freshContainer.getInventory().clear();
-                            for (int i = 0; i < contents.length && i < freshContainer.getInventory().getSize(); i++) {
-                                if (contents[i] != null && contents[i].getType() != Material.AIR) {
-                                    freshContainer.getInventory().setItem(i, contents[i].clone());
-                                }
-                            }
-                        } catch (Exception e2) {
-                            plugin.getLogger().warning("Alternative restore method failed: " + e2.getMessage());
-                        }
-
-                        ItemStack[] afterContents = freshContainer.getInventory().getContents();
-                        plugin.getLogger().info("Container after restore: " + getContainerSummary(afterContents));
-
-                        block.getState().update(true, true);
-
-                        if (block.getChunk().isLoaded()) {
-                            for (int dx = -1; dx <= 1; dx++) {
-                                for (int dy = -1; dy <= 1; dy++) {
-                                    for (int dz = -1; dz <= 1; dz++) {
-                                        Block neighbor = block.getRelative(dx, dy, dz);
-                                        if (neighbor.getType() != Material.AIR) {
-                                            neighbor.getState().update(false, false);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        plugin.getLogger().info("Successfully restored container (" + block.getType() +
-                                ") at " + block.getLocation() + " with " + getContainerSummary(contents));
-
-                    } catch (Exception e) {
-                        plugin.getLogger().severe("Failed to restore container contents (delayed) at " +
-                                block.getLocation() + ": " + e.getMessage());
-                        e.printStackTrace();
-                    }
-                }, 2L);
-
+                plugin.getLogger().fine("Successfully restored container (" + block.getType() +
+                        ") at " + block.getLocation() + " with " + getContainerSummary(contents));
                 return true;
             }
+
         } catch (Exception e) {
-            plugin.getLogger().warning("Failed to restore container contents at " +
-                    block.getLocation() + ": " + e.getMessage());
-            e.printStackTrace();
+            plugin.getLogger().warning("Failed to restore container contents at " + block.getLocation() +
+                    ": " + e.getMessage());
         }
 
         return false;
