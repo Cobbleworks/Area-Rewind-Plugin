@@ -257,20 +257,80 @@ public class AreaManager {
                         }
                     }
 
-                    protectedAreas.put(key, area);
+                    // Load custom restore speed
+                    if (areasConfig.contains(key + ".customRestoreSpeed")) {
+                        Integer customSpeed = areasConfig.getInt(key + ".customRestoreSpeed");
+                        if (customSpeed > 0) {
+                            area.setCustomRestoreSpeed(customSpeed);
+                        }
+                    }
 
-                    // Load icon - support both old Material format and new ItemStack format
-                    if (areasConfig.contains(key + ".iconItem")) {
-                        // New ItemStack format
-                        Object iconData = areasConfig.get(key + ".iconItem");
-                        if (iconData instanceof Map) {
+                    // Load icon - support Base64 format, ItemStack format, and legacy Material
+                    // format
+                    plugin.getLogger().info("Loading icon for area '" + key + "'...");
+                    if (areasConfig.contains(key + ".iconItem-base64")) {
+                        // Base64 format (for complex player heads)
+                        plugin.getLogger().info("Found Base64 icon data for area '" + key + "'");
+                        String base64Data = areasConfig.getString(key + ".iconItem-base64");
+                        if (base64Data != null) {
                             try {
-                                @SuppressWarnings("unchecked")
-                                ItemStack iconItem = ItemStack.deserialize((Map<String, Object>) iconData);
+                                ItemStack iconItem = loadItemStackFromBase64(base64Data);
+                                if (iconItem != null) {
+                                    area.setIconItem(iconItem);
+                                    plugin.getLogger().info("Successfully loaded Base64 icon for area '" + key + "': "
+                                            + iconItem.getType());
+                                } else {
+                                    plugin.getLogger().warning(
+                                            "Failed to load Base64 icon for area '" + key + "', using default");
+                                    area.setIcon(org.bukkit.Material.GRASS_BLOCK);
+                                }
+                            } catch (Exception e) {
+                                plugin.getLogger()
+                                        .warning("Error loading Base64 icon for area '" + key + "': " + e.getMessage());
+                                area.setIcon(org.bukkit.Material.GRASS_BLOCK);
+                            }
+                        }
+                    } else if (areasConfig.contains(key + ".iconItem")) {
+                        // New ItemStack format
+                        org.bukkit.configuration.ConfigurationSection iconSection = areasConfig
+                                .getConfigurationSection(key + ".iconItem");
+                        if (iconSection != null) {
+                            try {
+                                // Convert ConfigurationSection to Map for ItemStack deserialization
+                                Map<String, Object> iconData = new HashMap<>();
+                                for (String iconKey : iconSection.getKeys(true)) {
+                                    iconData.put(iconKey, iconSection.get(iconKey));
+                                }
+
+                                // Debug logging
+                                plugin.getLogger().info("Icon data for area '" + key + "': " + iconData);
+
+                                ItemStack iconItem = ItemStack.deserialize(iconData);
                                 area.setIconItem(iconItem);
+
+                                // Check if it's a player head and log additional details
+                                if (iconItem.getType() == Material.PLAYER_HEAD) {
+                                    plugin.getLogger().info("Player head detected for area '" + key + "'");
+                                    if (iconItem.hasItemMeta()) {
+                                        plugin.getLogger().info("ItemMeta present: "
+                                                + iconItem.getItemMeta().getClass().getSimpleName());
+                                        if (iconItem.getItemMeta() instanceof org.bukkit.inventory.meta.SkullMeta) {
+                                            org.bukkit.inventory.meta.SkullMeta skullMeta = (org.bukkit.inventory.meta.SkullMeta) iconItem
+                                                    .getItemMeta();
+                                            plugin.getLogger().info(
+                                                    "SkullMeta - hasOwner: " + (skullMeta.getOwningPlayer() != null));
+                                            // Check if skull has custom texture data
+                                            plugin.getLogger().info("SkullMeta toString: " + skullMeta.toString());
+                                        }
+                                    }
+                                }
+
+                                plugin.getLogger()
+                                        .info("Loaded custom icon for area '" + key + "': " + iconItem.getType());
                             } catch (Exception e) {
                                 plugin.getLogger().warning(
-                                        "Invalid icon item data for area '" + key + "', using default");
+                                        "Invalid icon item data for area '" + key + "', using default: "
+                                                + e.getMessage());
                                 area.setIcon(org.bukkit.Material.GRASS_BLOCK);
                             }
                         }
@@ -280,6 +340,7 @@ public class AreaManager {
                         if (iconName != null) {
                             try {
                                 area.setIcon(org.bukkit.Material.valueOf(iconName));
+                                plugin.getLogger().info("Loaded legacy icon for area '" + key + "': " + iconName);
                             } catch (IllegalArgumentException e) {
                                 plugin.getLogger().warning(
                                         "Invalid icon material '" + iconName + "' for area '" + key
@@ -288,6 +349,8 @@ public class AreaManager {
                             }
                         }
                     }
+
+                    protectedAreas.put(key, area);
 
                     loadedCount++;
                 } catch (Exception e) {
@@ -323,10 +386,42 @@ public class AreaManager {
                         .collect(Collectors.toList());
                 areasConfig.set(name + ".trusted", trustedList);
 
+                // Save custom restore speed
+                if (area.hasCustomRestoreSpeed()) {
+                    areasConfig.set(name + ".customRestoreSpeed", area.getCustomRestoreSpeed());
+                }
+
                 // Save icon as ItemStack
                 ItemStack iconItem = area.getIconItem();
                 if (iconItem != null) {
-                    areasConfig.set(name + ".iconItem", iconItem.serialize());
+                    try {
+                        // Special handling for player heads to preserve texture data
+                        if (iconItem.getType() == Material.PLAYER_HEAD) {
+                            plugin.getLogger().info("Saving player head icon for area '" + name + "'");
+
+                            // Use Base64 serialization for player heads to preserve all data
+                            String base64Data = saveItemStackAsBase64(iconItem);
+                            if (base64Data != null) {
+                                areasConfig.set(name + ".iconItem-base64", base64Data);
+                                plugin.getLogger().info("Saved player head as Base64 data for area '" + name + "'");
+                            } else {
+                                // Fallback to standard serialization
+                                Map<String, Object> serializedIcon = iconItem.serialize();
+                                areasConfig.set(name + ".iconItem", serializedIcon);
+                                plugin.getLogger()
+                                        .info("Fallback: Saved player head with standard serialization for area '"
+                                                + name + "'");
+                            }
+                        } else {
+                            // Standard serialization for non-player-head items
+                            Map<String, Object> serializedIcon = iconItem.serialize();
+                            areasConfig.set(name + ".iconItem", serializedIcon);
+                        }
+                    } catch (Exception e) {
+                        plugin.getLogger()
+                                .warning("Failed to serialize icon for area '" + name + "': " + e.getMessage());
+                        e.printStackTrace();
+                    }
                 }
             }
 
@@ -377,6 +472,45 @@ public class AreaManager {
     public void addArea(ProtectedArea area) {
         if (area != null && area.getName() != null) {
             protectedAreas.put(area.getName(), area);
+        }
+    }
+
+    /**
+     * Saves an ItemStack as Base64 encoded bytes to preserve all data
+     */
+    private String saveItemStackAsBase64(ItemStack item) {
+        try {
+            java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+            org.bukkit.util.io.BukkitObjectOutputStream dataOutput = new org.bukkit.util.io.BukkitObjectOutputStream(
+                    outputStream);
+
+            dataOutput.writeObject(item);
+            dataOutput.close();
+
+            return java.util.Base64.getEncoder().encodeToString(outputStream.toByteArray());
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to save ItemStack as Base64: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Loads an ItemStack from Base64 encoded bytes
+     */
+    private ItemStack loadItemStackFromBase64(String base64Data) {
+        try {
+            byte[] data = java.util.Base64.getDecoder().decode(base64Data);
+            java.io.ByteArrayInputStream inputStream = new java.io.ByteArrayInputStream(data);
+            org.bukkit.util.io.BukkitObjectInputStream dataInput = new org.bukkit.util.io.BukkitObjectInputStream(
+                    inputStream);
+
+            ItemStack item = (ItemStack) dataInput.readObject();
+            dataInput.close();
+
+            return item;
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to load ItemStack from Base64: " + e.getMessage());
+            return null;
         }
     }
 }

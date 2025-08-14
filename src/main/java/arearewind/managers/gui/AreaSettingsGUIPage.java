@@ -393,7 +393,7 @@ public class AreaSettingsGUIPage implements IGUIPage {
         gui.setItem(38, backToBackupsItem);
 
         // Back to Areas
-        ItemStack backToAreasItem = new ItemStack(Material.SPECTRAL_ARROW);
+        ItemStack backToAreasItem = new ItemStack(Material.BARRIER);
         ItemMeta backToAreasMeta = backToAreasItem.getItemMeta();
         backToAreasMeta.setDisplayName(ChatColor.GRAY + "Back to Areas");
         backToAreasItem.setItemMeta(backToAreasMeta);

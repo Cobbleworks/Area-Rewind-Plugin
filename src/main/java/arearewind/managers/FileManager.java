@@ -67,10 +67,22 @@ public class FileManager {
                 config.set("backup.entities", backup.getEntities());
             }
 
-            // Save icon as ItemStack
+            // Save icon as ItemStack - special handling for player heads
             ItemStack iconItem = backup.getIconItem();
             if (iconItem != null) {
-                config.set("backup.iconItem", iconItem.serialize());
+                if (iconItem.getType() == org.bukkit.Material.PLAYER_HEAD) {
+                    // Use Base64 serialization for player heads to preserve texture data
+                    String base64Data = saveItemStackAsBase64(iconItem);
+                    if (base64Data != null) {
+                        config.set("backup.iconItem-base64", base64Data);
+                    } else {
+                        // Fallback to standard serialization
+                        config.set("backup.iconItem", iconItem.serialize());
+                    }
+                } else {
+                    // Standard serialization for non-player-head items
+                    config.set("backup.iconItem", iconItem.serialize());
+                }
             }
 
             config.save(backupFile);
@@ -134,18 +146,44 @@ public class FileManager {
 
             AreaBackup backup = new AreaBackup(id, timestamp, blocks, entities);
 
-            // Load icon - support both new ItemStack format and legacy Material format
-            if (config.contains("backup.iconItem")) {
-                // New ItemStack format
-                Object iconData = config.get("backup.iconItem");
-                if (iconData instanceof Map) {
+            // Load icon - support Base64 format, ItemStack format, and legacy Material
+            // format
+            if (config.contains("backup.iconItem-base64")) {
+                // Base64 format (for complex player heads)
+                String base64Data = config.getString("backup.iconItem-base64");
+                if (base64Data != null) {
                     try {
-                        @SuppressWarnings("unchecked")
-                        ItemStack iconItem = ItemStack.deserialize((Map<String, Object>) iconData);
+                        ItemStack iconItem = loadItemStackFromBase64(base64Data);
+                        if (iconItem != null) {
+                            backup.setIconItem(iconItem);
+                            plugin.getLogger()
+                                    .info("Loaded Base64 icon for backup " + backupId + ": " + iconItem.getType());
+                        } else {
+                            backup.setIcon(org.bukkit.Material.CHEST);
+                        }
+                    } catch (Exception e) {
+                        plugin.getLogger().warning("Error loading Base64 backup icon: " + e.getMessage());
+                        backup.setIcon(org.bukkit.Material.CHEST);
+                    }
+                }
+            } else if (config.contains("backup.iconItem")) {
+                // New ItemStack format
+                org.bukkit.configuration.ConfigurationSection iconSection = config
+                        .getConfigurationSection("backup.iconItem");
+                if (iconSection != null) {
+                    try {
+                        // Convert ConfigurationSection to Map for ItemStack deserialization
+                        Map<String, Object> iconData = new HashMap<>();
+                        for (String iconKey : iconSection.getKeys(true)) {
+                            iconData.put(iconKey, iconSection.get(iconKey));
+                        }
+                        ItemStack iconItem = ItemStack.deserialize(iconData);
                         backup.setIconItem(iconItem);
+                        plugin.getLogger()
+                                .fine("Loaded custom icon for backup " + backupId + ": " + iconItem.getType());
                     } catch (Exception e) {
                         plugin.getLogger().warning("Invalid backup icon item data in file "
-                                + backupFile.getName() + ", using default");
+                                + backupFile.getName() + ", using default: " + e.getMessage());
                         backup.setIcon(org.bukkit.Material.CHEST);
                     }
                 }
@@ -155,6 +193,7 @@ public class FileManager {
                 if (iconName != null) {
                     try {
                         backup.setIcon(org.bukkit.Material.valueOf(iconName));
+                        plugin.getLogger().fine("Loaded legacy icon for backup " + backupId + ": " + iconName);
                     } catch (IllegalArgumentException e) {
                         plugin.getLogger().warning("Invalid backup icon material '" + iconName + "' in file "
                                 + backupFile.getName() + ", using default");
@@ -306,5 +345,44 @@ public class FileManager {
 
     public File getExportsFolder() {
         return exportsFolder;
+    }
+
+    /**
+     * Saves an ItemStack as Base64 encoded bytes to preserve all data
+     */
+    private String saveItemStackAsBase64(ItemStack item) {
+        try {
+            java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+            org.bukkit.util.io.BukkitObjectOutputStream dataOutput = new org.bukkit.util.io.BukkitObjectOutputStream(
+                    outputStream);
+
+            dataOutput.writeObject(item);
+            dataOutput.close();
+
+            return java.util.Base64.getEncoder().encodeToString(outputStream.toByteArray());
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to save ItemStack as Base64: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Loads an ItemStack from Base64 encoded bytes
+     */
+    private ItemStack loadItemStackFromBase64(String base64Data) {
+        try {
+            byte[] data = java.util.Base64.getDecoder().decode(base64Data);
+            java.io.ByteArrayInputStream inputStream = new java.io.ByteArrayInputStream(data);
+            org.bukkit.util.io.BukkitObjectInputStream dataInput = new org.bukkit.util.io.BukkitObjectInputStream(
+                    inputStream);
+
+            ItemStack item = (ItemStack) dataInput.readObject();
+            dataInput.close();
+
+            return item;
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to load ItemStack from Base64: " + e.getMessage());
+            return null;
+        }
     }
 }

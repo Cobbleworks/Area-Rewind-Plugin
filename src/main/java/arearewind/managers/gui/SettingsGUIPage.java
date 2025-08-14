@@ -105,7 +105,7 @@ public class SettingsGUIPage implements IGUIPage {
         gui.setItem(4, infoItem);
 
         // Back button
-        ItemStack backItem = new ItemStack(Material.SPECTRAL_ARROW);
+        ItemStack backItem = new ItemStack(Material.BARRIER);
         ItemMeta backMeta = backItem.getItemMeta();
         backMeta.setDisplayName(ChatColor.GRAY + "Back to Areas");
         backItem.setItemMeta(backMeta);
