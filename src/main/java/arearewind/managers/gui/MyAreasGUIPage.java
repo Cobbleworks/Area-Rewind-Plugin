@@ -105,6 +105,7 @@ public class MyAreasGUIPage implements IGUIPage {
 
             lore.add("");
             lore.add(ChatColor.YELLOW + "Click: Manage Area & Backups");
+            lore.add(ChatColor.YELLOW + "Middle Click: Set Icon");
 
             meta.setLore(lore);
             item.setItemMeta(meta);
@@ -161,7 +162,8 @@ public class MyAreasGUIPage implements IGUIPage {
             return;
         }
 
-        // Handle area selection - only left click to open backup management
+        // Handle area selection - left click to open backup management, middle click
+        // for icon selection
         ProtectedArea area = areaManager.getArea(displayName);
         if (area == null)
             return;
@@ -169,6 +171,10 @@ public class MyAreasGUIPage implements IGUIPage {
         if (event.isLeftClick()) {
             player.closeInventory();
             guiManager.openBackupsGUI(player, displayName);
+        } else if (event.getClick().name().contains("MIDDLE")) {
+            // Middle click to set area icon (player owns the area, so they can modify it)
+            player.closeInventory();
+            guiManager.openMaterialSelector(player, "area", displayName, null);
         }
     }
 

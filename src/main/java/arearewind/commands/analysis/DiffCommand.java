@@ -32,26 +32,71 @@ public class DiffCommand extends BaseCommand {
         }
 
         String areaName = args[0];
-        Integer id1 = parseInteger(player, args[1], "first backup ID");
-        Integer id2 = parseInteger(player, args[2], "second backup ID");
+        String arg1 = args[1];
+        String arg2 = args[2];
 
-        if (id1 == null || id2 == null) {
+        // Check if we have the area
+        var area = areaManager.getArea(areaName);
+        if (area == null) {
+            player.sendMessage(ChatColor.RED + "Area '" + areaName + "' not found!");
             return true;
         }
 
+        // Get backups
         List<AreaBackup> backups = backupManager.getBackupHistory(areaName);
-
-        if (id1 < 0 || id1 >= backups.size() || id2 < 0 || id2 >= backups.size()) {
-            player.sendMessage(ChatColor.RED + "Backup IDs not found! Available: 0-" + (backups.size() - 1));
+        if (backups.isEmpty()) {
+            player.sendMessage(ChatColor.RED + "No backups found for area '" + areaName + "'!");
             return true;
         }
 
-        List<String> diffs = backupManager.compareBackups(backups.get(id1), backups.get(id2));
+        // Parse backup IDs or handle "current" keyword
+        AreaBackup backup1 = null;
+        AreaBackup backup2 = null;
+        String label1 = "";
+        String label2 = "";
+
+        // Handle first backup
+        if ("current".equalsIgnoreCase(arg1)) {
+            backup1 = backupManager.createBackupFromArea(area);
+            label1 = "current world state";
+        } else {
+            Integer id1 = parseInteger(player, arg1, "first backup ID");
+            if (id1 == null)
+                return true;
+
+            if (id1 < 0 || id1 >= backups.size()) {
+                player.sendMessage(ChatColor.RED + "First backup ID not found! Available: 0-" + (backups.size() - 1)
+                        + " or 'current'");
+                return true;
+            }
+            backup1 = backups.get(id1);
+            label1 = "backup " + id1;
+        }
+
+        // Handle second backup
+        if ("current".equalsIgnoreCase(arg2)) {
+            backup2 = backupManager.createBackupFromArea(area);
+            label2 = "current world state";
+        } else {
+            Integer id2 = parseInteger(player, arg2, "second backup ID");
+            if (id2 == null)
+                return true;
+
+            if (id2 < 0 || id2 >= backups.size()) {
+                player.sendMessage(ChatColor.RED + "Second backup ID not found! Available: 0-" + (backups.size() - 1)
+                        + " or 'current'");
+                return true;
+            }
+            backup2 = backups.get(id2);
+            label2 = "backup " + id2;
+        }
+
+        List<String> diffs = backupManager.compareBackups(backup1, backup2);
 
         if (diffs.isEmpty()) {
-            player.sendMessage(ChatColor.GREEN + "No differences between the backups.");
+            player.sendMessage(ChatColor.GREEN + "No differences between " + label1 + " and " + label2 + ".");
         } else {
-            player.sendMessage(ChatColor.GOLD + "=== Differences between backup " + id1 + " and " + id2 + " ===");
+            player.sendMessage(ChatColor.GOLD + "=== Differences between " + label1 + " and " + label2 + " ===");
             for (String diff : diffs) {
                 player.sendMessage(diff);
             }
@@ -67,9 +112,16 @@ public class DiffCommand extends BaseCommand {
                     .filter(area -> area.toLowerCase().startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toList());
         } else if (args.length == 2 || args.length == 3) {
-            return getBackupIdCompletions(args[0]).stream()
+            List<String> completions = getBackupIdCompletions(args[0]).stream()
                     .filter(id -> id.startsWith(args[args.length - 1]))
                     .collect(Collectors.toList());
+
+            // Add "current" as an option
+            if ("current".startsWith(args[args.length - 1].toLowerCase())) {
+                completions.add("current");
+            }
+
+            return completions;
         }
         return List.of();
     }
@@ -86,11 +138,11 @@ public class DiffCommand extends BaseCommand {
 
     @Override
     public String getDescription() {
-        return "Compare two backups and show differences";
+        return "Compare two backups or a backup with current world state and show differences";
     }
 
     @Override
     public String getUsage() {
-        return "/rewind diff <area> <id1> <id2>";
+        return "/rewind diff <area> <id1|current> <id2|current>";
     }
 }
