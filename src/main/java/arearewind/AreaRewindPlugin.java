@@ -43,6 +43,10 @@ public class AreaRewindPlugin extends JavaPlugin {
 
         // Set the player listener reference in the command handler for tool commands
         commandHandler.setPlayerInteractionListener(playerListener);
+
+        // Set the player listener reference in the GUI manager for settings GUI
+        guiManager.setPlayerInteractionListener(playerListener);
+
         areaManager.loadAreas();
         backupManager.loadBackups();
         this.getCommand("rewind").setExecutor(commandHandler);
@@ -92,6 +96,10 @@ public class AreaRewindPlugin extends JavaPlugin {
 
         // Set the player listener reference in the command handler for tool commands
         commandHandler.setPlayerInteractionListener(playerListener);
+
+        // Set the player listener reference in the GUI manager for settings GUI
+        guiManager.setPlayerInteractionListener(playerListener);
+
         areaManager.loadAreas();
         backupManager.loadBackups();
 

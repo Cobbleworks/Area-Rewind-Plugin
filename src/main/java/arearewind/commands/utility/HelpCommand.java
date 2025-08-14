@@ -48,6 +48,7 @@ public class HelpCommand extends BaseCommand {
         player.sendMessage(ChatColor.GRAY + "  /rewind list [owned|trusted] - List areas");
         player.sendMessage(ChatColor.GRAY + "  /rewind info <area> - Area information");
         player.sendMessage(ChatColor.GRAY + "  /rewind gui - Open management GUI");
+        player.sendMessage(ChatColor.GRAY + "  /rewind config <setting> [value] - Configure personal settings");
         player.sendMessage(ChatColor.GRAY + "  /rewind status - System status");
 
         return true;

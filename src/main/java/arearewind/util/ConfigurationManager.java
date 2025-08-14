@@ -15,6 +15,7 @@ public class ConfigurationManager {
     private int visualizationParticleDistance = 50;
     private boolean woodenHoeEnabled = false;
     private boolean woodenHoeAutoFallback = true;
+    private boolean restoreProgressLogging = true;
 
     public ConfigurationManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -35,6 +36,7 @@ public class ConfigurationManager {
             visualizationParticleDistance = config.getInt("visualization.particle-distance", 50);
             woodenHoeEnabled = config.getBoolean("selection.wooden-hoe.enabled", false);
             woodenHoeAutoFallback = config.getBoolean("selection.wooden-hoe.auto-fallback", true);
+            restoreProgressLogging = config.getBoolean("restore.progress-logging", true);
 
             plugin.getLogger().info("Configuration loaded successfully");
             plugin.getLogger().info("Auto-backup: " + (autoBackupEnabled ? "enabled" : "disabled"));
@@ -53,6 +55,7 @@ public class ConfigurationManager {
             visualizationParticleDistance = 50;
             woodenHoeEnabled = false;
             woodenHoeAutoFallback = true;
+            restoreProgressLogging = true;
         }
     }
 
@@ -100,6 +103,28 @@ public class ConfigurationManager {
     public void setWoodenHoeEnabled(boolean enabled) {
         this.woodenHoeEnabled = enabled;
         config.set("selection.wooden-hoe.enabled", enabled);
+        plugin.saveConfig();
+    }
+
+    public boolean isRestoreProgressLoggingEnabled() {
+        return restoreProgressLogging;
+    }
+
+    public void setRestoreProgressLoggingEnabled(boolean enabled) {
+        this.restoreProgressLogging = enabled;
+        config.set("restore.progress-logging", enabled);
+        plugin.saveConfig();
+    }
+
+    public void setAutoBackupEnabled(boolean enabled) {
+        this.autoBackupEnabled = enabled;
+        config.set("backup.auto-backup", enabled);
+        plugin.saveConfig();
+    }
+
+    public void setCompressionEnabled(boolean enabled) {
+        this.compressionEnabled = enabled;
+        config.set("backup.compression", enabled);
         plugin.saveConfig();
     }
 }

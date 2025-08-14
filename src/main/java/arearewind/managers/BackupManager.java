@@ -3,6 +3,7 @@ package arearewind.managers;
 import arearewind.data.AreaBackup;
 import arearewind.data.BlockInfo;
 import arearewind.data.ProtectedArea;
+import arearewind.listeners.PlayerInteractionListener;
 import arearewind.util.ConfigurationManager;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -24,6 +25,7 @@ public class BackupManager {
     private final JavaPlugin plugin;
     private final ConfigurationManager configManager;
     private final FileManager fileManager;
+    private PlayerInteractionListener playerListener; // Reference to player listener for progress logging preferences
     private final Map<String, List<AreaBackup>> backupHistory;
     private final Map<String, Integer> undoPointers;
     private final Map<String, AreaBackup> beforeRestoreBackups; // Hidden backups for undo functionality
@@ -36,6 +38,18 @@ public class BackupManager {
         this.backupHistory = new ConcurrentHashMap<>();
         this.undoPointers = new ConcurrentHashMap<>();
         this.beforeRestoreBackups = new ConcurrentHashMap<>();
+    }
+
+    public void setPlayerInteractionListener(PlayerInteractionListener playerListener) {
+        this.playerListener = playerListener;
+    }
+
+    private boolean isProgressLoggingEnabledForPlayer(Player player) {
+        if (playerListener != null) {
+            return playerListener.getPlayerProgressLoggingMode(player);
+        }
+        // Fallback to global config if player listener is not available
+        return configManager.isRestoreProgressLoggingEnabled();
     }
 
     private final Set<Material> POI_BLOCKS = Set.of(

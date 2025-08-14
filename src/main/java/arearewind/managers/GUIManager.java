@@ -1,5 +1,6 @@
 package arearewind.managers;
 
+import arearewind.listeners.PlayerInteractionListener;
 import arearewind.managers.gui.AreaSettingsGUIPage;
 import arearewind.managers.gui.AreasGUIPage;
 import arearewind.managers.gui.BackupsGUIPage;
@@ -18,6 +19,8 @@ import java.util.*;
 
 public class GUIManager implements Listener {
     private final Map<UUID, String> openGUIs = new HashMap<>();
+    private final PermissionManager permissionManager;
+    private final ConfigurationManager configManager;
 
     // GUI Pages
     private final AreasGUIPage areasPage;
@@ -30,6 +33,10 @@ public class GUIManager implements Listener {
     public GUIManager(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
             PermissionManager permissionManager, ConfigurationManager configManager, FileManager fileManager,
             IntervalManager intervalManager) {
+
+        // Store references for later use
+        this.permissionManager = permissionManager;
+        this.configManager = configManager;
 
         // Initialize GUI pages
         this.areasPage = new AreasGUIPage(this, areaManager, backupManager, permissionManager, intervalManager);
@@ -80,6 +87,11 @@ public class GUIManager implements Listener {
 
     public void openMaterialSelector(Player player, String type, String areaName, String backupId, int page) {
         materialSelectorPage.openMaterialSelector(player, type, areaName, backupId, page);
+    }
+
+    public void setPlayerInteractionListener(PlayerInteractionListener playerListener) {
+        // Set the listener for the main settings page
+        settingsPage.setPlayerInteractionListener(playerListener);
     }
 
     // GUI state management methods
@@ -154,6 +166,7 @@ public class GUIManager implements Listener {
         return title.contains("Protected Areas") ||
                 title.contains("Area Management:") ||
                 title.contains("Area Rewind Settings") ||
+                title.contains("Personal Settings") ||
                 title.contains("Area Settings:") ||
                 title.contains("Set Icon:");
     }

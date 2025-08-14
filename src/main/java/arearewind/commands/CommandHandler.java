@@ -31,6 +31,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         private final CommandRegistry commandRegistry;
         private final Map<UUID, Long> lastUsage = new HashMap<>();
         private final RestoreBlockCommand restoreBlockCommand;
+        private final ConfigCommand configCommand;
 
         // Rate limiting
         private static final long RATE_LIMIT_MS = 1000;
@@ -43,6 +44,10 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
 
                 // Initialize the special command block command
                 this.restoreBlockCommand = new RestoreBlockCommand(plugin, areaManager, backupManager, guiManager,
+                                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
+
+                // Initialize the config command
+                this.configCommand = new ConfigCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager);
 
                 // Register all commands
@@ -122,6 +127,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new ToolCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
+                commandRegistry.registerCommand(configCommand);
                 commandRegistry.registerCommand(new PreviewCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new HideCommand(plugin, areaManager, backupManager, guiManager,
@@ -215,7 +221,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         }
 
         public void setPlayerInteractionListener(PlayerInteractionListener listener) {
-                // TODO: Pass to commands that need it when implementing tool command
+                // Set the listener for commands that need it
+                configCommand.setPlayerInteractionListener(listener);
         }
 
         /**

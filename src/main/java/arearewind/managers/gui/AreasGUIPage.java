@@ -237,6 +237,11 @@ public class AreasGUIPage implements IGUIPage {
         ItemStack settingsItem = new ItemStack(Material.COMPARATOR);
         ItemMeta settingsMeta = settingsItem.getItemMeta();
         settingsMeta.setDisplayName(ChatColor.YELLOW + "Settings");
+        List<String> settingsLore = new ArrayList<>();
+        settingsLore.add(ChatColor.GRAY + "Configure plugin settings");
+        settingsLore.add(ChatColor.GRAY + "• Personal preferences");
+        settingsLore.add(ChatColor.GRAY + "• Admin configuration");
+        settingsMeta.setLore(settingsLore);
         settingsItem.setItemMeta(settingsMeta);
         gui.setItem(settingsSlot, settingsItem);
     }

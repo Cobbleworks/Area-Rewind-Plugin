@@ -37,6 +37,8 @@ public class PlayerInteractionListener implements Listener {
     private final ConfigurationManager configManager;
     private final Map<UUID, Long> lastToolUsage = new HashMap<>();
     private final Map<UUID, Boolean> playerWoodenHoeEnabled = new HashMap<>(); // Per-player wooden hoe override
+    private final Map<UUID, Boolean> playerProgressLoggingEnabled = new HashMap<>(); // Per-player progress logging
+                                                                                     // override
     private static final long TOOL_COOLDOWN = 100;
     private static final Material SELECTION_TOOL = Material.WOODEN_HOE;
     private static final String TOOL_NAME = "Area Selection Tool";
@@ -109,6 +111,35 @@ public class PlayerInteractionListener implements Listener {
 
     public boolean getPlayerWoodenHoeMode(Player player) {
         return isWoodenHoeEnabledForPlayer(player);
+    }
+
+    public void setPlayerProgressLoggingMode(Player player, boolean enabled) {
+        playerProgressLoggingEnabled.put(player.getUniqueId(), enabled);
+
+        String status = enabled ? "enabled" : "disabled";
+        player.sendMessage(ChatColor.GREEN + "Restore progress logging " + status + " for you!");
+
+        if (enabled) {
+            player.sendMessage(ChatColor.GRAY + "You will receive progress messages during long restore operations.");
+        } else {
+            player.sendMessage(ChatColor.GRAY + "Progress messages will be hidden during restore operations.");
+        }
+    }
+
+    public boolean getPlayerProgressLoggingMode(Player player) {
+        return isProgressLoggingEnabledForPlayer(player);
+    }
+
+    private boolean isProgressLoggingEnabledForPlayer(Player player) {
+        UUID playerId = player.getUniqueId();
+
+        // Check if player has explicitly enabled/disabled progress logging
+        if (playerProgressLoggingEnabled.containsKey(playerId)) {
+            return playerProgressLoggingEnabled.get(playerId);
+        }
+
+        // Check global config setting
+        return configManager.isRestoreProgressLoggingEnabled();
     }
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -346,6 +377,8 @@ public class PlayerInteractionListener implements Listener {
         lastToolUsage.remove(playerId);
         // Keep wooden hoe preference across sessions
         // playerWoodenHoeEnabled.remove(playerId);
+        // Keep progress logging preference across sessions
+        // playerProgressLoggingEnabled.remove(playerId);
     }
 
     private void giveSelectionToolIfNeeded(Player player) {
