@@ -262,29 +262,11 @@ public class PlayerInteractionListener implements Listener {
                     return;
                 }
 
-                // Get the actual bounding box size for user feedback
-                long boundingBoxVolume = (long) (max.getX() - min.getX() + 1) *
-                        (max.getY() - min.getY() + 1) *
-                        (max.getZ() - min.getZ() + 1);
-
                 areaManager.setPosition1(player.getUniqueId(), pos1);
                 areaManager.setPosition2(player.getUniqueId(), pos2);
 
                 // Provide feedback about the conversion
-                String selectionType = getRegionTypeName(region);
-                if (!selectionType.equals("Cuboid") && blockCount != boundingBoxVolume) {
-                    player.sendMessage(ChatColor.YELLOW + "Converted " + selectionType +
-                            " selection to rectangular area!");
-                    player.sendMessage(ChatColor.GRAY + "Original: " + ChatColor.WHITE +
-                            formatNumber(blockCount) + " blocks" +
-                            ChatColor.GRAY + " → Bounding box: " + ChatColor.WHITE +
-                            formatNumber(boundingBoxVolume) + " blocks");
-                } else {
-                    player.sendMessage(ChatColor.GREEN + "Synced " + selectionType +
-                            " selection (" + formatNumber(blockCount) + " blocks)");
-                }
-
-                showSelectionInfo(player);
+                // showSelectionInfo(player);
             }
         } catch (IncompleteRegionException e) {
             // Selection is incomplete, this is normal - don't spam the player
@@ -294,36 +276,6 @@ public class PlayerInteractionListener implements Listener {
             player.sendMessage(
                     ChatColor.YELLOW + "Could not sync WorldEdit selection. Try again or use wooden hoe instead.");
         }
-    }
-
-    /**
-     * Get a human-readable name for the WorldEdit region type
-     */
-    private String getRegionTypeName(Region region) {
-        String className = region.getClass().getSimpleName();
-        switch (className) {
-            case "CuboidRegion":
-                return "Cuboid";
-            case "Polygonal2DRegion":
-                return "Polygon";
-            case "EllipsoidRegion":
-                return "Ellipsoid";
-            case "CylinderRegion":
-                return "Cylinder";
-            case "ConvexPolyhedralRegion":
-                return "Convex Hull";
-            case "ExtendingCuboidRegion":
-                return "Extended Cuboid";
-            default:
-                return className.replace("Region", "");
-        }
-    }
-
-    /**
-     * Format numbers with thousands separators for better readability
-     */
-    private String formatNumber(long number) {
-        return String.format("%,d", number);
     }
 
     private void showWorldEditSelectionInfo(Player player) {
