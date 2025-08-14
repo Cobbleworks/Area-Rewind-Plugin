@@ -247,28 +247,44 @@ public class PlayerInteractionListener implements Listener {
             com.sk89q.worldedit.world.World weWorld = BukkitAdapter.adapt(player.getWorld());
             Region region = session.getSelection(weWorld);
             if (region != null) {
-                // Convert WorldEdit region to our area manager selection
+                // Get the bounding box for any type of WorldEdit selection
+                // This ensures we always work with a rectangular area
                 com.sk89q.worldedit.math.BlockVector3 min = region.getMinimumPoint();
                 com.sk89q.worldedit.math.BlockVector3 max = region.getMaximumPoint();
 
                 Location pos1 = new Location(player.getWorld(), min.getX(), min.getY(), min.getZ());
                 Location pos2 = new Location(player.getWorld(), max.getX(), max.getY(), max.getZ());
 
-                // Validate selection size (optional - prevent huge selections)
+                // Validate selection size (prevent huge selections)
                 long blockCount = region.getVolume();
                 if (blockCount > 1000000) { // 1M block limit
                     player.sendMessage(ChatColor.RED + "Selection too large! Maximum 1,000,000 blocks.");
                     return;
                 }
 
+                // Get the actual bounding box size for user feedback
+                long boundingBoxVolume = (long) (max.getX() - min.getX() + 1) *
+                        (max.getY() - min.getY() + 1) *
+                        (max.getZ() - min.getZ() + 1);
+
                 areaManager.setPosition1(player.getUniqueId(), pos1);
                 areaManager.setPosition2(player.getUniqueId(), pos2);
 
-                // player.sendMessage(ChatColor.GREEN + "Synced WorldEdit selection to Area
-                // Rewind!");
-                // player.sendMessage(ChatColor.GRAY + "Blocks: " + ChatColor.WHITE +
-                // blockCount);
-                // showSelectionInfo(player);
+                // Provide feedback about the conversion
+                String selectionType = getRegionTypeName(region);
+                if (!selectionType.equals("Cuboid") && blockCount != boundingBoxVolume) {
+                    player.sendMessage(ChatColor.YELLOW + "Converted " + selectionType +
+                            " selection to rectangular area!");
+                    player.sendMessage(ChatColor.GRAY + "Original: " + ChatColor.WHITE +
+                            formatNumber(blockCount) + " blocks" +
+                            ChatColor.GRAY + " → Bounding box: " + ChatColor.WHITE +
+                            formatNumber(boundingBoxVolume) + " blocks");
+                } else {
+                    player.sendMessage(ChatColor.GREEN + "Synced " + selectionType +
+                            " selection (" + formatNumber(blockCount) + " blocks)");
+                }
+
+                showSelectionInfo(player);
             }
         } catch (IncompleteRegionException e) {
             // Selection is incomplete, this is normal - don't spam the player
@@ -280,6 +296,36 @@ public class PlayerInteractionListener implements Listener {
         }
     }
 
+    /**
+     * Get a human-readable name for the WorldEdit region type
+     */
+    private String getRegionTypeName(Region region) {
+        String className = region.getClass().getSimpleName();
+        switch (className) {
+            case "CuboidRegion":
+                return "Cuboid";
+            case "Polygonal2DRegion":
+                return "Polygon";
+            case "EllipsoidRegion":
+                return "Ellipsoid";
+            case "CylinderRegion":
+                return "Cylinder";
+            case "ConvexPolyhedralRegion":
+                return "Convex Hull";
+            case "ExtendingCuboidRegion":
+                return "Extended Cuboid";
+            default:
+                return className.replace("Region", "");
+        }
+    }
+
+    /**
+     * Format numbers with thousands separators for better readability
+     */
+    private String formatNumber(long number) {
+        return String.format("%,d", number);
+    }
+
     private void showWorldEditSelectionInfo(Player player) {
         String selectionInfo = areaManager.getSelectionInfo(player.getUniqueId());
 
@@ -287,9 +333,14 @@ public class PlayerInteractionListener implements Listener {
         player.sendMessage(ChatColor.YELLOW + "Current selection: " + ChatColor.WHITE + selectionInfo);
 
         if (worldEditEnabled) {
-            player.sendMessage(ChatColor.AQUA + "WorldEdit selection will be automatically synced!");
+            player.sendMessage(
+                    ChatColor.AQUA + "WorldEdit selections are automatically converted to rectangular areas");
+            player.sendMessage(ChatColor.GRAY + "Supported: Cuboid, Polygon, Ellipsoid, Cylinder, Sphere, etc.");
         }
 
+        if (areaManager.hasValidSelection(player.getUniqueId())) {
+            player.sendMessage(ChatColor.GREEN + "Ready to create area! Use /rewind save <name>");
+        }
     }
 
     private void handleLeftClick(Player player, Location location) {
@@ -435,7 +486,8 @@ public class PlayerInteractionListener implements Listener {
             lore.add(ChatColor.GREEN + "Use /rewind save <name> to create area");
             lore.add("");
             lore.add(ChatColor.AQUA + "Note: Any wooden hoe works for selection!");
-            lore.add(ChatColor.LIGHT_PURPLE + "WorldEdit wand is also supported!");
+            lore.add(ChatColor.LIGHT_PURPLE + "WorldEdit wand converts all selection types!");
+            lore.add(ChatColor.GRAY + "(cuboid, polygon, ellipsoid, cylinder, etc.)");
             lore.add("");
             lore.add(ChatColor.DARK_GRAY + "Area Rewind Plugin");
             meta.setLore(lore);
@@ -456,6 +508,7 @@ public class PlayerInteractionListener implements Listener {
         if (worldEditEnabled) {
             player.sendMessage(ChatColor.WHITE + "1. Use your " + ChatColor.LIGHT_PURPLE + "WorldEdit wand"
                     + ChatColor.WHITE + " to select an area");
+            player.sendMessage(ChatColor.GRAY + "   (Any selection type: cuboid, polygon, ellipsoid, etc.)");
             player.sendMessage(ChatColor.GRAY + "   (Wooden hoe is available as fallback)");
         } else {
             player.sendMessage(ChatColor.WHITE + "1. Use " + ChatColor.GREEN + "/rewind tool" + ChatColor.WHITE

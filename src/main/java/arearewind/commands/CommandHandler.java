@@ -146,7 +146,9 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
 
         @Override
         public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-                // Special handling for command blocks and console with restoreblock command
+                // --- /rewind command main logic ---
+                // If sender is not a player, only allow restoreblock from command
+                // blocks/console
                 if (!(sender instanceof Player)) {
                         if (args.length > 0 && args[0].equalsIgnoreCase("restoreblock")) {
                                 String[] commandArgs = Arrays.copyOfRange(args, 1, args.length);
@@ -166,8 +168,11 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                         return true;
                 }
 
+                // --- DEFAULT /rewind BEHAVIOR ---
+                // If no arguments, open the GUI (was: help)
                 if (args.length == 0) {
-                        return commandRegistry.executeCommand(player, "help", new String[0]);
+                        // /rewind with no arguments opens the GUI
+                        return commandRegistry.executeCommand(player, "gui", new String[0]);
                 }
 
                 String subCommand = args[0].toLowerCase();

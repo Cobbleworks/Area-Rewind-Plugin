@@ -12,7 +12,6 @@ import org.bukkit.block.Banner;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
@@ -29,7 +28,6 @@ public class BackupManager {
     private final Map<String, List<AreaBackup>> backupHistory;
     private final Map<String, Integer> undoPointers;
     private final Map<String, AreaBackup> beforeRestoreBackups; // Hidden backups for undo functionality
-    private BukkitTask automaticBackupTask;
 
     public BackupManager(JavaPlugin plugin, ConfigurationManager configManager, FileManager fileManager) {
         this.plugin = plugin;
@@ -194,7 +192,7 @@ public class BackupManager {
         final int batchSize = 30;
         final int total = keys.size();
 
-        if (player != null) {
+        if (player != null && isProgressLoggingEnabledForPlayer(player)) {
             player.sendMessage(ChatColor.YELLOW + "Starting restoration of " + total + " blocks...");
         }
 
@@ -247,7 +245,7 @@ public class BackupManager {
                     if (index >= total) {
                         phase = 2;
                         index = 0;
-                        if (player != null && !containerKeys.isEmpty()) {
+                        if (player != null && isProgressLoggingEnabledForPlayer(player) && !containerKeys.isEmpty()) {
                             player.sendMessage(ChatColor.YELLOW + "Blocks placed! Loading container contents...");
                         }
                     }
@@ -272,7 +270,7 @@ public class BackupManager {
                     }
 
                     if (index >= containerKeys.size()) {
-                        if (player != null) {
+                        if (player != null && isProgressLoggingEnabledForPlayer(player)) {
                             player.sendMessage(ChatColor.GREEN + completionMessage);
                             player.sendMessage(ChatColor.GRAY + "Restored: " + total + " blocks, " +
                                     containerCount + " containers with contents");
@@ -280,7 +278,8 @@ public class BackupManager {
                         plugin.getLogger().info("Restoration completed: " + total + " blocks, " +
                                 containerCount + " containers restored");
                         this.cancel();
-                    } else if (player != null && containerKeys.size() > 20 && index % 10 == 0 && index > 0) {
+                    } else if (player != null && isProgressLoggingEnabledForPlayer(player) && containerKeys.size() > 20
+                            && index % 10 == 0 && index > 0) {
                         // Progress for container restoration phase (only show if there are many
                         // containers)
                         int containerProgress = (int) ((double) index / containerKeys.size() * 100);
@@ -289,7 +288,8 @@ public class BackupManager {
                     }
                 }
 
-                if (player != null && phase == 1 && index % 100 == 0 && index > 0) {
+                if (player != null && isProgressLoggingEnabledForPlayer(player) && phase == 1 && index % 100 == 0
+                        && index > 0) {
                     int progress = (int) ((double) index / total * 100);
                     player.sendMessage(ChatColor.YELLOW + "Progress: " + progress + "% (" +
                             index + "/" + total + " blocks)");
@@ -902,30 +902,6 @@ public class BackupManager {
 
         for (Map.Entry<String, Integer> entry : areaBackupCounts.entrySet()) {
             plugin.getLogger().info("Area '" + entry.getKey() + "': " + entry.getValue() + " backups loaded");
-        }
-    }
-
-    public void startAutomaticBackup() {
-        stopAutomaticBackup();
-
-        int intervalMinutes = configManager.getBackupInterval();
-
-        automaticBackupTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                plugin.getLogger().info("Automatic backup task running (placeholder)");
-            }
-        }.runTaskTimerAsynchronously(plugin,
-                20L * 60 * intervalMinutes,
-                20L * 60 * intervalMinutes);
-
-        plugin.getLogger().info("Automatic backup started with " + intervalMinutes + " minute interval");
-    }
-
-    public void stopAutomaticBackup() {
-        if (automaticBackupTask != null) {
-            automaticBackupTask.cancel();
-            automaticBackupTask = null;
         }
     }
 

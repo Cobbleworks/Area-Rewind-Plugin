@@ -95,47 +95,6 @@ public class SettingsGUIPage implements IGUIPage {
 
         // === GLOBAL SETTINGS (Admin only) ===
         if (isAdmin) {
-            // Auto Backup Toggle
-            boolean autoBackupEnabled = configManager.isAutoBackupEnabled();
-            ItemStack autoBackupItem = new ItemStack(autoBackupEnabled ? Material.CHEST : Material.GRAY_DYE);
-            ItemMeta autoBackupMeta = autoBackupItem.getItemMeta();
-            autoBackupMeta.setDisplayName(ChatColor.BLUE + "Auto Backup");
-            List<String> autoBackupLore = new ArrayList<>();
-            autoBackupLore.add(ChatColor.GRAY + "Enable/disable automatic backups");
-            autoBackupLore.add("");
-            autoBackupLore.add(ChatColor.YELLOW + "Current: " +
-                    (autoBackupEnabled ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled"));
-            autoBackupLore.add("");
-            if (autoBackupEnabled) {
-                autoBackupLore.add(ChatColor.RED + "Click to disable");
-            } else {
-                autoBackupLore.add(ChatColor.GREEN + "Click to enable");
-            }
-            autoBackupMeta.setLore(autoBackupLore);
-            autoBackupItem.setItemMeta(autoBackupMeta);
-            gui.setItem(28, autoBackupItem);
-
-            // Compression Toggle
-            boolean compressionEnabled = configManager.isCompressionEnabled();
-            ItemStack compressionItem = new ItemStack(compressionEnabled ? Material.PISTON : Material.GRAY_DYE);
-            ItemMeta compressionMeta = compressionItem.getItemMeta();
-            compressionMeta.setDisplayName(ChatColor.BLUE + "Backup Compression");
-            List<String> compressionLore = new ArrayList<>();
-            compressionLore.add(ChatColor.GRAY + "Enable/disable backup compression");
-            compressionLore.add(ChatColor.GRAY + "Reduces storage space usage");
-            compressionLore.add("");
-            compressionLore.add(ChatColor.YELLOW + "Current: " +
-                    (compressionEnabled ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled"));
-            compressionLore.add("");
-            if (compressionEnabled) {
-                compressionLore.add(ChatColor.RED + "Click to disable");
-            } else {
-                compressionLore.add(ChatColor.GREEN + "Click to enable");
-            }
-            compressionMeta.setLore(compressionLore);
-            compressionItem.setItemMeta(compressionMeta);
-            gui.setItem(30, compressionItem);
-
             // Global Wooden Hoe Toggle
             boolean globalHoeEnabled = configManager.isWoodenHoeEnabled();
             ItemStack globalHoeItem = new ItemStack(globalHoeEnabled ? Material.GOLDEN_HOE : Material.GRAY_DYE);
@@ -155,7 +114,7 @@ public class SettingsGUIPage implements IGUIPage {
             }
             globalHoeMeta.setLore(globalHoeLore);
             globalHoeItem.setItemMeta(globalHoeMeta);
-            gui.setItem(32, globalHoeItem);
+            gui.setItem(28, globalHoeItem);
 
             // Global Progress Logging Toggle
             boolean globalProgressEnabled = configManager.isRestoreProgressLoggingEnabled();
@@ -177,7 +136,7 @@ public class SettingsGUIPage implements IGUIPage {
             }
             globalProgressMeta.setLore(globalProgressLore);
             globalProgressItem.setItemMeta(globalProgressMeta);
-            gui.setItem(34, globalProgressItem);
+            gui.setItem(30, globalProgressItem);
 
             // Reload Configuration
             ItemStack reloadItem = new ItemStack(Material.EMERALD);
@@ -269,31 +228,7 @@ public class SettingsGUIPage implements IGUIPage {
             return;
         }
 
-        if (displayName.contains("Auto Backup")) {
-            // Toggle auto backup setting
-            boolean current = configManager.isAutoBackupEnabled();
-            configManager.setAutoBackupEnabled(!current);
-
-            player.sendMessage(ChatColor.GREEN + "Auto backup " +
-                    (!current ? "enabled" : "disabled") + "!");
-
-            // Refresh the GUI to show the new state
-            player.closeInventory();
-            openGUI(player);
-            return;
-        } else if (displayName.contains("Backup Compression")) {
-            // Toggle compression setting
-            boolean current = configManager.isCompressionEnabled();
-            configManager.setCompressionEnabled(!current);
-
-            player.sendMessage(ChatColor.GREEN + "Backup compression " +
-                    (!current ? "enabled" : "disabled") + "!");
-
-            // Refresh the GUI to show the new state
-            player.closeInventory();
-            openGUI(player);
-            return;
-        } else if (displayName.contains("Global Wooden Hoe")) {
+        if (displayName.contains("Global Wooden Hoe")) {
             // Toggle global wooden hoe setting
             boolean current = configManager.isWoodenHoeEnabled();
             configManager.setWoodenHoeEnabled(!current);

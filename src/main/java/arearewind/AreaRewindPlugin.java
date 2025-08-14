@@ -53,9 +53,6 @@ public class AreaRewindPlugin extends JavaPlugin {
         this.getCommand("rewind").setTabCompleter(commandHandler);
         Bukkit.getPluginManager().registerEvents(playerListener, this);
         Bukkit.getPluginManager().registerEvents(guiManager, this);
-        if (configManager.isAutoBackupEnabled()) {
-            backupManager.startAutomaticBackup();
-        }
         visualizationManager.startVisualizationTask();
         getLogger().info("Area Rewind Plugin enabled successfully!");
         getLogger().info("Loaded " + areaManager.getProtectedAreas().size() + " protected areas");
@@ -68,8 +65,6 @@ public class AreaRewindPlugin extends JavaPlugin {
         // Stop running tasks and listeners
         if (visualizationManager != null)
             visualizationManager.stopVisualizationTask();
-        if (backupManager != null)
-            backupManager.stopAutomaticBackup();
 
         // Save areas before reload
         if (areaManager != null)
@@ -108,9 +103,6 @@ public class AreaRewindPlugin extends JavaPlugin {
         this.getCommand("rewind").setTabCompleter(commandHandler);
         Bukkit.getPluginManager().registerEvents(playerListener, this);
         Bukkit.getPluginManager().registerEvents(guiManager, this);
-        if (configManager.isAutoBackupEnabled()) {
-            backupManager.startAutomaticBackup();
-        }
         visualizationManager.startVisualizationTask();
         getLogger().info("Area Rewind Plugin fully reloaded!");
         getLogger().info("Loaded " + areaManager.getProtectedAreas().size() + " protected areas");
@@ -120,7 +112,6 @@ public class AreaRewindPlugin extends JavaPlugin {
     public void onDisable() {
         areaManager.saveAreas();
         visualizationManager.stopVisualizationTask();
-        backupManager.stopAutomaticBackup();
         intervalManager.stopAll();
         getLogger().info("Area Rewind Plugin disabled!");
     }
