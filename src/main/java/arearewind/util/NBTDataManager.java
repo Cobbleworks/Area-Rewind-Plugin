@@ -214,16 +214,22 @@ public class NBTDataManager {
                 if (restoredState != null && restoredState instanceof org.bukkit.block.Container) {
                     // Restore the container and its contents
                     org.bukkit.block.Container originalContainer = (org.bukkit.block.Container) block.getState();
-                    org.bukkit.block.Container restoredContainer = (org.bukkit.block.Container) restoredState;
 
-                    // Copy state data
-                    // Note: We can't directly replace the block state, but we can copy the
-                    // inventory
+                    // Copy state data for special containers
+                    boolean specialRestored = copySpecialContainerData(block, restoredState);
+
+                    // Copy inventory contents
                     ItemStack[] restoredContents = deserializeContainerContents(contentsData);
                     if (restoredContents != null) {
                         originalContainer.getInventory().clear();
                         originalContainer.getInventory().setContents(restoredContents);
                         originalContainer.update(true, false);
+
+                        if (specialRestored) {
+                            plugin.getLogger().fine("Successfully restored special container data for " +
+                                    block.getType() + " at " + block.getLocation());
+                        }
+
                         return true;
                     }
                 }
@@ -413,6 +419,77 @@ public class NBTDataManager {
     }
 
     /**
+     * Copies special data for container blocks that have extra properties beyond
+     * just inventory
+     */
+    private boolean copySpecialContainerData(Block block, org.bukkit.block.BlockState restoredState) {
+        try {
+            org.bukkit.block.BlockState currentState = block.getState();
+
+            // Handle lecterns - preserve current page
+            if (currentState instanceof org.bukkit.block.Lectern && restoredState instanceof org.bukkit.block.Lectern) {
+                org.bukkit.block.Lectern currentLectern = (org.bukkit.block.Lectern) currentState;
+                org.bukkit.block.Lectern restoredLectern = (org.bukkit.block.Lectern) restoredState;
+
+                // Copy the current page if the lectern has a book
+                try {
+                    int page = restoredLectern.getPage();
+                    currentLectern.setPage(page);
+                    currentLectern.update(true, false);
+                    plugin.getLogger().fine("Restored lectern page: " + page + " at " + block.getLocation());
+                    return true;
+                } catch (Exception e) {
+                    plugin.getLogger().fine("Could not restore lectern page: " + e.getMessage());
+                }
+            }
+
+            // Handle brewing stands - preserve brewing time and fuel
+            if (currentState instanceof org.bukkit.block.BrewingStand
+                    && restoredState instanceof org.bukkit.block.BrewingStand) {
+                org.bukkit.block.BrewingStand currentBrewingStand = (org.bukkit.block.BrewingStand) currentState;
+                org.bukkit.block.BrewingStand restoredBrewingStand = (org.bukkit.block.BrewingStand) restoredState;
+
+                try {
+                    // Copy brewing time and fuel level
+                    int brewingTime = restoredBrewingStand.getBrewingTime();
+                    int fuelLevel = restoredBrewingStand.getFuelLevel();
+
+                    currentBrewingStand.setBrewingTime(brewingTime);
+                    currentBrewingStand.setFuelLevel(fuelLevel);
+                    currentBrewingStand.update(true, false);
+
+                    plugin.getLogger().fine("Restored brewing stand - time: " + brewingTime +
+                            ", fuel: " + fuelLevel + " at " + block.getLocation());
+                    return true;
+                } catch (Exception e) {
+                    plugin.getLogger().fine("Could not restore brewing stand state: " + e.getMessage());
+                }
+            }
+
+            // Handle chiseled bookshelves - preserve occupied slots
+            if (currentState instanceof org.bukkit.block.ChiseledBookshelf
+                    && restoredState instanceof org.bukkit.block.ChiseledBookshelf) {
+                org.bukkit.block.ChiseledBookshelf currentBookshelf = (org.bukkit.block.ChiseledBookshelf) currentState;
+
+                try {
+                    // The inventory restoration will handle the books themselves
+                    // ChiseledBookshelf doesn't have additional state beyond the inventory
+                    currentBookshelf.update(true, false);
+                    plugin.getLogger().fine("Restored chiseled bookshelf at " + block.getLocation());
+                    return true;
+                } catch (Exception e) {
+                    plugin.getLogger().fine("Could not restore chiseled bookshelf state: " + e.getMessage());
+                }
+            }
+
+            return false;
+        } catch (Exception e) {
+            plugin.getLogger().fine("Failed to copy special container data: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Unified method to restore from ItemStack data
      */
     private boolean restoreFromItemStack(Block block, ItemStack restoredItem) {
@@ -435,6 +512,16 @@ public class NBTDataManager {
             // Handle lecterns
             if (block.getType() == Material.LECTERN) {
                 return restoreLecternFromItemStack(block, restoredItem);
+            }
+
+            // Handle brewing stands
+            if (block.getType() == Material.BREWING_STAND) {
+                return restoreBrewingStandFromItemStack(block, restoredItem);
+            }
+
+            // Handle chiseled bookshelves
+            if (block.getType() == Material.CHISELED_BOOKSHELF) {
+                return restoreChiseledBookshelfFromItemStack(block, restoredItem);
             }
 
             // Handle spawners
@@ -589,13 +676,91 @@ public class NBTDataManager {
                 return false;
             }
 
-            // For lecterns, the NBT data typically contains book information
-            // This is handled through the container restoration system
-            plugin.getLogger().fine("Lectern NBT restoration handled via container system at " + block.getLocation());
+            // Try to extract book and page data from the lectern item NBT
+            if (lecternItem.hasItemMeta()) {
+                try {
+                    // Use reflection to access NBT data for book information
+                    // This is complex because lecterns store book and page data in NBT
+
+                    // For now, just restore the container contents which includes the book
+                    // The page information is lost in basic container restoration
+                    plugin.getLogger().fine(
+                            "Lectern book content restoration needs enhanced NBT handling at " + block.getLocation());
+                    return false; // Fall back to container system for now
+
+                } catch (Exception e) {
+                    plugin.getLogger().fine("Could not extract lectern book data: " + e.getMessage());
+                }
+            }
+
             return false;
         } catch (Exception e) {
             plugin.getLogger().warning(
                     "Failed to restore lectern from ItemStack at " + block.getLocation() + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Restore a brewing stand from an ItemStack with complete NBT data
+     */
+    private boolean restoreBrewingStandFromItemStack(Block block, ItemStack brewingStandItem) {
+        try {
+            if (!(block.getState() instanceof org.bukkit.block.BrewingStand)) {
+                return false;
+            }
+
+            // Try to extract brewing data from the item NBT
+            if (brewingStandItem.hasItemMeta()) {
+                try {
+                    // Brewing stands store fuel level and brewing time in NBT
+                    // For now, we fall back to container restoration which preserves items
+                    // but not the brewing progress or fuel level
+                    plugin.getLogger().fine(
+                            "Brewing stand state restoration needs enhanced NBT handling at " + block.getLocation());
+                    return false; // Fall back to container system for now
+
+                } catch (Exception e) {
+                    plugin.getLogger().fine("Could not extract brewing stand data: " + e.getMessage());
+                }
+            }
+
+            return false;
+        } catch (Exception e) {
+            plugin.getLogger().warning(
+                    "Failed to restore brewing stand from ItemStack at " + block.getLocation() + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Restore a chiseled bookshelf from an ItemStack with complete NBT data
+     */
+    private boolean restoreChiseledBookshelfFromItemStack(Block block, ItemStack bookshelfItem) {
+        try {
+            if (!(block.getState() instanceof org.bukkit.block.ChiseledBookshelf)) {
+                return false;
+            }
+
+            // Try to extract book placement data from the item NBT
+            if (bookshelfItem.hasItemMeta()) {
+                try {
+                    // Chiseled bookshelves store which slots have books in NBT
+                    // For now, we fall back to container restoration
+                    plugin.getLogger().fine("Chiseled bookshelf slot data restoration needs enhanced NBT handling at "
+                            + block.getLocation());
+                    return false; // Fall back to container system for now
+
+                } catch (Exception e) {
+                    plugin.getLogger().fine("Could not extract chiseled bookshelf data: " + e.getMessage());
+                }
+            }
+
+            return false;
+        } catch (Exception e) {
+            plugin.getLogger().warning(
+                    "Failed to restore chiseled bookshelf from ItemStack at " + block.getLocation() + ": "
+                            + e.getMessage());
             return false;
         }
     }
@@ -677,6 +842,11 @@ public class NBTDataManager {
 
         // Spawners
         if (type == Material.SPAWNER) {
+            return true;
+        }
+
+        // Brewing stands with brewing progress and fuel
+        if (type == Material.BREWING_STAND) {
             return true;
         }
 
