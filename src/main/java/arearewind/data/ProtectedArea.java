@@ -13,6 +13,7 @@ public class ProtectedArea implements Serializable {
     private UUID owner;
     private Set<UUID> trustedPlayers;
     private Material icon;
+    private Integer customRestoreSpeed; // Custom restore speed (blocks per tick), null = use dynamic
 
     public ProtectedArea(String name, Location pos1, Location pos2, UUID owner) {
         this.name = name;
@@ -21,6 +22,7 @@ public class ProtectedArea implements Serializable {
         this.owner = owner;
         this.trustedPlayers = new HashSet<>();
         this.icon = Material.GRASS_BLOCK; // Default icon
+        this.customRestoreSpeed = null; // Use dynamic sizing by default
     }
 
     public String getName() {
@@ -53,6 +55,22 @@ public class ProtectedArea implements Serializable {
 
     public void setIcon(Material icon) {
         this.icon = icon != null ? icon : Material.GRASS_BLOCK;
+    }
+
+    public Integer getCustomRestoreSpeed() {
+        return customRestoreSpeed;
+    }
+
+    public void setCustomRestoreSpeed(Integer speed) {
+        // Validate speed range (10-1000 blocks per tick, or null for dynamic)
+        if (speed != null && (speed < 10 || speed > 1000)) {
+            throw new IllegalArgumentException("Custom restore speed must be between 10 and 1000 blocks per tick");
+        }
+        this.customRestoreSpeed = speed;
+    }
+
+    public boolean hasCustomRestoreSpeed() {
+        return customRestoreSpeed != null;
     }
 
     public void updatePositions(Location pos1, Location pos2) {

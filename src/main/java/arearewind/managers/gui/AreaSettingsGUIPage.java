@@ -138,6 +138,40 @@ public class AreaSettingsGUIPage implements IGUIPage {
             player.closeInventory();
             guiManager.openMaterialSelector(player, "area", areaName, null);
             return;
+        } else if (displayName.contains("Restore Speed")) {
+            ProtectedArea area = areaManager.getArea(areaName);
+            if (area == null) {
+                player.sendMessage(ChatColor.RED + "Area not found!");
+                return;
+            }
+
+            if (event.isRightClick() && area.hasCustomRestoreSpeed()) {
+                // Reset to dynamic
+                area.setCustomRestoreSpeed(null);
+                areaManager.saveAreas();
+                player.sendMessage(ChatColor.GREEN + "Restore speed reset to dynamic for area '" + areaName + "'");
+
+                // Refresh the GUI
+                player.closeInventory();
+                openAreaSettingsGUI(player, areaName);
+                return;
+            } else {
+                // Set custom speed
+                player.closeInventory();
+                player.sendMessage(ChatColor.YELLOW + "=== Restore Speed Configuration ===");
+                player.sendMessage(ChatColor.GRAY + "Current: " +
+                        (area.hasCustomRestoreSpeed() ? area.getCustomRestoreSpeed() + " blocks/tick (custom)"
+                                : "Dynamic (auto-calculated)"));
+                player.sendMessage("");
+                player.sendMessage(ChatColor.GREEN + "To set custom speed: " + ChatColor.WHITE + "/rewind speed "
+                        + areaName + " <10-1000>");
+                player.sendMessage(ChatColor.GREEN + "To reset to dynamic: " + ChatColor.WHITE + "/rewind speed "
+                        + areaName + " dynamic");
+                player.sendMessage("");
+                player.sendMessage(ChatColor.GRAY + "Lower values = slower but less server impact");
+                player.sendMessage(ChatColor.GRAY + "Higher values = faster but more server impact");
+                return;
+            }
         } else if (displayName.contains("Delete Area")) {
             // Confirmation required for deletion
             if (event.isShiftClick()) {
@@ -284,6 +318,38 @@ public class AreaSettingsGUIPage implements IGUIPage {
             iconMeta.setLore(iconLore);
             iconItem.setItemMeta(iconMeta);
             gui.setItem(24, iconItem);
+        }
+
+        // Restore Speed Setting
+        if (permissionManager.canModifyBoundaries(player, area)) {
+            ItemStack speedItem = new ItemStack(Material.FEATHER);
+            ItemMeta speedMeta = speedItem.getItemMeta();
+            speedMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Restore Speed");
+            List<String> speedLore = new ArrayList<>();
+            speedLore.add(ChatColor.GRAY + "Configure restoration speed for this area");
+
+            if (area.hasCustomRestoreSpeed()) {
+                speedLore.add(ChatColor.YELLOW + "Current: " + ChatColor.WHITE + area.getCustomRestoreSpeed()
+                        + " blocks/tick (custom)");
+            } else {
+                speedLore.add(ChatColor.YELLOW + "Current: " + ChatColor.WHITE + "Dynamic (auto-calculated)");
+            }
+
+            speedLore.add("");
+            speedLore.add(ChatColor.GRAY + "Dynamic: Automatically calculates optimal speed");
+            speedLore.add(ChatColor.GRAY + "Custom: Set fixed speed (10-1000 blocks/tick)");
+            speedLore.add("");
+
+            if (area.hasCustomRestoreSpeed()) {
+                speedLore.add(ChatColor.GREEN + "Left-click: " + ChatColor.GRAY + "Modify speed");
+                speedLore.add(ChatColor.RED + "Right-click: " + ChatColor.GRAY + "Reset to dynamic");
+            } else {
+                speedLore.add(ChatColor.GREEN + "Click: " + ChatColor.GRAY + "Set custom speed");
+            }
+
+            speedMeta.setLore(speedLore);
+            speedItem.setItemMeta(speedMeta);
+            gui.setItem(25, speedItem);
         }
 
         // Transfer Ownership

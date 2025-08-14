@@ -75,6 +75,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new RenameCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
+                commandRegistry.registerCommand(new SpeedCommand(plugin, areaManager, backupManager, guiManager,
+                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
 
                 // Backup commands
                 commandRegistry.registerCommand(new BackupCommand(plugin, areaManager, backupManager, guiManager,

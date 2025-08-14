@@ -197,14 +197,16 @@ public class BackupManager {
         World world = min.getWorld();
         Map<String, BlockInfo> blocks = backup.getBlocks();
 
-        // Calculate optimal batch size based on area size
+        // Calculate optimal batch size based on area size or use custom setting
         final int total = blocks.size();
-        final int batchSize = calculateOptimalBatchSize(total);
+        final int batchSize = area.hasCustomRestoreSpeed() ? area.getCustomRestoreSpeed()
+                : calculateOptimalBatchSize(total);
 
         if (player != null) {
             if (isProgressLoggingEnabledForPlayer(player)) {
                 player.sendMessage(ChatColor.YELLOW + "Starting optimized restoration of " + total + " blocks...");
-                player.sendMessage(ChatColor.GRAY + "Using batch size: " + batchSize + " blocks/tick");
+                player.sendMessage(ChatColor.GRAY + "Using batch size: " + batchSize + " blocks/tick" +
+                        (area.hasCustomRestoreSpeed() ? " (custom speed)" : " (dynamic)"));
             } else {
                 player.sendMessage(ChatColor.YELLOW + "Starting restoration of " + total + " blocks...");
             }
@@ -241,6 +243,7 @@ public class BackupManager {
             int phase = 1; // 1=regular blocks, 2=special blocks, 3=containers
             int containerCount = 0;
             long startTime = System.currentTimeMillis();
+            long lastProgressTime = startTime; // Track last progress message time
 
             @Override
             public void run() {
@@ -312,48 +315,17 @@ public class BackupManager {
                         }
                     }
 
-                    // Progress reporting - show progress regardless of area size when enabled
+                    // Simple time-based progress reporting - every second
                     if (player != null && isProgressLoggingEnabledForPlayer(player)) {
-                        int totalProcessed = regularIndex + specialIndex + containerIndex;
-                        int totalToProcess = regularBlocks.size() + specialBlocks.size() + containerBlocks.size();
-
-                        // Calculate progress reporting interval based on total blocks
-                        int reportInterval;
-                        if (totalToProcess <= 50) {
-                            reportInterval = 10; // Every 10 blocks for very small areas
-                        } else if (totalToProcess <= 200) {
-                            reportInterval = 25; // Every 25 blocks for small areas
-                        } else if (totalToProcess <= 1000) {
-                            reportInterval = 50; // Every 50 blocks for medium areas
-                        } else {
-                            reportInterval = Math.max(totalToProcess / 20, 100); // Every 5% or 100 blocks minimum for
-                                                                                 // large areas
-                        }
-
-                        // Show progress at regular intervals OR when crossing percentage milestones
-                        if (totalProcessed > 0) {
-                            boolean showProgress = false;
-
-                            // Check if we hit the reportInterval
-                            if (totalProcessed % reportInterval == 0) {
-                                showProgress = true;
-                            }
-
-                            // Also show progress at 25%, 50%, 75% milestones for better feedback
+                        long currentTime = System.currentTimeMillis();
+                        if (currentTime - lastProgressTime >= 1000) { // Every 1000ms = 1 second
+                            int totalProcessed = regularIndex + specialIndex + containerIndex;
+                            int totalToProcess = regularBlocks.size() + specialBlocks.size() + containerBlocks.size();
                             int progress = (int) ((double) totalProcessed / totalToProcess * 100);
-                            int lastProgress = (int) ((double) (totalProcessed - Math.min(batchSize, totalProcessed))
-                                    / totalToProcess * 100);
 
-                            if ((progress >= 25 && lastProgress < 25) ||
-                                    (progress >= 50 && lastProgress < 50) ||
-                                    (progress >= 75 && lastProgress < 75)) {
-                                showProgress = true;
-                            }
-
-                            if (showProgress) {
-                                player.sendMessage(ChatColor.YELLOW + "Progress: " + progress + "% (" +
-                                        totalProcessed + "/" + totalToProcess + " blocks)");
-                            }
+                            player.sendMessage(ChatColor.YELLOW + "Progress: " + progress + "% (" +
+                                    totalProcessed + "/" + totalToProcess + " blocks)");
+                            lastProgressTime = currentTime;
                         }
                     }
 
