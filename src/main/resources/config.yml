@@ -5,8 +5,21 @@ performance:
   max-area-size: 1000000
   rate-limit-cooldown: 1000
 
-visualization:
+  # Restoration performance settings
+  restore:
+    # Batch sizes for restoration
+    # Higher values = faster restoration but may cause lag
+    # Lower values = slower restoration but less server impact
+    max-batch-size: 400 # Maximum blocks per tick for large areas
+    min-batch-size: 100 # Minimum blocks per tick for small areas
+    # Note: Container and special block batch sizes are automatically calculated
+    # as fractions of the main batch size for consistencyvisualization:
   particle-distance: 50
+
+# Restoration settings
+restore:
+  # Show progress messages during restoration
+  progress-logging: true
 
 selection:
   # Wooden hoe selection mode settings

@@ -184,118 +184,316 @@ public class BackupManager {
     }
 
     public void restoreFromBackup(ProtectedArea area, AreaBackup backup, Player player, String completionMessage) {
+        restoreFromBackupOptimized(area, backup, player, completionMessage);
+    }
+
+    /**
+     * Optimized restoration method with improved performance for large areas
+     */
+    private void restoreFromBackupOptimized(ProtectedArea area, AreaBackup backup, Player player,
+            String completionMessage) {
         Location min = area.getMin();
         Location max = area.getMax();
         World world = min.getWorld();
         Map<String, BlockInfo> blocks = backup.getBlocks();
-        List<String> keys = new ArrayList<>(blocks.keySet());
-        final int batchSize = 30;
-        final int total = keys.size();
 
-        if (player != null && isProgressLoggingEnabledForPlayer(player)) {
-            player.sendMessage(ChatColor.YELLOW + "Starting restoration of " + total + " blocks...");
+        // Calculate optimal batch size based on area size
+        final int total = blocks.size();
+        final int batchSize = calculateOptimalBatchSize(total);
+
+        if (player != null) {
+            if (isProgressLoggingEnabledForPlayer(player)) {
+                player.sendMessage(ChatColor.YELLOW + "Starting optimized restoration of " + total + " blocks...");
+                player.sendMessage(ChatColor.GRAY + "Using batch size: " + batchSize + " blocks/tick");
+            } else {
+                player.sendMessage(ChatColor.YELLOW + "Starting restoration of " + total + " blocks...");
+            }
         }
 
-        final List<String> containerKeys = new ArrayList<>();
-        for (String key : keys) {
-            BlockInfo info = blocks.get(key);
+        // Pre-load all chunks that will be affected
+        Set<org.bukkit.Chunk> chunksToLoad = preloadChunks(world, min, max);
+        plugin.getLogger().info("Pre-loaded " + chunksToLoad.size() + " chunks for restoration");
+
+        // Note: Block grouping could be used for further optimizations in the future
+
+        // Create processing lists
+        List<String> regularBlocks = new ArrayList<>();
+        List<String> specialBlocks = new ArrayList<>();
+        List<String> containerBlocks = new ArrayList<>();
+
+        for (Map.Entry<String, BlockInfo> entry : blocks.entrySet()) {
+            String key = entry.getKey();
+            BlockInfo info = entry.getValue();
+
             if (info.hasContainerContents()) {
-                containerKeys.add(key);
+                containerBlocks.add(key);
+            } else if (hasSpecialProperties(info)) {
+                specialBlocks.add(key);
+            } else {
+                regularBlocks.add(key);
             }
         }
 
         new BukkitRunnable() {
-            int index = 0;
+            int regularIndex = 0;
+            int specialIndex = 0;
+            int containerIndex = 0;
+            int phase = 1; // 1=regular blocks, 2=special blocks, 3=containers
             int containerCount = 0;
-            int phase = 1;
+            long startTime = System.currentTimeMillis();
 
             @Override
             public void run() {
-                if (phase == 1) {
-                    int processed = 0;
-                    while (index < total && processed < batchSize) {
-                        String key = keys.get(index);
-                        BlockInfo info = blocks.get(key);
-                        String[] parts = key.split(",");
-                        int x = Integer.parseInt(parts[0]);
-                        int y = Integer.parseInt(parts[1]);
-                        int z = Integer.parseInt(parts[2]);
+                try {
+                    if (phase == 1) {
+                        // Phase 1: Regular blocks (bulk processing)
+                        int processed = processRegularBlocks(regularBlocks, blocks, world, regularIndex, batchSize);
+                        regularIndex += processed;
 
-                        Block block = world.getBlockAt(x, y, z);
-
-                        if (!block.getChunk().isLoaded()) {
-                            block.getChunk().load();
+                        if (regularIndex >= regularBlocks.size()) {
+                            phase = 2;
+                            if (player != null && isProgressLoggingEnabledForPlayer(player)) {
+                                if (!specialBlocks.isEmpty()) {
+                                    player.sendMessage(
+                                            ChatColor.YELLOW + "Regular blocks complete! Processing special blocks...");
+                                } else if (!containerBlocks.isEmpty()) {
+                                    player.sendMessage(
+                                            ChatColor.YELLOW
+                                                    + "Regular blocks complete! Loading container contents...");
+                                } else {
+                                    player.sendMessage(ChatColor.YELLOW + "Regular blocks complete!");
+                                }
+                            }
                         }
+                    } else if (phase == 2) {
+                        // Phase 2: Special blocks (signs, banners, etc.)
+                        // Use a fraction of the main batch size for consistency
+                        int specialBatchSize = Math.max(10, batchSize / 4); // 25% of main batch size, minimum 10
+                        int processed = processSpecialBlocks(specialBlocks, blocks, world, specialIndex,
+                                specialBatchSize);
+                        specialIndex += processed;
 
-                        // Ensure the chunk is fully loaded before modifying blocks
-                        try {
-                            block.setType(info.getMaterial(), false);
-                            block.setBlockData(info.getBlockData(), false);
-                        } catch (Exception e) {
-                            plugin.getLogger().warning("Failed to restore block at " + x + "," + y + "," + z +
-                                    ": " + e.getMessage());
+                        if (specialIndex >= specialBlocks.size()) {
+                            phase = 3;
+                            if (player != null && isProgressLoggingEnabledForPlayer(player)) {
+                                if (!containerBlocks.isEmpty()) {
+                                    player.sendMessage(
+                                            ChatColor.YELLOW
+                                                    + "Special blocks complete! Loading container contents...");
+                                } else {
+                                    player.sendMessage(ChatColor.YELLOW + "Special blocks complete!");
+                                }
+                            }
                         }
+                    } else if (phase == 3) {
+                        // Phase 3: Container contents
+                        // Use a smaller fraction of the main batch size for careful container handling
+                        int containerBatchSize = Math.max(5, batchSize / 8); // 12.5% of main batch size, minimum 5
+                        int processed = processContainerBlocks(containerBlocks, blocks, world, containerIndex,
+                                containerBatchSize);
+                        containerIndex += processed;
+                        containerCount += processed;
 
-                        restoreNonContainerSpecialData(block, info);
-
-                        index++;
-                        processed++;
+                        if (containerIndex >= containerBlocks.size()) {
+                            // Restoration complete
+                            long duration = System.currentTimeMillis() - startTime;
+                            if (player != null) {
+                                player.sendMessage(ChatColor.GREEN + completionMessage);
+                                if (isProgressLoggingEnabledForPlayer(player)) {
+                                    player.sendMessage(ChatColor.GRAY + "Restored: " + total + " blocks, " +
+                                            containerCount + " containers in " + duration + "ms");
+                                    player.sendMessage(ChatColor.GRAY + "Performance: " +
+                                            String.format("%.1f", (total * 1000.0) / duration) + " blocks/second");
+                                }
+                            }
+                            plugin.getLogger().info("Optimized restoration completed: " + total + " blocks, " +
+                                    containerCount + " containers in " + duration + "ms");
+                            this.cancel();
+                        }
                     }
 
-                    if (index >= total) {
-                        phase = 2;
-                        index = 0;
-                        if (player != null && isProgressLoggingEnabledForPlayer(player) && !containerKeys.isEmpty()) {
-                            player.sendMessage(ChatColor.YELLOW + "Blocks placed! Loading container contents...");
-                        }
-                    }
-                } else if (phase == 2) {
-                    int processed = 0;
-                    while (index < containerKeys.size() && processed < 10) {
-                        String key = containerKeys.get(index);
-                        BlockInfo info = blocks.get(key);
-                        String[] parts = key.split(",");
-                        int x = Integer.parseInt(parts[0]);
-                        int y = Integer.parseInt(parts[1]);
-                        int z = Integer.parseInt(parts[2]);
+                    // Progress reporting - show progress regardless of area size when enabled
+                    if (player != null && isProgressLoggingEnabledForPlayer(player)) {
+                        int totalProcessed = regularIndex + specialIndex + containerIndex;
+                        int totalToProcess = regularBlocks.size() + specialBlocks.size() + containerBlocks.size();
 
-                        Block block = world.getBlockAt(x, y, z);
-
-                        if (restoreContainerContents(block, info)) {
-                            containerCount++;
+                        // Calculate progress reporting interval based on total blocks
+                        int reportInterval;
+                        if (totalToProcess <= 50) {
+                            reportInterval = 10; // Every 10 blocks for very small areas
+                        } else if (totalToProcess <= 200) {
+                            reportInterval = 25; // Every 25 blocks for small areas
+                        } else if (totalToProcess <= 1000) {
+                            reportInterval = 50; // Every 50 blocks for medium areas
+                        } else {
+                            reportInterval = Math.max(totalToProcess / 20, 100); // Every 5% or 100 blocks minimum for
+                                                                                 // large areas
                         }
 
-                        index++;
-                        processed++;
-                    }
-
-                    if (index >= containerKeys.size()) {
-                        if (player != null && isProgressLoggingEnabledForPlayer(player)) {
-                            player.sendMessage(ChatColor.GREEN + completionMessage);
-                            player.sendMessage(ChatColor.GRAY + "Restored: " + total + " blocks, " +
-                                    containerCount + " containers with contents");
+                        if (totalProcessed > 0 && totalProcessed % reportInterval == 0) {
+                            int progress = (int) ((double) totalProcessed / totalToProcess * 100);
+                            player.sendMessage(ChatColor.YELLOW + "Progress: " + progress + "% (" +
+                                    totalProcessed + "/" + totalToProcess + " blocks)");
                         }
-                        plugin.getLogger().info("Restoration completed: " + total + " blocks, " +
-                                containerCount + " containers restored");
-                        this.cancel();
-                    } else if (player != null && isProgressLoggingEnabledForPlayer(player) && containerKeys.size() > 20
-                            && index % 10 == 0 && index > 0) {
-                        // Progress for container restoration phase (only show if there are many
-                        // containers)
-                        int containerProgress = (int) ((double) index / containerKeys.size() * 100);
-                        player.sendMessage(ChatColor.YELLOW + "Container progress: " + containerProgress + "% (" +
-                                index + "/" + containerKeys.size() + " containers)");
                     }
-                }
 
-                if (player != null && isProgressLoggingEnabledForPlayer(player) && phase == 1 && index % 100 == 0
-                        && index > 0) {
-                    int progress = (int) ((double) index / total * 100);
-                    player.sendMessage(ChatColor.YELLOW + "Progress: " + progress + "% (" +
-                            index + "/" + total + " blocks)");
+                } catch (Exception e) {
+                    plugin.getLogger().severe("Error during optimized restoration: " + e.getMessage());
+                    e.printStackTrace();
+                    this.cancel();
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    /**
+     * Calculates optimal batch size based on area size and server performance
+     */
+    private int calculateOptimalBatchSize(int totalBlocks) {
+        int minBatch = configManager.getRestoreMinBatchSize();
+        int maxBatch = configManager.getRestoreMaxBatchSize();
+
+        // Scale batch size based on total blocks
+        if (totalBlocks < 1000)
+            return minBatch; // Small areas: min batch size
+        if (totalBlocks < 10000)
+            return minBatch + 50; // Medium areas: min + 50
+        if (totalBlocks < 50000)
+            return Math.min(maxBatch - 50, minBatch + 150); // Large areas: scaled
+        return maxBatch; // Very large areas: max batch size
+    }
+
+    /**
+     * Pre-loads all chunks that will be affected by the restoration
+     */
+    private Set<org.bukkit.Chunk> preloadChunks(World world, Location min, Location max) {
+        Set<org.bukkit.Chunk> chunks = new HashSet<>();
+
+        int minChunkX = min.getBlockX() >> 4;
+        int maxChunkX = max.getBlockX() >> 4;
+        int minChunkZ = min.getBlockZ() >> 4;
+        int maxChunkZ = max.getBlockZ() >> 4;
+
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                org.bukkit.Chunk chunk = world.getChunkAt(chunkX, chunkZ);
+                if (!chunk.isLoaded()) {
+                    chunk.load();
+                }
+                chunks.add(chunk);
+            }
+        }
+
+        return chunks;
+    }
+
+    /**
+     * Checks if a block has special properties that need careful handling
+     */
+    private boolean hasSpecialProperties(BlockInfo info) {
+        return info.getBannerPatterns() != null ||
+                info.getSignLines() != null ||
+                info.getJukeboxRecord() != null ||
+                info.getSkullOwner() != null;
+    }
+
+    /**
+     * Processes regular blocks in bulk for better performance
+     */
+    private int processRegularBlocks(List<String> blockKeys, Map<String, BlockInfo> blocks,
+            World world, int startIndex, int batchSize) {
+        int processed = 0;
+        int index = startIndex;
+
+        while (index < blockKeys.size() && processed < batchSize) {
+            String key = blockKeys.get(index);
+            BlockInfo info = blocks.get(key);
+            String[] parts = key.split(",");
+            int x = Integer.parseInt(parts[0]);
+            int y = Integer.parseInt(parts[1]);
+            int z = Integer.parseInt(parts[2]);
+
+            try {
+                Block block = world.getBlockAt(x, y, z);
+                // Chunks are pre-loaded, so no need to check
+                block.setType(info.getMaterial(), false);
+                block.setBlockData(info.getBlockData(), false);
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to restore regular block at " + x + "," + y + "," + z +
+                        ": " + e.getMessage());
+            }
+
+            index++;
+            processed++;
+        }
+
+        return processed;
+    }
+
+    /**
+     * Processes blocks with special properties (signs, banners, etc.)
+     */
+    private int processSpecialBlocks(List<String> blockKeys, Map<String, BlockInfo> blocks,
+            World world, int startIndex, int batchSize) {
+        int processed = 0;
+        int index = startIndex;
+
+        while (index < blockKeys.size() && processed < batchSize) {
+            String key = blockKeys.get(index);
+            BlockInfo info = blocks.get(key);
+            String[] parts = key.split(",");
+            int x = Integer.parseInt(parts[0]);
+            int y = Integer.parseInt(parts[1]);
+            int z = Integer.parseInt(parts[2]);
+
+            try {
+                Block block = world.getBlockAt(x, y, z);
+                block.setType(info.getMaterial(), false);
+                block.setBlockData(info.getBlockData(), false);
+                restoreNonContainerSpecialData(block, info);
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to restore special block at " + x + "," + y + "," + z +
+                        ": " + e.getMessage());
+            }
+
+            index++;
+            processed++;
+        }
+
+        return processed;
+    }
+
+    /**
+     * Processes container blocks and their contents
+     */
+    private int processContainerBlocks(List<String> blockKeys, Map<String, BlockInfo> blocks,
+            World world, int startIndex, int batchSize) {
+        int processed = 0;
+        int index = startIndex;
+
+        while (index < blockKeys.size() && processed < batchSize) {
+            String key = blockKeys.get(index);
+            BlockInfo info = blocks.get(key);
+            String[] parts = key.split(",");
+            int x = Integer.parseInt(parts[0]);
+            int y = Integer.parseInt(parts[1]);
+            int z = Integer.parseInt(parts[2]);
+
+            try {
+                Block block = world.getBlockAt(x, y, z);
+                block.setType(info.getMaterial(), false);
+                block.setBlockData(info.getBlockData(), false);
+                restoreContainerContents(block, info);
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to restore container block at " + x + "," + y + "," + z +
+                        ": " + e.getMessage());
+            }
+
+            index++;
+            processed++;
+        }
+
+        return processed;
     }
 
     private void restoreNonContainerSpecialData(Block block, BlockInfo info) {
@@ -309,7 +507,16 @@ public class BackupManager {
                 String[] lines = info.getSignLines();
                 for (int i = 0; i < lines.length && i < 4; i++) {
                     if (lines[i] != null) {
-                        sign.setLine(i, ChatColor.translateAlternateColorCodes('&', lines[i]));
+                        // Use modern sign API if available
+                        try {
+                            sign.getSide(org.bukkit.block.sign.Side.FRONT).setLine(i,
+                                    ChatColor.translateAlternateColorCodes('&', lines[i]));
+                        } catch (Exception e) {
+                            // Fallback for older versions
+                            @SuppressWarnings("deprecation")
+                            String line = lines[i];
+                            sign.setLine(i, ChatColor.translateAlternateColorCodes('&', line));
+                        }
                     }
                 }
                 sign.update(true, false);
@@ -319,8 +526,17 @@ public class BackupManager {
                 jukebox.update(true, false);
             } else if (block.getState() instanceof org.bukkit.block.Skull && info.getSkullOwner() != null) {
                 org.bukkit.block.Skull skull = (org.bukkit.block.Skull) block.getState();
-                org.bukkit.OfflinePlayer owner = Bukkit.getOfflinePlayer(info.getSkullOwner());
-                skull.setOwningPlayer(owner);
+                try {
+                    // Try modern UUID-based approach first
+                    java.util.UUID uuid = java.util.UUID.fromString(info.getSkullOwner());
+                    org.bukkit.OfflinePlayer owner = Bukkit.getOfflinePlayer(uuid);
+                    skull.setOwningPlayer(owner);
+                } catch (IllegalArgumentException e) {
+                    // Fallback to name-based approach for legacy data
+                    @SuppressWarnings("deprecation")
+                    org.bukkit.OfflinePlayer owner = Bukkit.getOfflinePlayer(info.getSkullOwner());
+                    skull.setOwningPlayer(owner);
+                }
                 skull.update(true, false);
             }
 

@@ -14,6 +14,10 @@ public class ConfigurationManager {
     private boolean woodenHoeAutoFallback = true;
     private boolean restoreProgressLogging = true;
 
+    // Performance settings for restoration
+    private int restoreMaxBatchSize = 400;
+    private int restoreMinBatchSize = 100;
+
     public ConfigurationManager(JavaPlugin plugin) {
         this.plugin = plugin;
     }
@@ -32,11 +36,16 @@ public class ConfigurationManager {
             woodenHoeAutoFallback = config.getBoolean("selection.wooden-hoe.auto-fallback", true);
             restoreProgressLogging = config.getBoolean("restore.progress-logging", true);
 
+            // Load performance settings
+            restoreMaxBatchSize = config.getInt("performance.restore.max-batch-size", 400);
+            restoreMinBatchSize = config.getInt("performance.restore.min-batch-size", 100);
             plugin.getLogger().info("Configuration loaded successfully");
             plugin.getLogger().info("Max area size: " + maxAreaSize + " blocks");
             plugin.getLogger().info("Max backups per area: " + maxBackupsPerArea);
             plugin.getLogger().info("Wooden hoe selection: " + (woodenHoeEnabled ? "enabled" : "disabled"));
             plugin.getLogger().info("Progress logging: " + (restoreProgressLogging ? "enabled" : "disabled"));
+            plugin.getLogger()
+                    .info("Restore batch sizes - Regular: " + restoreMinBatchSize + "-" + restoreMaxBatchSize);
 
         } catch (Exception e) {
             plugin.getLogger().warning("Error loading configuration, using defaults: " + e.getMessage());
@@ -48,6 +57,8 @@ public class ConfigurationManager {
             woodenHoeEnabled = false;
             woodenHoeAutoFallback = true;
             restoreProgressLogging = true;
+            restoreMaxBatchSize = 400;
+            restoreMinBatchSize = 100;
         }
     }
 
@@ -94,6 +105,15 @@ public class ConfigurationManager {
         this.restoreProgressLogging = enabled;
         config.set("restore.progress-logging", enabled);
         plugin.saveConfig();
+    }
+
+    // Performance settings getters
+    public int getRestoreMaxBatchSize() {
+        return restoreMaxBatchSize;
+    }
+
+    public int getRestoreMinBatchSize() {
+        return restoreMinBatchSize;
     }
 
 }

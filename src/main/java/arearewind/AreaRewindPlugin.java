@@ -46,6 +46,9 @@ public class AreaRewindPlugin extends JavaPlugin {
 
         // Set the player listener reference in the GUI manager for settings GUI
         guiManager.setPlayerInteractionListener(playerListener);
+        // Set the player listener reference in the backup manager for progress logging
+        // preferences
+        backupManager.setPlayerInteractionListener(playerListener);
 
         areaManager.loadAreas();
         backupManager.loadBackups();
@@ -94,6 +97,9 @@ public class AreaRewindPlugin extends JavaPlugin {
 
         // Set the player listener reference in the GUI manager for settings GUI
         guiManager.setPlayerInteractionListener(playerListener);
+        // Set the player listener reference in the backup manager for progress logging
+        // preferences
+        backupManager.setPlayerInteractionListener(playerListener);
 
         areaManager.loadAreas();
         backupManager.loadBackups();
