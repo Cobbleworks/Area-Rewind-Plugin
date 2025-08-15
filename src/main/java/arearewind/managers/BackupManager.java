@@ -54,10 +54,10 @@ public class BackupManager {
     }
 
     private final Set<Material> POI_BLOCKS = Set.of(
-            Material.LECTERN, Material.CHISELED_BOOKSHELF, Material.CARTOGRAPHY_TABLE, Material.FLETCHING_TABLE,
+            Material.CARTOGRAPHY_TABLE, Material.FLETCHING_TABLE,
             Material.SMITHING_TABLE, Material.LOOM, Material.STONECUTTER,
             Material.GRINDSTONE, Material.BARREL, Material.SMOKER, Material.BLAST_FURNACE,
-            Material.FURNACE, Material.BREWING_STAND, Material.COMPOSTER, Material.BELL);
+            Material.FURNACE, Material.COMPOSTER, Material.BELL);
 
     private final Set<Material> BED_BLOCKS = Set.of(
             Material.WHITE_BED, Material.ORANGE_BED, Material.MAGENTA_BED, Material.LIGHT_BLUE_BED,
@@ -266,9 +266,7 @@ public class BackupManager {
 
             // Special handling for blocks that need both container AND NBT restoration
             Material blockType = info.getMaterial();
-            boolean needsSpecialNBTHandling = (blockType == Material.LECTERN ||
-                    blockType == Material.CHISELED_BOOKSHELF ||
-                    blockType == Material.PLAYER_HEAD ||
+            boolean needsSpecialNBTHandling = (blockType == Material.PLAYER_HEAD ||
                     blockType == Material.PLAYER_WALL_HEAD ||
                     blockType.name().contains("BANNER") ||
                     blockType.name().contains("SIGN") ||
@@ -558,21 +556,18 @@ public class BackupManager {
                     plugin.getLogger().fine(
                             "Successfully restored " + block.getType() + " from NBT data at " + block.getLocation());
 
-                    // For blocks that are both NBT-dependent AND containers (lecterns, chiseled
-                    // bookshelves),
-                    // also restore container contents if NBT restoration didn't handle them
-                    Material blockType = block.getType();
-                    if ((blockType == Material.LECTERN || blockType == Material.CHISELED_BOOKSHELF)
-                            && info.hasContainerContents()) {
-                        // Delay container restoration to allow NBT restoration to complete first
+                    // If the NBT restoration indicates container contents remain to be restored,
+                    // attempt a short delayed restore for any container-type block.
+                    if (info.hasContainerContents() && block.getState() instanceof org.bukkit.block.Container) {
                         Bukkit.getScheduler().runTaskLater(plugin, () -> {
                             try {
                                 restoreContainerContents(block, info);
-                                plugin.getLogger().fine("Restored container contents for " + blockType +
-                                        " at " + block.getLocation() + " after NBT restoration");
+                                plugin.getLogger().fine("Restored container contents after NBT restoration for " +
+                                        block.getType() + " at " + block.getLocation());
                             } catch (Exception e) {
-                                plugin.getLogger().warning("Failed to restore container contents for " + blockType +
-                                        " at " + block.getLocation() + ": " + e.getMessage());
+                                plugin.getLogger()
+                                        .warning("Failed to restore container contents at " + block.getLocation()
+                                                + ": " + e.getMessage());
                             }
                         }, 1L);
                     }
@@ -655,39 +650,10 @@ public class BackupManager {
     private void scheduleBlockStateUpdate(Block block) {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             try {
-                // For lecterns and chiseled bookshelves, we need multiple update passes
-                Material blockType = block.getType();
-                if (blockType == Material.LECTERN || blockType == Material.CHISELED_BOOKSHELF) {
-                    // First update - refresh the block state
+                // Standard update for POI blocks
+                try {
                     block.getState().update(true, true);
-
-                    // Second update after a tick - ensure world synchronization
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                        try {
-                            // Force a chunk refresh for these interactive blocks
-                            org.bukkit.Chunk chunk = block.getChunk();
-                            if (chunk.isLoaded()) {
-                                // Refresh the block and surrounding area
-                                World world = block.getWorld();
-                                Location loc = block.getLocation();
-
-                                // Send block update to players in the area
-                                for (org.bukkit.entity.Player player : world.getPlayers()) {
-                                    if (player.getLocation().distance(loc) <= 128) { // Within render distance
-                                        player.sendBlockChange(loc, block.getBlockData());
-                                    }
-                                }
-
-                                plugin.getLogger().fine("Force-updated interactive block " + blockType +
-                                        " at " + loc + " for interactability");
-                            }
-                        } catch (Exception e) {
-                            // Ignore secondary update errors
-                        }
-                    }, 3L);
-                } else {
-                    // Standard update for other POI blocks
-                    block.getState().update(true, true);
+                } catch (Exception ignored) {
                 }
                 block.getChunk().load();
             } catch (Exception e) {
@@ -903,24 +869,9 @@ public class BackupManager {
 
                 container.getInventory().clear();
 
-                // Special handling for lecterns with NBT data (fallback)
-                if (block.getType() == Material.LECTERN && info.getNbtData() != null && contents.length > 0) {
-                    // Try to restore the book from NBT data first
-                    try {
-                        ItemStack bookFromNbt = nbtManager.loadItemStackFromBase64(info.getNbtData());
-                        if (bookFromNbt != null && (bookFromNbt.getType() == Material.WRITTEN_BOOK
-                                || bookFromNbt.getType() == Material.WRITABLE_BOOK)) {
-                            container.getInventory().setItem(0, bookFromNbt);
-                            container.update(true, true);
-                            plugin.getLogger().info("Restored lectern book from NBT data at " + block.getLocation());
-                            return true;
-                        }
-                    } catch (Exception nbtEx) {
-                        plugin.getLogger()
-                                .warning("Failed to restore lectern book from NBT, falling back to normal method: "
-                                        + nbtEx.getMessage());
-                    }
-                }
+                // Generic container handling only. NBT-based restoration for items is handled
+                // by the unified NBT system above; here we only restore standard inventory
+                // slots.
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     try {
                         org.bukkit.block.Container freshContainer = (org.bukkit.block.Container) block.getState();
