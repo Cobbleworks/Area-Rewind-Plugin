@@ -51,10 +51,10 @@ public class BackupManager {
     }
 
     private final Set<Material> POI_BLOCKS = Set.of(
-            Material.LECTERN, Material.CARTOGRAPHY_TABLE, Material.FLETCHING_TABLE,
+            Material.CARTOGRAPHY_TABLE, Material.FLETCHING_TABLE,
             Material.SMITHING_TABLE, Material.LOOM, Material.STONECUTTER,
             Material.GRINDSTONE, Material.BARREL, Material.SMOKER, Material.BLAST_FURNACE,
-            Material.FURNACE, Material.BREWING_STAND, Material.COMPOSTER, Material.BELL);
+            Material.FURNACE, Material.COMPOSTER, Material.BELL);
 
     private final Set<Material> BED_BLOCKS = Set.of(
             Material.WHITE_BED, Material.ORANGE_BED, Material.MAGENTA_BED, Material.LIGHT_BLUE_BED,
@@ -701,9 +701,9 @@ public class BackupManager {
                         try {
                             org.bukkit.block.Container freshContainer = (org.bukkit.block.Container) block.getState();
 
-                            ItemStack[] currentContents = freshContainer.getInventory().getContents();
                             plugin.getLogger()
-                                    .info("Container before restore: " + getContainerSummary(currentContents));
+                                    .info("Restoring container contents (" + block.getType() + ") at "
+                                            + block.getLocation());
 
                             ItemStack[] safeCopy = new ItemStack[freshContainer.getInventory().getSize()];
                             for (int i = 0; i < safeCopy.length && i < contents.length; i++) {
