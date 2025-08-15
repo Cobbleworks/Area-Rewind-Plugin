@@ -326,9 +326,6 @@ public class FileManager {
         if (blockData.containsKey("flowerPotItem")) {
             signature.append(":pot:").append(blockData.get("flowerPotItem"));
         }
-        if (blockData.containsKey("nbtData")) {
-            signature.append(":nbt:").append(blockData.get("nbtData").toString().hashCode());
-        }
 
         return signature.toString();
     }

@@ -28,7 +28,6 @@ public class BlockInfo implements Serializable, ConfigurationSerializable {
     private Material flowerPotItem;
     private String containerContentsDebug;
     private String containerContentsBase64;
-    private String nbtData; // Base64 serialized NBT data for comprehensive block state preservation
 
     public BlockInfo(Material material, BlockData blockData) {
         this.material = material;
@@ -140,14 +139,6 @@ public class BlockInfo implements Serializable, ConfigurationSerializable {
         this.flowerPotItem = flowerPotItem;
     }
 
-    public String getNbtData() {
-        return nbtData;
-    }
-
-    public void setNbtData(String nbtData) {
-        this.nbtData = nbtData;
-    }
-
     public String getContainerContentsDebug() {
         return containerContentsDebug;
     }
@@ -225,15 +216,14 @@ public class BlockInfo implements Serializable, ConfigurationSerializable {
                 Objects.equals(jukeboxRecord, other.jukeboxRecord) &&
                 Objects.equals(skullOwner, other.skullOwner) &&
                 Objects.equals(skullData, other.skullData) &&
-                Objects.equals(flowerPotItem, other.flowerPotItem) &&
-                Objects.equals(nbtData, other.nbtData);
+                Objects.equals(flowerPotItem, other.flowerPotItem);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(material, blockDataString, bannerPatterns,
                 Arrays.hashCode(signLines), Arrays.deepHashCode(containerContents),
-                jukeboxRecord, skullOwner, skullData, flowerPotItem, nbtData);
+                jukeboxRecord, skullOwner, skullData, flowerPotItem);
     }
 
     @Override
@@ -268,9 +258,6 @@ public class BlockInfo implements Serializable, ConfigurationSerializable {
         if (flowerPotItem != null) {
             sb.append(" (Pot: ").append(flowerPotItem).append(")");
         }
-        if (nbtData != null) {
-            sb.append(" [NBT]");
-        }
 
         return sb.toString();
     }
@@ -302,9 +289,6 @@ public class BlockInfo implements Serializable, ConfigurationSerializable {
         }
         if (flowerPotItem != null) {
             map.put("flowerPotItem", flowerPotItem.name());
-        }
-        if (nbtData != null) {
-            map.put("nbtData", nbtData);
         }
 
         return map;
@@ -349,10 +333,6 @@ public class BlockInfo implements Serializable, ConfigurationSerializable {
 
         if (map.containsKey("flowerPotItem")) {
             blockInfo.setFlowerPotItem(Material.valueOf((String) map.get("flowerPotItem")));
-        }
-
-        if (map.containsKey("nbtData")) {
-            blockInfo.setNbtData((String) map.get("nbtData"));
         }
 
         return blockInfo;

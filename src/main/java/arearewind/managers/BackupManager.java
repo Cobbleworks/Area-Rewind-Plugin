@@ -524,7 +524,6 @@ public class BackupManager {
                                     ChatColor.translateAlternateColorCodes('&', lines[i]));
                         } catch (Exception e) {
                             // Fallback for older versions
-                            @SuppressWarnings("deprecation")
                             String line = lines[i];
                             try {
                                 // Use reflection to avoid deprecated warning
@@ -687,79 +686,82 @@ public class BackupManager {
         }
 
         try {
-            if (!(block.getState() instanceof org.bukkit.block.Container)) {
-                plugin.getLogger().warning("Block at " + block.getLocation() +
-                        " is not a container but has container contents! Type: " + block.getType() +
-                        ", State: " + block.getState().getClass().getSimpleName());
-                return false;
-            }
+            // Handle all containers the same way
+            if (block.getState() instanceof org.bukkit.block.Container) {
+                plugin.getLogger().info("Restoring container at " + block.getLocation() +
+                        " - Type: " + block.getType() + ", State: " + block.getState().getClass().getSimpleName());
 
-            plugin.getLogger().info("Restoring container at " + block.getLocation() +
-                    " - Type: " + block.getType() + ", State: " + block.getState().getClass().getSimpleName());
+                org.bukkit.block.Container container = (org.bukkit.block.Container) block.getState();
+                ItemStack[] contents = info.getContainerContents();
 
-            org.bukkit.block.Container container = (org.bukkit.block.Container) block.getState();
-            ItemStack[] contents = info.getContainerContents();
+                if (contents != null) {
+                    container.getInventory().clear();
 
-            if (contents != null) {
-                container.getInventory().clear();
-
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    try {
-                        org.bukkit.block.Container freshContainer = (org.bukkit.block.Container) block.getState();
-
-                        ItemStack[] currentContents = freshContainer.getInventory().getContents();
-                        plugin.getLogger().info("Container before restore: " + getContainerSummary(currentContents));
-
-                        ItemStack[] safeCopy = new ItemStack[freshContainer.getInventory().getSize()];
-                        for (int i = 0; i < safeCopy.length && i < contents.length; i++) {
-                            if (contents[i] != null && contents[i].getType() != Material.AIR) {
-                                safeCopy[i] = contents[i].clone();
-                            }
-                        }
-
-                        freshContainer.getInventory().setContents(safeCopy);
-                        freshContainer.update(true, true);
-
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         try {
-                            freshContainer.getInventory().clear();
-                            for (int i = 0; i < contents.length && i < freshContainer.getInventory().getSize(); i++) {
+                            org.bukkit.block.Container freshContainer = (org.bukkit.block.Container) block.getState();
+
+                            ItemStack[] currentContents = freshContainer.getInventory().getContents();
+                            plugin.getLogger()
+                                    .info("Container before restore: " + getContainerSummary(currentContents));
+
+                            ItemStack[] safeCopy = new ItemStack[freshContainer.getInventory().getSize()];
+                            for (int i = 0; i < safeCopy.length && i < contents.length; i++) {
                                 if (contents[i] != null && contents[i].getType() != Material.AIR) {
-                                    freshContainer.getInventory().setItem(i, contents[i].clone());
+                                    safeCopy[i] = contents[i].clone();
                                 }
                             }
-                        } catch (Exception e2) {
-                            plugin.getLogger().warning("Alternative restore method failed: " + e2.getMessage());
-                        }
 
-                        ItemStack[] afterContents = freshContainer.getInventory().getContents();
-                        plugin.getLogger().info("Container after restore: " + getContainerSummary(afterContents));
+                            freshContainer.getInventory().setContents(safeCopy);
+                            freshContainer.update(true, true);
 
-                        block.getState().update(true, true);
+                            try {
+                                freshContainer.getInventory().clear();
+                                for (int i = 0; i < contents.length
+                                        && i < freshContainer.getInventory().getSize(); i++) {
+                                    if (contents[i] != null && contents[i].getType() != Material.AIR) {
+                                        freshContainer.getInventory().setItem(i, contents[i].clone());
+                                    }
+                                }
+                            } catch (Exception e2) {
+                                plugin.getLogger().warning("Alternative restore method failed: " + e2.getMessage());
+                            }
 
-                        if (block.getChunk().isLoaded()) {
-                            for (int dx = -1; dx <= 1; dx++) {
-                                for (int dy = -1; dy <= 1; dy++) {
-                                    for (int dz = -1; dz <= 1; dz++) {
-                                        Block neighbor = block.getRelative(dx, dy, dz);
-                                        if (neighbor.getType() != Material.AIR) {
-                                            neighbor.getState().update(false, false);
+                            ItemStack[] afterContents = freshContainer.getInventory().getContents();
+                            plugin.getLogger().info("Container after restore: " + getContainerSummary(afterContents));
+
+                            block.getState().update(true, true);
+
+                            if (block.getChunk().isLoaded()) {
+                                for (int dx = -1; dx <= 1; dx++) {
+                                    for (int dy = -1; dy <= 1; dy++) {
+                                        for (int dz = -1; dz <= 1; dz++) {
+                                            Block neighbor = block.getRelative(dx, dy, dz);
+                                            if (neighbor.getType() != Material.AIR) {
+                                                neighbor.getState().update(false, false);
+                                            }
                                         }
                                     }
                                 }
                             }
+
+                            plugin.getLogger().info("Successfully restored container (" + block.getType() +
+                                    ") at " + block.getLocation() + " with " + getContainerSummary(contents));
+
+                        } catch (Exception e) {
+                            plugin.getLogger().severe("Failed to restore container contents (delayed) at " +
+                                    block.getLocation() + ": " + e.getMessage());
+                            e.printStackTrace();
                         }
+                    }, 2L);
 
-                        plugin.getLogger().info("Successfully restored container (" + block.getType() +
-                                ") at " + block.getLocation() + " with " + getContainerSummary(contents));
-
-                    } catch (Exception e) {
-                        plugin.getLogger().severe("Failed to restore container contents (delayed) at " +
-                                block.getLocation() + ": " + e.getMessage());
-                        e.printStackTrace();
-                    }
-                }, 2L);
-
-                return true;
+                    return true;
+                }
+            } else {
+                plugin.getLogger().warning("Block at " + block.getLocation() +
+                        " is not a supported container type but has container contents! Type: " + block.getType() +
+                        ", State: " + block.getState().getClass().getSimpleName());
+                return false;
             }
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to restore container contents at " +
