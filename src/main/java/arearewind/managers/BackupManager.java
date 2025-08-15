@@ -54,10 +54,10 @@ public class BackupManager {
     }
 
     private final Set<Material> POI_BLOCKS = Set.of(
-            Material.CARTOGRAPHY_TABLE, Material.FLETCHING_TABLE,
+            Material.LECTERN, Material.CHISELED_BOOKSHELF, Material.CARTOGRAPHY_TABLE, Material.FLETCHING_TABLE,
             Material.SMITHING_TABLE, Material.LOOM, Material.STONECUTTER,
             Material.GRINDSTONE, Material.BARREL, Material.SMOKER, Material.BLAST_FURNACE,
-            Material.FURNACE, Material.COMPOSTER, Material.BELL);
+            Material.FURNACE, Material.BREWING_STAND, Material.COMPOSTER, Material.BELL);
 
     private final Set<Material> BED_BLOCKS = Set.of(
             Material.WHITE_BED, Material.ORANGE_BED, Material.MAGENTA_BED, Material.LIGHT_BLUE_BED,
@@ -264,14 +264,11 @@ public class BackupManager {
             String key = entry.getKey();
             BlockInfo info = entry.getValue();
 
+            // Special handling for blocks that need both container AND NBT restoration
             Material blockType = info.getMaterial();
-
-            // Prioritize container blocks first - these need inventory restoration
-            if (info.hasContainerContents()) {
-                containerBlocks.add(key);
-            }
-            // Then handle blocks that need NBT restoration but are NOT containers
-            else if ((blockType == Material.PLAYER_HEAD ||
+            boolean needsSpecialNBTHandling = (blockType == Material.LECTERN ||
+                    blockType == Material.CHISELED_BOOKSHELF ||
+                    blockType == Material.PLAYER_HEAD ||
                     blockType == Material.PLAYER_WALL_HEAD ||
                     blockType.name().contains("BANNER") ||
                     blockType.name().contains("SIGN") ||
@@ -280,15 +277,16 @@ public class BackupManager {
                     blockType == Material.REPEATING_COMMAND_BLOCK ||
                     blockType == Material.CHAIN_COMMAND_BLOCK ||
                     blockType == Material.STRUCTURE_BLOCK ||
-                    blockType == Material.JIGSAW) && info.getNbtData() != null) {
+                    blockType == Material.JIGSAW) && info.getNbtData() != null;
+
+            if (needsSpecialNBTHandling) {
+                // These blocks need NBT restoration regardless of container contents
                 specialBlocks.add(key);
-            }
-            // Handle other blocks with special properties (legacy approach)
-            else if (hasSpecialProperties(info)) {
+            } else if (info.hasContainerContents()) {
+                containerBlocks.add(key);
+            } else if (hasSpecialProperties(info)) {
                 specialBlocks.add(key);
-            }
-            // Everything else is a regular block
-            else {
+            } else {
                 regularBlocks.add(key);
             }
         }
@@ -560,7 +558,26 @@ public class BackupManager {
                     plugin.getLogger().fine(
                             "Successfully restored " + block.getType() + " from NBT data at " + block.getLocation());
 
-                    // For NBT-restored blocks, handle POI updates
+                    // For blocks that are both NBT-dependent AND containers (lecterns, chiseled
+                    // bookshelves),
+                    // also restore container contents if NBT restoration didn't handle them
+                    Material blockType = block.getType();
+                    if ((blockType == Material.LECTERN || blockType == Material.CHISELED_BOOKSHELF)
+                            && info.hasContainerContents()) {
+                        // Delay container restoration to allow NBT restoration to complete first
+                        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                            try {
+                                restoreContainerContents(block, info);
+                                plugin.getLogger().fine("Restored container contents for " + blockType +
+                                        " at " + block.getLocation() + " after NBT restoration");
+                            } catch (Exception e) {
+                                plugin.getLogger().warning("Failed to restore container contents for " + blockType +
+                                        " at " + block.getLocation() + ": " + e.getMessage());
+                            }
+                        }, 1L);
+                    }
+
+                    // For NBT-restored blocks, still handle POI updates but skip legacy methods
                     if (isPOIBlock(block.getType())) {
                         scheduleBlockStateUpdate(block);
                     }
@@ -570,6 +587,8 @@ public class BackupManager {
 
             // Priority 2: Fallback to legacy specialized restoration methods for backwards
             // compatibility
+            // Note: Skulls are no longer specially handled here - they rely entirely on NBT
+            // restoration
             restoreLegacySpecialData(block, info);
 
         } catch (Exception e) {
@@ -636,10 +655,40 @@ public class BackupManager {
     private void scheduleBlockStateUpdate(Block block) {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             try {
-                // Standard update for POI blocks - lecterns, brewing stands, and chiseled
-                // bookshelves
-                // are now handled as pure containers and don't need special updating
-                block.getState().update(true, true);
+                // For lecterns and chiseled bookshelves, we need multiple update passes
+                Material blockType = block.getType();
+                if (blockType == Material.LECTERN || blockType == Material.CHISELED_BOOKSHELF) {
+                    // First update - refresh the block state
+                    block.getState().update(true, true);
+
+                    // Second update after a tick - ensure world synchronization
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        try {
+                            // Force a chunk refresh for these interactive blocks
+                            org.bukkit.Chunk chunk = block.getChunk();
+                            if (chunk.isLoaded()) {
+                                // Refresh the block and surrounding area
+                                World world = block.getWorld();
+                                Location loc = block.getLocation();
+
+                                // Send block update to players in the area
+                                for (org.bukkit.entity.Player player : world.getPlayers()) {
+                                    if (player.getLocation().distance(loc) <= 128) { // Within render distance
+                                        player.sendBlockChange(loc, block.getBlockData());
+                                    }
+                                }
+
+                                plugin.getLogger().fine("Force-updated interactive block " + blockType +
+                                        " at " + loc + " for interactability");
+                            }
+                        } catch (Exception e) {
+                            // Ignore secondary update errors
+                        }
+                    }, 3L);
+                } else {
+                    // Standard update for other POI blocks
+                    block.getState().update(true, true);
+                }
                 block.getChunk().load();
             } catch (Exception e) {
                 // Ignore update errors
@@ -761,42 +810,106 @@ public class BackupManager {
         try {
             if (!(block.getState() instanceof org.bukkit.block.Container)) {
                 plugin.getLogger().warning("Block at " + block.getLocation() +
-                        " is not a container but has container contents! Type: " + block.getType());
+                        " is not a container but has container contents! Type: " + block.getType() +
+                        ", State: " + block.getState().getClass().getSimpleName());
                 return false;
             }
+
+            plugin.getLogger().info("Restoring container at " + block.getLocation() +
+                    " - Type: " + block.getType() + ", State: " + block.getState().getClass().getSimpleName());
 
             org.bukkit.block.Container container = (org.bukkit.block.Container) block.getState();
             ItemStack[] contents = info.getContainerContents();
 
             if (contents != null) {
-                // For containers with NBT data, try NBT restoration first
+                // Note: If NBT data was successfully restored above, it may have already
+                // handled the container contents. Only restore regular contents if needed.
                 if (info.getNbtData() != null) {
-                    boolean nbtRestored = nbtManager.restoreCompleteNBTData(block, info.getNbtData());
-                    if (nbtRestored) {
-                        plugin.getLogger().fine("Successfully restored " + block.getType() +
-                                " container from NBT data at " + block.getLocation());
-                        return true;
-                    }
-                    plugin.getLogger().fine("NBT restoration failed, falling back to manual container restore");
+                    plugin.getLogger().fine("Container has NBT data - contents may already be restored by NBT system");
                 }
 
-                // Manual container restoration
                 container.getInventory().clear();
-                for (int i = 0; i < contents.length && i < container.getInventory().getSize(); i++) {
-                    if (contents[i] != null && contents[i].getType() != Material.AIR) {
-                        container.getInventory().setItem(i, contents[i].clone());
+
+                // Special handling for lecterns with NBT data (fallback)
+                if (block.getType() == Material.LECTERN && info.getNbtData() != null && contents.length > 0) {
+                    // Try to restore the book from NBT data first
+                    try {
+                        ItemStack bookFromNbt = nbtManager.loadItemStackFromBase64(info.getNbtData());
+                        if (bookFromNbt != null && (bookFromNbt.getType() == Material.WRITTEN_BOOK
+                                || bookFromNbt.getType() == Material.WRITABLE_BOOK)) {
+                            container.getInventory().setItem(0, bookFromNbt);
+                            container.update(true, true);
+                            plugin.getLogger().info("Restored lectern book from NBT data at " + block.getLocation());
+                            return true;
+                        }
+                    } catch (Exception nbtEx) {
+                        plugin.getLogger()
+                                .warning("Failed to restore lectern book from NBT, falling back to normal method: "
+                                        + nbtEx.getMessage());
                     }
                 }
-                container.update(true, false);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    try {
+                        org.bukkit.block.Container freshContainer = (org.bukkit.block.Container) block.getState();
 
-                plugin.getLogger().fine("Successfully restored container (" + block.getType() +
-                        ") at " + block.getLocation() + " with " + getContainerSummary(contents));
+                        ItemStack[] currentContents = freshContainer.getInventory().getContents();
+                        plugin.getLogger().info("Container before restore: " + getContainerSummary(currentContents));
+
+                        ItemStack[] safeCopy = new ItemStack[freshContainer.getInventory().getSize()];
+                        for (int i = 0; i < safeCopy.length && i < contents.length; i++) {
+                            if (contents[i] != null && contents[i].getType() != Material.AIR) {
+                                safeCopy[i] = contents[i].clone();
+                            }
+                        }
+
+                        freshContainer.getInventory().setContents(safeCopy);
+                        freshContainer.update(true, true);
+
+                        try {
+                            freshContainer.getInventory().clear();
+                            for (int i = 0; i < contents.length && i < freshContainer.getInventory().getSize(); i++) {
+                                if (contents[i] != null && contents[i].getType() != Material.AIR) {
+                                    freshContainer.getInventory().setItem(i, contents[i].clone());
+                                }
+                            }
+                        } catch (Exception e2) {
+                            plugin.getLogger().warning("Alternative restore method failed: " + e2.getMessage());
+                        }
+
+                        ItemStack[] afterContents = freshContainer.getInventory().getContents();
+                        plugin.getLogger().info("Container after restore: " + getContainerSummary(afterContents));
+
+                        block.getState().update(true, true);
+
+                        if (block.getChunk().isLoaded()) {
+                            for (int dx = -1; dx <= 1; dx++) {
+                                for (int dy = -1; dy <= 1; dy++) {
+                                    for (int dz = -1; dz <= 1; dz++) {
+                                        Block neighbor = block.getRelative(dx, dy, dz);
+                                        if (neighbor.getType() != Material.AIR) {
+                                            neighbor.getState().update(false, false);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        plugin.getLogger().info("Successfully restored container (" + block.getType() +
+                                ") at " + block.getLocation() + " with " + getContainerSummary(contents));
+
+                    } catch (Exception e) {
+                        plugin.getLogger().severe("Failed to restore container contents (delayed) at " +
+                                block.getLocation() + ": " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }, 2L);
+
                 return true;
             }
-
         } catch (Exception e) {
-            plugin.getLogger().warning("Failed to restore container contents at " + block.getLocation() +
-                    ": " + e.getMessage());
+            plugin.getLogger().warning("Failed to restore container contents at " +
+                    block.getLocation() + ": " + e.getMessage());
+            e.printStackTrace();
         }
 
         return false;
@@ -859,21 +972,11 @@ public class BackupManager {
             List<AreaBackup> backups = backupHistory.get(areaName);
             backups.add(backup);
 
-            // Always set the current state pointer to the newest backup
-            undoPointers.put(areaName, backups.size() - 1);
-            plugin.getLogger().info("Set current state pointer to newest backup for area: " + areaName);
-
             int maxBackups = configManager.getMaxBackupsPerArea();
             if (backups.size() > maxBackups) {
                 AreaBackup removed = backups.remove(0);
                 fileManager.deleteBackupFile(areaName, removed.getId());
                 plugin.getLogger().info("Removed oldest backup for area: " + areaName);
-
-                // Adjust current state pointer after removing oldest backup
-                Integer currentPointer = undoPointers.get(areaName);
-                if (currentPointer != null && currentPointer > 0) {
-                    undoPointers.put(areaName, currentPointer - 1);
-                }
             }
 
             try {
@@ -938,10 +1041,9 @@ public class BackupManager {
 
         restoreFromBackup(area, backup, player);
 
-        // Set the current state pointer to the backup that was restored
+        // Set the undo pointer to the backup that was actually restored from
+        // This allows the user to undo/redo from this point
         undoPointers.put(areaName, backupIndex);
-        plugin.getLogger()
-                .info("Set current state pointer to restored backup #" + backupIndex + " for area: " + areaName);
 
         return true;
     }
@@ -956,13 +1058,15 @@ public class BackupManager {
             return false; // No undo available - need to restore a backup first
         }
 
-        // Restore from the beforeRestore backup (go back to state before last restore)
+        // Create a backup for potential redo before undoing
+        AreaBackup beforeUndoBackup = createHiddenBackup(area);
+
+        // Restore from the beforeRestore backup
         restoreFromBackup(area, beforeRestoreBackup, player,
                 "✓ Undo successful! Restored to state before last backup restore.");
 
-        // Clear the undo state since we've used it
-        beforeRestoreBackups.remove(areaName);
-        plugin.getLogger().info("Undo completed for area: " + areaName + " - cleared undo state");
+        // Store the beforeUndo backup as the new beforeRestore (for redo)
+        beforeRestoreBackups.put(areaName, beforeUndoBackup);
 
         return true;
     }
@@ -972,8 +1076,21 @@ public class BackupManager {
     }
 
     public boolean redoArea(String areaName, ProtectedArea area, Player player) {
-        // Simplified: No redo functionality in the new streamlined approach
-        return false;
+        AreaBackup beforeRestoreBackup = beforeRestoreBackups.get(areaName);
+        if (beforeRestoreBackup == null) {
+            return false; // No redo available
+        }
+
+        // Create a backup before redoing
+        AreaBackup beforeRedoBackup = createHiddenBackup(area);
+
+        // Restore from the beforeRestore backup
+        restoreFromBackup(area, beforeRestoreBackup, player, "✓ Redo successful! Restored to state before last undo.");
+
+        // Store the beforeRedo backup as the new beforeRestore (for undo)
+        beforeRestoreBackups.put(areaName, beforeRedoBackup);
+
+        return true;
     }
 
     public AreaBackup findClosestBackup(String areaName, LocalDateTime targetTime) {
@@ -1245,12 +1362,6 @@ public class BackupManager {
         return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
     }
 
-    /**
-     * Gets the current state pointer for an area.
-     * This points to the backup that represents the current state of the area.
-     * Note: Method name kept as getUndoPointer for compatibility with existing
-     * code.
-     */
     public int getUndoPointer(String areaName) {
         List<AreaBackup> backups = backupHistory.get(areaName);
         if (backups == null)
@@ -1263,8 +1374,7 @@ public class BackupManager {
     }
 
     public boolean canRedo(String areaName) {
-        // Simplified: No redo functionality in the new streamlined approach
-        return false;
+        return beforeRestoreBackups.containsKey(areaName);
     }
 
 }
