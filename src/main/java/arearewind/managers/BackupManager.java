@@ -5,7 +5,6 @@ import arearewind.data.BlockInfo;
 import arearewind.data.ProtectedArea;
 import arearewind.listeners.PlayerInteractionListener;
 import arearewind.util.ConfigurationManager;
-import arearewind.util.NBTDataManager;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -25,7 +24,6 @@ public class BackupManager {
     private final JavaPlugin plugin;
     private final ConfigurationManager configManager;
     private final FileManager fileManager;
-    private final NBTDataManager nbtManager;
     private PlayerInteractionListener playerListener; // Reference to player listener for progress logging preferences
     private final Map<String, List<AreaBackup>> backupHistory;
     private final Map<String, Integer> undoPointers;
@@ -35,7 +33,6 @@ public class BackupManager {
         this.plugin = plugin;
         this.configManager = configManager;
         this.fileManager = fileManager;
-        this.nbtManager = new NBTDataManager(plugin);
         this.backupHistory = new ConcurrentHashMap<>();
         this.undoPointers = new ConcurrentHashMap<>();
         this.beforeRestoreBackups = new ConcurrentHashMap<>();
@@ -54,10 +51,10 @@ public class BackupManager {
     }
 
     private final Set<Material> POI_BLOCKS = Set.of(
-            Material.CARTOGRAPHY_TABLE, Material.FLETCHING_TABLE,
+            Material.LECTERN, Material.CARTOGRAPHY_TABLE, Material.FLETCHING_TABLE,
             Material.SMITHING_TABLE, Material.LOOM, Material.STONECUTTER,
             Material.GRINDSTONE, Material.BARREL, Material.SMOKER, Material.BLAST_FURNACE,
-            Material.FURNACE, Material.COMPOSTER, Material.BELL);
+            Material.FURNACE, Material.BREWING_STAND, Material.COMPOSTER, Material.BELL);
 
     private final Set<Material> BED_BLOCKS = Set.of(
             Material.WHITE_BED, Material.ORANGE_BED, Material.MAGENTA_BED, Material.LIGHT_BLUE_BED,
@@ -76,18 +73,6 @@ public class BackupManager {
             BlockInfo blockInfo = new BlockInfo(block.getType(), block.getBlockData());
 
             try {
-                // First, try to capture complete NBT data for any block that might have complex
-                // state
-                String nbtData = nbtManager.captureCompleteNBTData(block);
-                if (nbtData != null) {
-                    blockInfo.setNbtData(nbtData);
-                    plugin.getLogger()
-                            .fine("Captured complete NBT data for " + block.getType() + " at " + block.getLocation());
-                }
-
-                // Then capture specific data for legacy compatibility and specialized handling
-                // Only do this if we didn't get NBT data, or for certain types that need both
-                // approaches
                 if (block.getState() instanceof Banner) {
                     Banner banner = (Banner) block.getState();
                     if (banner.getPatterns() != null) {
@@ -119,24 +104,18 @@ public class BackupManager {
                         plugin.getLogger().fine("Backup: Container (" + block.getType() + ") at " +
                                 block.getLocation() + " has " + (contents != null ? contents.length : 0) +
                                 " slots with items: " + getContainerSummary(contents));
-
-                        // Note: NBT data is now captured uniformly above, no need for special cases
-                    }
-                    // Spawner NBT handling - remove unused variable warning
-                    if (block.getType() == Material.SPAWNER) {
-                        // NBT capture is already handled above, no need for duplicate logic
-                        if (blockInfo.getNbtData() != null) {
-                            plugin.getLogger().fine("Spawner NBT data already captured at " + block.getLocation());
-                        }
                     }
                 } else if (block.getState() instanceof org.bukkit.block.Jukebox) {
                     org.bukkit.block.Jukebox jukebox = (org.bukkit.block.Jukebox) block.getState();
                     if (jukebox.getRecord() != null) {
                         blockInfo.setJukeboxRecord(jukebox.getRecord());
                     }
+                } else if (block.getState() instanceof org.bukkit.block.Skull) {
+                    org.bukkit.block.Skull skull = (org.bukkit.block.Skull) block.getState();
+                    if (skull.getOwningPlayer() != null) {
+                        blockInfo.setSkullOwner(skull.getOwningPlayer().getName());
+                    }
                 }
-                // Note: Skulls are now handled entirely by the unified NBT approach above
-                // No special handling needed - this ensures consistency with item frames
             } catch (Exception e) {
                 plugin.getLogger().warning("Failed to read special block state for " + block.getType() +
                         " at " + block.getLocation() + ": " + e.getMessage() +
@@ -264,23 +243,7 @@ public class BackupManager {
             String key = entry.getKey();
             BlockInfo info = entry.getValue();
 
-            // Special handling for blocks that need both container AND NBT restoration
-            Material blockType = info.getMaterial();
-            boolean needsSpecialNBTHandling = (blockType == Material.PLAYER_HEAD ||
-                    blockType == Material.PLAYER_WALL_HEAD ||
-                    blockType.name().contains("BANNER") ||
-                    blockType.name().contains("SIGN") ||
-                    blockType == Material.SPAWNER ||
-                    blockType == Material.COMMAND_BLOCK ||
-                    blockType == Material.REPEATING_COMMAND_BLOCK ||
-                    blockType == Material.CHAIN_COMMAND_BLOCK ||
-                    blockType == Material.STRUCTURE_BLOCK ||
-                    blockType == Material.JIGSAW) && info.getNbtData() != null;
-
-            if (needsSpecialNBTHandling) {
-                // These blocks need NBT restoration regardless of container contents
-                specialBlocks.add(key);
-            } else if (info.hasContainerContents()) {
+            if (info.hasContainerContents()) {
                 containerBlocks.add(key);
             } else if (hasSpecialProperties(info)) {
                 specialBlocks.add(key);
@@ -366,8 +329,7 @@ public class BackupManager {
                                 }
                             }
                             plugin.getLogger().info("Optimized restoration completed: " + total + " blocks, " +
-                                    containerCount + " containers, " + backup.getEntities().size() + " entities in "
-                                    + duration + "ms");
+                                    containerCount + " containers in " + duration + "ms");
                             this.cancel();
                         }
                     }
@@ -443,9 +405,7 @@ public class BackupManager {
         return info.getBannerPatterns() != null ||
                 info.getSignLines() != null ||
                 info.getJukeboxRecord() != null ||
-                info.getSkullOwner() != null ||
-                info.getSkullData() != null ||
-                info.getNbtData() != null;
+                info.getSkullOwner() != null;
     }
 
     /**
@@ -549,54 +509,6 @@ public class BackupManager {
 
     private void restoreNonContainerSpecialData(Block block, BlockInfo info) {
         try {
-            // Priority 1: Try to restore from complete NBT data (unified approach)
-            if (info.getNbtData() != null) {
-                boolean restored = nbtManager.restoreCompleteNBTData(block, info.getNbtData());
-                if (restored) {
-                    plugin.getLogger().fine(
-                            "Successfully restored " + block.getType() + " from NBT data at " + block.getLocation());
-
-                    // If the NBT restoration indicates container contents remain to be restored,
-                    // attempt a short delayed restore for any container-type block.
-                    if (info.hasContainerContents() && block.getState() instanceof org.bukkit.block.Container) {
-                        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                            try {
-                                restoreContainerContents(block, info);
-                                plugin.getLogger().fine("Restored container contents after NBT restoration for " +
-                                        block.getType() + " at " + block.getLocation());
-                            } catch (Exception e) {
-                                plugin.getLogger()
-                                        .warning("Failed to restore container contents at " + block.getLocation()
-                                                + ": " + e.getMessage());
-                            }
-                        }, 1L);
-                    }
-
-                    // For NBT-restored blocks, still handle POI updates but skip legacy methods
-                    if (isPOIBlock(block.getType())) {
-                        scheduleBlockStateUpdate(block);
-                    }
-                    return; // NBT restoration successful, no need for legacy methods
-                }
-            }
-
-            // Priority 2: Fallback to legacy specialized restoration methods for backwards
-            // compatibility
-            // Note: Skulls are no longer specially handled here - they rely entirely on NBT
-            // restoration
-            restoreLegacySpecialData(block, info);
-
-        } catch (Exception e) {
-            plugin.getLogger().warning("Failed to restore special data for block at " +
-                    block.getLocation() + ": " + e.getMessage());
-        }
-    }
-
-    /**
-     * Handles legacy restoration methods for backwards compatibility
-     */
-    private void restoreLegacySpecialData(Block block, BlockInfo info) {
-        try {
             if (block.getState() instanceof Banner && info.getBannerPatterns() != null) {
                 Banner banner = (Banner) block.getState();
                 banner.setPatterns(info.getBannerPatterns());
@@ -611,7 +523,8 @@ public class BackupManager {
                             sign.getSide(org.bukkit.block.sign.Side.FRONT).setLine(i,
                                     ChatColor.translateAlternateColorCodes('&', lines[i]));
                         } catch (Exception e) {
-                            // Fallback for older versions - suppress deprecation warning
+                            // Fallback for older versions
+                            @SuppressWarnings("deprecation")
                             String line = lines[i];
                             try {
                                 // Use reflection to avoid deprecated warning
@@ -630,36 +543,36 @@ public class BackupManager {
                 org.bukkit.block.Jukebox jukebox = (org.bukkit.block.Jukebox) block.getState();
                 jukebox.setRecord(info.getJukeboxRecord());
                 jukebox.update(true, false);
+            } else if (block.getState() instanceof org.bukkit.block.Skull && info.getSkullOwner() != null) {
+                org.bukkit.block.Skull skull = (org.bukkit.block.Skull) block.getState();
+                try {
+                    // Try modern UUID-based approach first
+                    java.util.UUID uuid = java.util.UUID.fromString(info.getSkullOwner());
+                    org.bukkit.OfflinePlayer owner = Bukkit.getOfflinePlayer(uuid);
+                    skull.setOwningPlayer(owner);
+                } catch (IllegalArgumentException e) {
+                    // Fallback to name-based approach for legacy data
+                    @SuppressWarnings("deprecation")
+                    org.bukkit.OfflinePlayer owner = Bukkit.getOfflinePlayer(info.getSkullOwner());
+                    skull.setOwningPlayer(owner);
+                }
+                skull.update(true, false);
             }
-            // Note: Skulls are no longer handled in legacy restoration - they use NBT
-            // approach only
 
             if (isPOIBlock(block.getType())) {
-                scheduleBlockStateUpdate(block);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    try {
+                        block.getState().update(true, true);
+                        block.getChunk().load();
+                    } catch (Exception e) {
+                    }
+                }, 2L);
             }
 
         } catch (Exception e) {
-            plugin.getLogger().warning("Failed to restore legacy special data for block at " +
+            plugin.getLogger().warning("Failed to restore special data for block at " +
                     block.getLocation() + ": " + e.getMessage());
         }
-    }
-
-    /**
-     * Schedules a block state update for POI blocks
-     */
-    private void scheduleBlockStateUpdate(Block block) {
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            try {
-                // Standard update for POI blocks
-                try {
-                    block.getState().update(true, true);
-                } catch (Exception ignored) {
-                }
-                block.getChunk().load();
-            } catch (Exception e) {
-                // Ignore update errors
-            }
-        }, 2L);
     }
 
     private boolean isPOIBlock(Material material) {
@@ -731,85 +644,30 @@ public class BackupManager {
 
         for (Map.Entry<String, Object> entry : entityData.entrySet()) {
             try {
-                Object raw = entry.getValue();
-                Map<String, Object> data;
-
-                // Handle cases where YAML/Config returns a MemorySection (ConfigurationSection)
-                if (raw instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> tmp = (Map<String, Object>) raw;
-                    data = tmp;
-                } else if (raw instanceof org.bukkit.configuration.ConfigurationSection) {
-                    data = ((org.bukkit.configuration.ConfigurationSection) raw).getValues(true);
-                } else {
-                    plugin.getLogger().warning("Unknown entity data type for " + entry.getKey() + ": " +
-                            (raw != null ? raw.getClass().getName() : "null"));
-                    continue;
-                }
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = (Map<String, Object>) entry.getValue();
 
                 if ("ITEM_FRAME".equals(data.get("type"))) {
-                    // x/y/z may be stored as Integer or Double depending on serializer
-                    double x = toDouble(data.get("x"));
-                    double y = toDouble(data.get("y"));
-                    double z = toDouble(data.get("z"));
+                    double x = (Double) data.get("x");
+                    double y = (Double) data.get("y");
+                    double z = (Double) data.get("z");
 
                     Location loc = new Location(world, x, y, z);
-
-                    org.bukkit.block.BlockFace facing = org.bukkit.block.BlockFace
-                            .valueOf(String.valueOf(data.get("facing")));
-
-                    // Attempt to restore item if present. The 'item' value may be an ItemStack,
-                    // a Map (serialized form) or a ConfigurationSection (MemorySection).
-                    final ItemStack[] restoredItemHolder = new ItemStack[1];
-                    if (data.containsKey("item")) {
-                        Object itemObj = data.get("item");
-                        try {
-                            if (itemObj instanceof ItemStack) {
-                                restoredItemHolder[0] = (ItemStack) itemObj;
-                            } else if (itemObj instanceof Map) {
-                                @SuppressWarnings("unchecked")
-                                Map<String, Object> itemMap = (Map<String, Object>) itemObj;
-                                Object des = org.bukkit.configuration.serialization.ConfigurationSerialization
-                                        .deserializeObject(itemMap);
-                                if (des instanceof ItemStack) {
-                                    restoredItemHolder[0] = (ItemStack) des;
-                                }
-                            } else if (itemObj instanceof org.bukkit.configuration.ConfigurationSection) {
-                                Map<String, Object> itemMap = ((org.bukkit.configuration.ConfigurationSection) itemObj)
-                                        .getValues(true);
-                                Object des = org.bukkit.configuration.serialization.ConfigurationSerialization
-                                        .deserializeObject(itemMap);
-                                if (des instanceof ItemStack) {
-                                    restoredItemHolder[0] = (ItemStack) des;
-                                }
-                            } else {
-                                // Try a best-effort cast via toString() if possible (unlikely)
-                                plugin.getLogger()
-                                        .fine("Unsupported item object type for entity " + entry.getKey() + ": " +
-                                                (itemObj != null ? itemObj.getClass().getName() : "null"));
-                            }
-                        } catch (Exception ex) {
-                            plugin.getLogger().warning("Failed to deserialize ItemStack for entity " + entry.getKey()
-                                    + ": " + ex.getMessage());
-                        }
-                    }
+                    org.bukkit.block.BlockFace facing = org.bukkit.block.BlockFace.valueOf((String) data.get("facing"));
 
                     org.bukkit.entity.ItemFrame frame = world.spawn(loc, org.bukkit.entity.ItemFrame.class,
                             itemFrame -> {
-                                try {
-                                    itemFrame.setFacingDirection(facing);
+                                itemFrame.setFacingDirection(facing);
 
-                                    if (data.containsKey("rotation")) {
-                                        org.bukkit.Rotation rotation = org.bukkit.Rotation
-                                                .valueOf(String.valueOf(data.get("rotation")));
-                                        itemFrame.setRotation(rotation);
-                                    }
+                                if (data.containsKey("rotation")) {
+                                    org.bukkit.Rotation rotation = org.bukkit.Rotation
+                                            .valueOf((String) data.get("rotation"));
+                                    itemFrame.setRotation(rotation);
+                                }
 
-                                    if (restoredItemHolder[0] != null) {
-                                        itemFrame.setItem(restoredItemHolder[0]);
-                                    }
-                                } catch (Exception e) {
-                                    // Swallow per-entity errors to avoid cancelling whole restore
+                                if (data.containsKey("item")) {
+                                    ItemStack item = (ItemStack) data.get("item");
+                                    itemFrame.setItem(item);
                                 }
                             });
 
@@ -821,24 +679,6 @@ public class BackupManager {
                 plugin.getLogger().warning("Failed to restore entity " + entry.getKey() + ": " + e.getMessage());
             }
         }
-    }
-
-    /**
-     * Helper: convert various stored numeric representations to double.
-     */
-    private double toDouble(Object obj) {
-        if (obj == null)
-            return 0.0;
-        if (obj instanceof Number) {
-            return ((Number) obj).doubleValue();
-        }
-        if (obj instanceof String) {
-            try {
-                return Double.parseDouble((String) obj);
-            } catch (NumberFormatException ignored) {
-            }
-        }
-        return 0.0;
     }
 
     private boolean restoreContainerContents(Block block, BlockInfo info) {
@@ -861,17 +701,8 @@ public class BackupManager {
             ItemStack[] contents = info.getContainerContents();
 
             if (contents != null) {
-                // Note: If NBT data was successfully restored above, it may have already
-                // handled the container contents. Only restore regular contents if needed.
-                if (info.getNbtData() != null) {
-                    plugin.getLogger().fine("Container has NBT data - contents may already be restored by NBT system");
-                }
-
                 container.getInventory().clear();
 
-                // Generic container handling only. NBT-based restoration for items is handled
-                // by the unified NBT system above; here we only restore standard inventory
-                // slots.
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     try {
                         org.bukkit.block.Container freshContainer = (org.bukkit.block.Container) block.getState();
@@ -1400,5 +1231,4 @@ public class BackupManager {
     public boolean canRedo(String areaName) {
         return beforeRestoreBackups.containsKey(areaName);
     }
-
 }
