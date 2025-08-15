@@ -454,10 +454,6 @@ public class NBTDataManager {
                 return restoreSignFromItemStack(block, restoredItem);
             }
 
-            // Lecterns, brewing stands, and chiseled bookshelves are now handled as
-            // containers
-            // No special ItemStack restoration needed
-
             // Handle spawners
             if (block.getType() == Material.SPAWNER) {
                 return restoreSpawnerFromItemStack(block, restoredItem);

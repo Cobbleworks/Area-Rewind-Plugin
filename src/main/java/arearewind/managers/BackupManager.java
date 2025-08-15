@@ -765,30 +765,85 @@ public class BackupManager {
 
         for (Map.Entry<String, Object> entry : entityData.entrySet()) {
             try {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> data = (Map<String, Object>) entry.getValue();
+                Object raw = entry.getValue();
+                Map<String, Object> data;
+
+                // Handle cases where YAML/Config returns a MemorySection (ConfigurationSection)
+                if (raw instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> tmp = (Map<String, Object>) raw;
+                    data = tmp;
+                } else if (raw instanceof org.bukkit.configuration.ConfigurationSection) {
+                    data = ((org.bukkit.configuration.ConfigurationSection) raw).getValues(true);
+                } else {
+                    plugin.getLogger().warning("Unknown entity data type for " + entry.getKey() + ": " +
+                            (raw != null ? raw.getClass().getName() : "null"));
+                    continue;
+                }
 
                 if ("ITEM_FRAME".equals(data.get("type"))) {
-                    double x = (Double) data.get("x");
-                    double y = (Double) data.get("y");
-                    double z = (Double) data.get("z");
+                    // x/y/z may be stored as Integer or Double depending on serializer
+                    double x = toDouble(data.get("x"));
+                    double y = toDouble(data.get("y"));
+                    double z = toDouble(data.get("z"));
 
                     Location loc = new Location(world, x, y, z);
-                    org.bukkit.block.BlockFace facing = org.bukkit.block.BlockFace.valueOf((String) data.get("facing"));
+
+                    org.bukkit.block.BlockFace facing = org.bukkit.block.BlockFace
+                            .valueOf(String.valueOf(data.get("facing")));
+
+                    // Attempt to restore item if present. The 'item' value may be an ItemStack,
+                    // a Map (serialized form) or a ConfigurationSection (MemorySection).
+                    final ItemStack[] restoredItemHolder = new ItemStack[1];
+                    if (data.containsKey("item")) {
+                        Object itemObj = data.get("item");
+                        try {
+                            if (itemObj instanceof ItemStack) {
+                                restoredItemHolder[0] = (ItemStack) itemObj;
+                            } else if (itemObj instanceof Map) {
+                                @SuppressWarnings("unchecked")
+                                Map<String, Object> itemMap = (Map<String, Object>) itemObj;
+                                Object des = org.bukkit.configuration.serialization.ConfigurationSerialization
+                                        .deserializeObject(itemMap);
+                                if (des instanceof ItemStack) {
+                                    restoredItemHolder[0] = (ItemStack) des;
+                                }
+                            } else if (itemObj instanceof org.bukkit.configuration.ConfigurationSection) {
+                                Map<String, Object> itemMap = ((org.bukkit.configuration.ConfigurationSection) itemObj)
+                                        .getValues(true);
+                                Object des = org.bukkit.configuration.serialization.ConfigurationSerialization
+                                        .deserializeObject(itemMap);
+                                if (des instanceof ItemStack) {
+                                    restoredItemHolder[0] = (ItemStack) des;
+                                }
+                            } else {
+                                // Try a best-effort cast via toString() if possible (unlikely)
+                                plugin.getLogger()
+                                        .fine("Unsupported item object type for entity " + entry.getKey() + ": " +
+                                                (itemObj != null ? itemObj.getClass().getName() : "null"));
+                            }
+                        } catch (Exception ex) {
+                            plugin.getLogger().warning("Failed to deserialize ItemStack for entity " + entry.getKey()
+                                    + ": " + ex.getMessage());
+                        }
+                    }
 
                     org.bukkit.entity.ItemFrame frame = world.spawn(loc, org.bukkit.entity.ItemFrame.class,
                             itemFrame -> {
-                                itemFrame.setFacingDirection(facing);
+                                try {
+                                    itemFrame.setFacingDirection(facing);
 
-                                if (data.containsKey("rotation")) {
-                                    org.bukkit.Rotation rotation = org.bukkit.Rotation
-                                            .valueOf((String) data.get("rotation"));
-                                    itemFrame.setRotation(rotation);
-                                }
+                                    if (data.containsKey("rotation")) {
+                                        org.bukkit.Rotation rotation = org.bukkit.Rotation
+                                                .valueOf(String.valueOf(data.get("rotation")));
+                                        itemFrame.setRotation(rotation);
+                                    }
 
-                                if (data.containsKey("item")) {
-                                    ItemStack item = (ItemStack) data.get("item");
-                                    itemFrame.setItem(item);
+                                    if (restoredItemHolder[0] != null) {
+                                        itemFrame.setItem(restoredItemHolder[0]);
+                                    }
+                                } catch (Exception e) {
+                                    // Swallow per-entity errors to avoid cancelling whole restore
                                 }
                             });
 
@@ -800,6 +855,24 @@ public class BackupManager {
                 plugin.getLogger().warning("Failed to restore entity " + entry.getKey() + ": " + e.getMessage());
             }
         }
+    }
+
+    /**
+     * Helper: convert various stored numeric representations to double.
+     */
+    private double toDouble(Object obj) {
+        if (obj == null)
+            return 0.0;
+        if (obj instanceof Number) {
+            return ((Number) obj).doubleValue();
+        }
+        if (obj instanceof String) {
+            try {
+                return Double.parseDouble((String) obj);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return 0.0;
     }
 
     private boolean restoreContainerContents(Block block, BlockInfo info) {
