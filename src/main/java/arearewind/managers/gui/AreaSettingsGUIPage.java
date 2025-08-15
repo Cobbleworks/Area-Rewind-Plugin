@@ -184,6 +184,31 @@ public class AreaSettingsGUIPage implements IGUIPage {
                 player.sendMessage(ChatColor.RED + "This action cannot be undone!");
             }
             return;
+        } else if (displayName.contains("Delete All Backups Except Last")) {
+            // Confirmation required for this destructive action
+            if (event.isShiftClick()) {
+                ProtectedArea area = areaManager.getArea(areaName);
+                if (area == null) {
+                    player.sendMessage(ChatColor.RED + "Area not found!");
+                    return;
+                }
+
+                if (!permissionManager.canDeleteArea(player, area)) {
+                    player.sendMessage(ChatColor.RED + "You don't have permission to delete backups for this area!");
+                    return;
+                }
+
+                // Perform deletion via BackupManager: keep last backup, remove others
+                int removed = backupManager.deleteAllBackupsExceptLast(areaName);
+                player.closeInventory();
+                player.sendMessage(
+                        ChatColor.GREEN + "Deleted " + removed + " backups for area '" + areaName + "' (kept latest)");
+            } else {
+                player.sendMessage(ChatColor.RED + "To delete all backups except the last one:");
+                player.sendMessage(ChatColor.YELLOW + "SHIFT+CLICK the button or use:");
+                player.sendMessage(ChatColor.RED + "This action cannot be undone for the removed backups!");
+            }
+            return;
         }
     }
 
@@ -381,6 +406,21 @@ public class AreaSettingsGUIPage implements IGUIPage {
             deleteMeta.setLore(deleteLore);
             deleteItem.setItemMeta(deleteMeta);
             gui.setItem(31, deleteItem);
+        }
+
+        // Delete All Backups Except Last (dangerous action but less destructive)
+        if (permissionManager.canDeleteArea(player, area)) {
+            ItemStack deleteExceptLast = new ItemStack(Material.REDSTONE);
+            ItemMeta delExceptMeta = deleteExceptLast.getItemMeta();
+            delExceptMeta.setDisplayName(ChatColor.DARK_RED + "Delete All Backups Except Last");
+            List<String> delExceptLore = new ArrayList<>();
+            delExceptLore.add(ChatColor.RED + "Delete all backups for this area,");
+            delExceptLore.add(ChatColor.RED + "except the most recent one");
+            delExceptLore.add("");
+            delExceptLore.add(ChatColor.YELLOW + "SHIFT+CLICK to perform");
+            delExceptMeta.setLore(delExceptLore);
+            deleteExceptLast.setItemMeta(delExceptMeta);
+            gui.setItem(30, deleteExceptLast);
         }
     }
 

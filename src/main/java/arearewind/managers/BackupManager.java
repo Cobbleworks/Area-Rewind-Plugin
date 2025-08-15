@@ -1024,6 +1024,48 @@ public class BackupManager {
         beforeRestoreBackups.remove(areaName);
     }
 
+    /**
+     * Deletes all backups for the given area except the most recent one.
+     * Returns the number of backups removed (not including the one kept).
+     */
+    public int deleteAllBackupsExceptLast(String areaName) {
+        List<AreaBackup> backups = backupHistory.get(areaName);
+        if (backups == null || backups.size() <= 1) {
+            return 0;
+        }
+
+        // Ensure backups are sorted by timestamp (oldest -> newest)
+        backups.sort((a, b) -> a.getTimestamp().compareTo(b.getTimestamp()));
+
+        int lastIndex = backups.size() - 1;
+        AreaBackup lastBackup = backups.get(lastIndex);
+
+        int removedCount = 0;
+        for (int i = 0; i < lastIndex; i++) {
+            AreaBackup toRemove = backups.get(i);
+            try {
+                fileManager.deleteBackupFile(areaName, toRemove.getId());
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to delete backup file for area " + areaName + ": " + e.getMessage());
+            }
+            removedCount++;
+        }
+
+        // Replace list with only the last backup
+        List<AreaBackup> newList = new ArrayList<>();
+        newList.add(lastBackup);
+        backupHistory.put(areaName, newList);
+
+        // Reset undo pointer to point to the only remaining backup
+        undoPointers.put(areaName, 0);
+
+        // Clear any before-restore undo backups
+        beforeRestoreBackups.remove(areaName);
+
+        plugin.getLogger().info("Deleted " + removedCount + " backups for area: " + areaName + " (kept latest)");
+        return removedCount;
+    }
+
     public void renameAreaBackups(String oldName, String newName) {
         List<AreaBackup> backups = backupHistory.remove(oldName);
         if (backups != null) {
