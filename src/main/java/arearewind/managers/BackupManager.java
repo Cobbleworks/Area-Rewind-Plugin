@@ -25,7 +25,7 @@ public class BackupManager {
     private final ConfigurationManager configManager;
     private final FileManager fileManager;
     private PlayerInteractionListener playerListener; // Reference to player listener for progress logging preferences
-    private final Map<String, List<AreaBackup>> backupHistory;
+    final Map<String, List<AreaBackup>> backupHistory;
     private final Map<String, Integer> undoPointers;
     private final Map<String, AreaBackup> beforeRestoreBackups; // Hidden backups for undo functionality
 
@@ -973,13 +973,31 @@ public class BackupManager {
         LocalDateTime cutoffTime = LocalDateTime.now().minusDays(daysOld);
 
         int removedCount = 0;
-        Iterator<AreaBackup> iterator = backups.iterator();
-
-        while (iterator.hasNext()) {
-            AreaBackup backup = iterator.next();
+        // Only remove backups if more than one will remain
+        // Collect backups to remove, but keep the newest one if all are old
+        List<AreaBackup> toRemove = new ArrayList<>();
+        for (AreaBackup backup : backups) {
             if (backup.getTimestamp().isBefore(cutoffTime)) {
+                toRemove.add(backup);
+            }
+        }
+
+        // If removing all would leave zero backups, keep the newest one
+        if (toRemove.size() >= backups.size()) {
+            // Sort by timestamp (oldest to newest)
+            toRemove.sort((a, b) -> a.getTimestamp().compareTo(b.getTimestamp()));
+            // Remove all except the newest
+            for (int i = 0; i < toRemove.size() - 1; i++) {
+                AreaBackup backup = toRemove.get(i);
                 fileManager.deleteBackupFile(areaName, backup.getId());
-                iterator.remove();
+                backups.remove(backup);
+                removedCount++;
+            }
+        } else {
+            // Remove all backups in toRemove
+            for (AreaBackup backup : toRemove) {
+                fileManager.deleteBackupFile(areaName, backup.getId());
+                backups.remove(backup);
                 removedCount++;
             }
         }

@@ -17,7 +17,6 @@ import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.world.block.BlockState;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -130,8 +129,16 @@ public class ExportCommand extends BaseCommand {
                 // Send success message on main thread
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     player.sendMessage(ChatColor.GREEN + "Successfully exported to: " + schematicFile.getName());
-                    player.sendMessage(ChatColor.GRAY + "File location: " + schematicFile.getAbsolutePath());
-                    player.sendMessage(ChatColor.GRAY + "You can now use //load "
+                    player.sendMessage(ChatColor.GRAY + "Plugin export folder: " + schematicFile.getAbsolutePath());
+                    // Also show WorldEdit schematics folder location
+                    File serverRoot = plugin.getServer().getWorldContainer();
+                    File pluginsFolder = new File(serverRoot, "plugins");
+                    File worldEditFolder = new File(pluginsFolder, "WorldEdit");
+                    File schematicsFolder = new File(worldEditFolder, "schematics");
+                    File worldEditFile = new File(schematicsFolder, schematicFile.getName());
+                    player.sendMessage(
+                            ChatColor.GRAY + "WorldEdit schematics folder: " + worldEditFile.getAbsolutePath());
+                    player.sendMessage(ChatColor.GRAY + "You can now use //schem load "
                             + schematicFile.getName().replace(".schem", "") + " in WorldEdit");
                 });
 
@@ -186,7 +193,6 @@ public class ExportCommand extends BaseCommand {
         try (EditSession editSession = WorldEdit.getInstance().newEditSession(world)) {
             // Copy blocks from backup to clipboard
             Map<String, BlockInfo> blocks = backup.getBlocks();
-
             for (Map.Entry<String, BlockInfo> entry : blocks.entrySet()) {
                 String[] coords = entry.getKey().split(",");
                 if (coords.length != 3)
@@ -198,10 +204,9 @@ public class ExportCommand extends BaseCommand {
                     int z = Integer.parseInt(coords[2]);
 
                     BlockInfo blockInfo = entry.getValue();
-                    Material material = blockInfo.getMaterial();
-
-                    // Convert Bukkit material to WorldEdit block state
-                    BlockState blockState = BukkitAdapter.adapt(material.createBlockData());
+                    // Use BlockData from BlockInfo to preserve orientation and properties
+                    org.bukkit.block.data.BlockData blockData = blockInfo.getBlockData();
+                    BlockState blockState = BukkitAdapter.adapt(blockData);
 
                     // Set block in clipboard
                     BlockVector3 pos = BlockVector3.at(x, y, z);
@@ -214,15 +219,14 @@ public class ExportCommand extends BaseCommand {
                 }
             }
 
-            // Prepare export file
+            // Prepare export file: use only area name, add numeric suffix if needed
             File exportsFolder = fileManager.getExportsFolder();
-            String fileName = areaName + "_" + backupId + ".schem";
+            String baseName = areaName;
+            String fileName = baseName + ".schem";
             File schematicFile = new File(exportsFolder, fileName);
-
-            // Ensure unique filename
             int counter = 1;
             while (schematicFile.exists()) {
-                fileName = areaName + "_" + backupId + "_" + counter + ".schem";
+                fileName = baseName + "_" + counter + ".schem";
                 schematicFile = new File(exportsFolder, fileName);
                 counter++;
             }
@@ -232,11 +236,49 @@ public class ExportCommand extends BaseCommand {
                     .getWriter(new FileOutputStream(schematicFile))) {
                 writer.write(clipboard);
             }
-
             plugin.getLogger()
                     .info("Exported area '" + areaName + "' backup '" + backupId + "' to: " + schematicFile.getName());
-
+            // After export, copy to WorldEdit schematics folder
+            copyToWorldEditSchematics(schematicFile);
             return schematicFile;
+        }
+    }
+
+    /**
+     * Copies the schematic file to WorldEdit's schematics folder for direct access
+     */
+    private void copyToWorldEditSchematics(File schematicFile) {
+        try {
+            // Get WorldEdit plugin folder (serverRoot/plugins/WorldEdit)
+            File serverRoot = plugin.getServer().getWorldContainer();
+            File pluginsFolder = new File(serverRoot, "plugins");
+            File worldEditFolder = new File(pluginsFolder, "WorldEdit");
+            File schematicsFolder = new File(worldEditFolder, "schematics");
+            if (!schematicsFolder.exists()) {
+                schematicsFolder.mkdirs();
+            }
+            // Use same filename logic: area name only, numeric suffix if needed
+            String baseName = schematicFile.getName().replaceFirst("\\.schem$", "");
+            String fileName = baseName + ".schem";
+            File destFile = new File(schematicsFolder, fileName);
+            int counter = 1;
+            while (destFile.exists()) {
+                fileName = baseName + "_" + counter + ".schem";
+                destFile = new File(schematicsFolder, fileName);
+                counter++;
+            }
+            // Copy file
+            try (java.io.FileInputStream in = new java.io.FileInputStream(schematicFile);
+                    java.io.FileOutputStream out = new java.io.FileOutputStream(destFile)) {
+                byte[] buffer = new byte[8192];
+                int len;
+                while ((len = in.read(buffer)) > 0) {
+                    out.write(buffer, 0, len);
+                }
+            }
+            plugin.getLogger().info("Copied schematic to WorldEdit folder: " + destFile.getAbsolutePath());
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to copy schematic to WorldEdit schematics folder: " + e.getMessage());
         }
     }
 

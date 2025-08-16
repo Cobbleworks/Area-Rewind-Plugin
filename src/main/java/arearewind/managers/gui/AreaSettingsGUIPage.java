@@ -209,6 +209,20 @@ public class AreaSettingsGUIPage implements IGUIPage {
                 player.sendMessage(ChatColor.RED + "This action cannot be undone for the removed backups!");
             }
             return;
+        } else if (displayName.contains("Export to Schematic")) {
+            ProtectedArea area = areaManager.getArea(areaName);
+            if (area == null) {
+                player.sendMessage(ChatColor.RED + "Area not found!");
+                return;
+            }
+            if (!permissionManager.canExport(player, area)) {
+                player.sendMessage(ChatColor.RED + "You don't have permission to export this area!");
+                return;
+            }
+            player.closeInventory();
+            player.sendMessage(ChatColor.YELLOW + "Exporting latest backup to schematic file...");
+            player.performCommand("rewind export " + areaName);
+            return;
         }
     }
 
@@ -421,6 +435,20 @@ public class AreaSettingsGUIPage implements IGUIPage {
             delExceptMeta.setLore(delExceptLore);
             deleteExceptLast.setItemMeta(delExceptMeta);
             gui.setItem(30, deleteExceptLast);
+        }
+        // Export to Schematic button
+        if (permissionManager.canExport(player, area)) {
+            ItemStack exportItem = new ItemStack(Material.COMPASS);
+            ItemMeta exportMeta = exportItem.getItemMeta();
+            exportMeta.setDisplayName(ChatColor.AQUA + "Export to Schematic");
+            List<String> exportLore = new ArrayList<>();
+            exportLore.add(ChatColor.GRAY + "Export the latest backup of this area");
+            exportLore.add(ChatColor.GRAY + "to a WorldEdit .schem file");
+            exportLore.add("");
+            exportLore.add(ChatColor.YELLOW + "Click to export");
+            exportMeta.setLore(exportLore);
+            exportItem.setItemMeta(exportMeta);
+            gui.setItem(28, exportItem);
         }
     }
 
