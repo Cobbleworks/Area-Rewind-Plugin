@@ -210,7 +210,7 @@ public class MyAreasGUIPage implements IGUIPage {
     }
 
     /**
-     * Get only areas owned by the player
+     * Get only areas owned by the player, sorted by creation date (newest first)
      */
     private List<Map.Entry<String, ProtectedArea>> getMyAreas(Player player) {
         List<Map.Entry<String, ProtectedArea>> myAreas = new ArrayList<>();
@@ -223,6 +223,11 @@ public class MyAreasGUIPage implements IGUIPage {
                 myAreas.add(entry);
             }
         }
+
+        // Sort by creation date, newest first (descending)
+        myAreas.sort((o1, o2) -> Long.compare(
+                o2.getValue().getCreationDate(),
+                o1.getValue().getCreationDate()));
 
         return myAreas;
     }

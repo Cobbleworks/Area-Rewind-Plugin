@@ -15,6 +15,7 @@ public class ProtectedArea implements Serializable {
     private Set<UUID> trustedPlayers;
     private ItemStack iconItem;
     private Integer customRestoreSpeed; // Custom restore speed (blocks per tick), null = use dynamic
+    private long creationDate; // Timestamp in milliseconds since epoch
 
     public ProtectedArea(String name, Location pos1, Location pos2, UUID owner) {
         this.name = name;
@@ -24,6 +25,15 @@ public class ProtectedArea implements Serializable {
         this.trustedPlayers = new HashSet<>();
         this.iconItem = new ItemStack(Material.GRASS_BLOCK); // Default icon
         this.customRestoreSpeed = null; // Use dynamic sizing by default
+        this.creationDate = System.currentTimeMillis(); // Set creation date to now
+    }
+
+    /**
+     * Get the creation date as a long timestamp (milliseconds since epoch)
+     * for easy sorting and comparison
+     */
+    public long getCreationDate() {
+        return creationDate;
     }
 
     public String getName() {

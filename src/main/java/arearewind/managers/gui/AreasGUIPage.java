@@ -273,6 +273,11 @@ public class AreasGUIPage implements IGUIPage {
             }
         }
 
+        // Sort by creation date, newest first
+        accessibleAreas.sort((o1, o2) -> Long.compare(
+                o2.getValue().getCreationDate(),
+                o1.getValue().getCreationDate()));
+
         return accessibleAreas;
     }
 }

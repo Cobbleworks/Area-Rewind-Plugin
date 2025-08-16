@@ -2,8 +2,6 @@ package arearewind.managers;
 
 import arearewind.data.AreaBackup;
 import arearewind.data.BlockInfo;
-import arearewind.data.ProtectedArea;
-import arearewind.util.ConfigurationManager;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -16,7 +14,6 @@ import java.util.zip.GZIPInputStream;
 
 public class FileManager {
     private final JavaPlugin plugin;
-    private final ConfigurationManager configManager;
     private File dataFolder;
     private File backupFolder;
     private File areasFile;
@@ -27,9 +24,8 @@ public class FileManager {
     private static final String COMPRESSED_EXTENSION = ".yml.gz";
     private static final String UNCOMPRESSED_EXTENSION = ".yml";
 
-    public FileManager(JavaPlugin plugin, ConfigurationManager configManager) {
+    public FileManager(JavaPlugin plugin) {
         this.plugin = plugin;
-        this.configManager = configManager;
     }
 
     public void setupFiles() {
@@ -444,99 +440,6 @@ public class FileManager {
                     backup.setIcon(org.bukkit.Material.CHEST);
                 }
             }
-        }
-    }
-
-    /**
-     * Migrates existing uncompressed backups to compressed format
-     */
-    public void migrateToCompressedBackups() {
-        if (!USE_COMPRESSION) {
-            plugin.getLogger().info("Compression disabled, skipping migration");
-            return;
-        }
-
-        File[] uncompressedFiles = backupFolder
-                .listFiles((dir, name) -> name.endsWith(UNCOMPRESSED_EXTENSION) && !name.endsWith(".legacy"));
-
-        if (uncompressedFiles == null || uncompressedFiles.length == 0) {
-            plugin.getLogger().info("No uncompressed backup files found to migrate");
-            return;
-        }
-
-        int migrated = 0;
-        long spaceSaved = 0;
-
-        for (File oldFile : uncompressedFiles) {
-            try {
-                YamlConfiguration config = YamlConfiguration.loadConfiguration(oldFile);
-
-                String newFileName = oldFile.getName().replace(UNCOMPRESSED_EXTENSION, COMPRESSED_EXTENSION);
-                File newFile = new File(backupFolder, newFileName);
-
-                long oldSize = oldFile.length();
-                saveCompressedYaml(config, newFile);
-                long newSize = newFile.length();
-
-                if (newFile.exists() && newSize > 0) {
-                    oldFile.delete();
-                    migrated++;
-                    spaceSaved += (oldSize - newSize);
-
-                    plugin.getLogger().fine(String.format("Migrated %s: %s -> %s (%.1f%% reduction)",
-                            oldFile.getName(), formatFileSize(oldSize), formatFileSize(newSize),
-                            ((double) (oldSize - newSize) / oldSize) * 100));
-                }
-
-            } catch (Exception e) {
-                plugin.getLogger().warning("Failed to migrate backup file " + oldFile.getName() +
-                        ": " + e.getMessage());
-            }
-        }
-
-        if (migrated > 0) {
-            plugin.getLogger()
-                    .info(String.format("Successfully migrated %d backup files to compressed format. Space saved: %s",
-                            migrated, formatFileSize(spaceSaved)));
-        }
-    }
-
-    // Rest of the existing methods remain unchanged...
-
-    public void cleanupLegacyBackups() {
-        try {
-            File[] files = backupFolder.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".yml.gz"));
-            if (files == null)
-                return;
-
-            int cleaned = 0;
-            for (File file : files) {
-                try {
-                    YamlConfiguration config;
-                    if (file.getName().endsWith(".gz")) {
-                        config = loadCompressedYaml(file);
-                    } else {
-                        config = YamlConfiguration.loadConfiguration(file);
-                    }
-
-                    if (config.contains("backup") && !config.contains("backup.id")) {
-                        File backupFile = new File(file.getParentFile(), file.getName() + ".legacy");
-                        if (file.renameTo(backupFile)) {
-                            cleaned++;
-                            plugin.getLogger().info("Moved legacy backup to: " + backupFile.getName());
-                        }
-                    }
-                } catch (Exception e) {
-                    // Skip problematic files
-                }
-            }
-
-            if (cleaned > 0) {
-                plugin.getLogger().info(
-                        "Moved " + cleaned + " legacy backup files. New backups will be created in the new format.");
-            }
-        } catch (Exception e) {
-            plugin.getLogger().warning("Failed to cleanup legacy backups: " + e.getMessage());
         }
     }
 

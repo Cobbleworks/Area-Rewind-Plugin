@@ -26,9 +26,8 @@ public class AreaRewindPlugin extends JavaPlugin {
     public void onEnable() {
         configManager = new ConfigurationManager(this);
         configManager.loadConfiguration();
-        fileManager = new FileManager(this, configManager);
+        fileManager = new FileManager(this);
         fileManager.setupFiles();
-        fileManager.cleanupLegacyBackups();
 
         areaManager = new AreaManager(this, fileManager);
         backupManager = new BackupManager(this, configManager, fileManager);
@@ -77,9 +76,8 @@ public class AreaRewindPlugin extends JavaPlugin {
         reloadConfig();
         configManager = new ConfigurationManager(this);
         configManager.loadConfiguration();
-        fileManager = new FileManager(this, configManager);
+        fileManager = new FileManager(this);
         fileManager.setupFiles();
-        fileManager.cleanupLegacyBackups();
 
         areaManager = new AreaManager(this, fileManager);
         backupManager = new BackupManager(this, configManager, fileManager);
