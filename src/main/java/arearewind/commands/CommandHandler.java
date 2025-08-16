@@ -4,6 +4,7 @@ import arearewind.commands.admin.*;
 import arearewind.commands.analysis.*;
 import arearewind.commands.area.*;
 import arearewind.commands.backup.*;
+import arearewind.commands.export.*;
 import arearewind.commands.info.*;
 import arearewind.commands.maintenance.*;
 import arearewind.commands.management.*;
@@ -143,6 +144,10 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 commandRegistry.registerCommand(new ScanCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new DiffCommand(plugin, areaManager, backupManager, guiManager,
+                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
+
+                // Export commands
+                commandRegistry.registerCommand(new ExportCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
         }
 
