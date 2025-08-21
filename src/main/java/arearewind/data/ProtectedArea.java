@@ -81,9 +81,9 @@ public class ProtectedArea implements Serializable {
     }
 
     public void setCustomRestoreSpeed(Integer speed) {
-        // Validate speed range (10-1000 blocks per tick, or null for dynamic)
-        if (speed != null && (speed < 10 || speed > 1000)) {
-            throw new IllegalArgumentException("Custom restore speed must be between 10 and 1000 blocks per tick");
+        // Validate speed range (1-10000 blocks per tick, or null for dynamic)
+        if (speed != null && (speed < 1 || speed > 10000)) {
+            throw new IllegalArgumentException("Custom restore speed must be between 1 and 10000 blocks per tick");
         }
         this.customRestoreSpeed = speed;
     }

@@ -164,7 +164,7 @@ public class AreaSettingsGUIPage implements IGUIPage {
                                 : "Dynamic (auto-calculated)"));
                 player.sendMessage("");
                 player.sendMessage(ChatColor.GREEN + "To set custom speed: " + ChatColor.WHITE + "/rewind speed "
-                        + areaName + " <10-1000>");
+                        + areaName + " <1-10000>");
                 player.sendMessage(ChatColor.GREEN + "To reset to dynamic: " + ChatColor.WHITE + "/rewind speed "
                         + areaName + " dynamic");
                 player.sendMessage("");
@@ -377,7 +377,7 @@ public class AreaSettingsGUIPage implements IGUIPage {
 
             speedLore.add("");
             speedLore.add(ChatColor.GRAY + "Dynamic: Automatically calculates optimal speed");
-            speedLore.add(ChatColor.GRAY + "Custom: Set fixed speed (10-1000 blocks/tick)");
+            speedLore.add(ChatColor.GRAY + "Custom: Set fixed speed (1-10000 blocks/tick)");
             speedLore.add("");
 
             if (area.hasCustomRestoreSpeed()) {

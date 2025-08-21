@@ -52,8 +52,8 @@ public class SpeedCommand extends BaseCommand {
             int speed = Integer.parseInt(speedArg);
 
             // Validate speed range
-            if (speed < 1 || speed > 2000) {
-                player.sendMessage(ChatColor.RED + "Speed must be between 1 and 2000 blocks per tick!");
+            if (speed < 1 || speed > 10000) {
+                player.sendMessage(ChatColor.RED + "Speed must be between 1 and 10000 blocks per tick!");
                 player.sendMessage(ChatColor.GRAY + "Lower values = slower but less server impact");
                 player.sendMessage(ChatColor.GRAY + "Higher values = faster but more server impact");
                 return true;
@@ -68,7 +68,7 @@ public class SpeedCommand extends BaseCommand {
                     ChatColor.GRAY + "This will be used instead of dynamic calculation for all future restorations");
 
         } catch (NumberFormatException e) {
-            player.sendMessage(ChatColor.RED + "Invalid speed value! Use a number between 10-1000 or 'dynamic'");
+            player.sendMessage(ChatColor.RED + "Invalid speed value! Use a number between 1-10000 or 'dynamic'");
         }
 
         return true;
@@ -86,7 +86,7 @@ public class SpeedCommand extends BaseCommand {
 
     @Override
     public String getDescription() {
-        return "Set custom restore speed for an area (1-2000 blocks/tick) or use 'dynamic'";
+        return "Set custom restore speed for an area (1-10000 blocks/tick) or use 'dynamic'";
     }
 
     @Override
@@ -96,7 +96,7 @@ public class SpeedCommand extends BaseCommand {
                     .filter(name -> name.toLowerCase().startsWith(args[0].toLowerCase()))
                     .collect(java.util.stream.Collectors.toList());
         } else if (args.length == 2) {
-            return Arrays.asList("dynamic", "1", "10", "50", "100", "200", "400", "800", "1600", "2000");
+            return Arrays.asList("dynamic", "1", "10", "50", "100", "250", "500", "1000", "2500", "5000", "10000");
         }
         return List.of();
     }
