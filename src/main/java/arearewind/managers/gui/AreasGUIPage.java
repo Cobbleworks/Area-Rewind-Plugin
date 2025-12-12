@@ -16,6 +16,10 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -105,6 +109,12 @@ public class AreasGUIPage implements IGUIPage {
             ChatColor permColor = permLevel.equals("Owner") ? ChatColor.RED : 
                                   permLevel.equals("Trusted") ? ChatColor.GREEN : ChatColor.GRAY;
             lore.add(ChatColor.WHITE + "Your Role: " + permColor + permLevel);
+            
+            // Add creation date
+            LocalDateTime creationDateTime = LocalDateTime.ofInstant(
+                    Instant.ofEpochMilli(area.getCreationDate()), ZoneId.systemDefault());
+            lore.add(ChatColor.WHITE + "Created: " + ChatColor.YELLOW + 
+                    creationDateTime.format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss")));
 
             // Add interval information
             lore.add("");

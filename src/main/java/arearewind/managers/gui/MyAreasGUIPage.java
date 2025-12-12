@@ -16,6 +16,10 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -101,6 +105,12 @@ public class MyAreasGUIPage implements IGUIPage {
             lore.add(ChatColor.WHITE + "Size: " + ChatColor.AQUA + String.format("%,d", area.getSize()) + ChatColor.GRAY + " blocks");
             lore.add(ChatColor.WHITE + "Backups: " + ChatColor.YELLOW + backupManager.getBackupHistory(areaName).size());
             lore.add(ChatColor.WHITE + "Trusted: " + ChatColor.GREEN + area.getTrustedPlayers().size() + ChatColor.GRAY + " players");
+            
+            // Add creation date
+            LocalDateTime creationDateTime = LocalDateTime.ofInstant(
+                    Instant.ofEpochMilli(area.getCreationDate()), ZoneId.systemDefault());
+            lore.add(ChatColor.WHITE + "Created: " + ChatColor.YELLOW + 
+                    creationDateTime.format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss")));
 
             // Add interval information
             lore.add("");

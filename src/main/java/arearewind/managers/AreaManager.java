@@ -97,12 +97,14 @@ public class AreaManager {
     public List<ProtectedArea> getOwnedAreas(UUID playerId) {
         return protectedAreas.values().stream()
                 .filter(area -> area.getOwner().equals(playerId))
+                .sorted((a1, a2) -> Long.compare(a2.getCreationDate(), a1.getCreationDate()))
                 .collect(Collectors.toList());
     }
 
     public List<ProtectedArea> getTrustedAreas(UUID playerId) {
         return protectedAreas.values().stream()
                 .filter(area -> area.getTrustedPlayers().contains(playerId))
+                .sorted((a1, a2) -> Long.compare(a2.getCreationDate(), a1.getCreationDate()))
                 .collect(Collectors.toList());
     }
 
@@ -110,6 +112,7 @@ public class AreaManager {
         return protectedAreas.values().stream()
                 .filter(area -> area.getOwner().equals(playerId) ||
                         area.getTrustedPlayers().contains(playerId))
+                .sorted((a1, a2) -> Long.compare(a2.getCreationDate(), a1.getCreationDate()))
                 .collect(Collectors.toList());
     }
 
@@ -245,6 +248,11 @@ public class AreaManager {
                     UUID owner = UUID.fromString(ownerString);
 
                     ProtectedArea area = new ProtectedArea(key, pos1, pos2, owner);
+
+                    // Load creation date (default to current time if not present for backward compatibility)
+                    if (areasConfig.contains(key + ".creationDate")) {
+                        area.setCreationDate(areasConfig.getLong(key + ".creationDate"));
+                    }
 
                     List<String> trustedList = areasConfig.getStringList(key + ".trusted");
                     for (String trustedString : trustedList) {
@@ -385,6 +393,9 @@ public class AreaManager {
                         .map(UUID::toString)
                         .collect(Collectors.toList());
                 areasConfig.set(name + ".trusted", trustedList);
+
+                // Save creation date
+                areasConfig.set(name + ".creationDate", area.getCreationDate());
 
                 // Save custom restore speed
                 if (area.hasCustomRestoreSpeed()) {

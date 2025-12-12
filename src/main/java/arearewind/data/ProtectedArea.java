@@ -36,6 +36,13 @@ public class ProtectedArea implements Serializable {
         return creationDate;
     }
 
+    /**
+     * Set the creation date (used when loading from file)
+     */
+    public void setCreationDate(long creationDate) {
+        this.creationDate = creationDate;
+    }
+
     public String getName() {
         return name;
     }
