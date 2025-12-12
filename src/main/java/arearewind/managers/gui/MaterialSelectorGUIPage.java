@@ -89,13 +89,16 @@ public class MaterialSelectorGUIPage implements IGUIPage {
                 paginationInfo.getCurrentPage(), paginationInfo.getMaxPage(), getPageType(),
                 type + ":" + areaName + (backupId != null ? ":" + backupId : ""));
 
-        // Create inventory with page info in title
+        // Create inventory with improved title
         String targetName = type.equals("area") ? areaName : "Backup #" + backupId;
-        String title = ChatColor.GOLD + "Set Icon: " + targetName;
+        String title = ChatColor.GOLD + "🎨 Select Icon: " + ChatColor.WHITE + targetName;
         if (paginationInfo.getMaxPage() > 0) {
-            title += " (" + (paginationInfo.getCurrentPage() + 1) + "/" + (paginationInfo.getMaxPage() + 1) + ")";
+            title += ChatColor.GRAY + " (" + (paginationInfo.getCurrentPage() + 1) + "/" + (paginationInfo.getMaxPage() + 1) + ")";
         }
         Inventory gui = Bukkit.createInventory(null, 54, title);
+
+        // Fill info and navigation rows with glass
+        fillInfoAndNavRows(gui);
 
         // Add material items for current page
         int slot = 0;
@@ -104,12 +107,13 @@ public class MaterialSelectorGUIPage implements IGUIPage {
 
             ItemStack item = new ItemStack(material);
             ItemMeta meta = item.getItemMeta();
-            meta.setDisplayName(ChatColor.YELLOW + formatMaterialName(material));
+            meta.setDisplayName(ChatColor.YELLOW + "✦ " + formatMaterialName(material));
 
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Material: " + material.name());
             lore.add("");
-            lore.add(ChatColor.GREEN + "Click to select this material");
+            lore.add(ChatColor.DARK_GRAY + "ID: " + material.name());
+            lore.add("");
+            lore.add(ChatColor.GREEN + "▶ Click to select");
 
             meta.setLore(lore);
             item.setItemMeta(meta);
@@ -128,6 +132,26 @@ public class MaterialSelectorGUIPage implements IGUIPage {
         player.openInventory(gui);
         guiManager.registerOpenGUI(player, getPageType() + ":" + type + ":" + areaName +
                 (backupId != null ? ":" + backupId : ""));
+    }
+
+    private void fillInfoAndNavRows(Inventory gui) {
+        // Fill info row (35-44) with light gray glass
+        ItemStack infoFiller = new ItemStack(Material.LIGHT_GRAY_STAINED_GLASS_PANE);
+        ItemMeta infoMeta = infoFiller.getItemMeta();
+        infoMeta.setDisplayName(" ");
+        infoFiller.setItemMeta(infoMeta);
+        for (int i = INFO_ROW_START; i < NAVIGATION_ROW_START; i++) {
+            gui.setItem(i, infoFiller.clone());
+        }
+
+        // Fill navigation row (45-53) with black glass
+        ItemStack navFiller = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemMeta navMeta = navFiller.getItemMeta();
+        navMeta.setDisplayName(" ");
+        navFiller.setItemMeta(navMeta);
+        for (int i = NAVIGATION_ROW_START; i < 54; i++) {
+            gui.setItem(i, navFiller.clone());
+        }
     }
 
     @Override
@@ -198,6 +222,11 @@ public class MaterialSelectorGUIPage implements IGUIPage {
             return;
 
         String displayName = item.getItemMeta().getDisplayName();
+        
+        // Ignore filler glass panes
+        if (displayName.equals(" ")) {
+            return;
+        }
 
         // Handle pagination navigation
         GUIPaginationHelper.PaginationAction paginationAction = GUIPaginationHelper.checkPaginationClick(item);
@@ -225,9 +254,12 @@ public class MaterialSelectorGUIPage implements IGUIPage {
             return;
         }
 
-        // Handle material selection
+        // Handle material selection (any material item in the grid)
         Material selectedMaterial = item.getType();
-        if (selectedMaterial != Material.AIR) {
+        if (selectedMaterial != Material.AIR && 
+            selectedMaterial != Material.GRAY_STAINED_GLASS_PANE &&
+            selectedMaterial != Material.LIGHT_GRAY_STAINED_GLASS_PANE &&
+            selectedMaterial != Material.BLACK_STAINED_GLASS_PANE) {
             setIcon(player, type, areaName, backupId, selectedMaterial);
         }
     }
@@ -407,47 +439,50 @@ public class MaterialSelectorGUIPage implements IGUIPage {
     }
 
     private void addInfoAndNavigationItems(Inventory gui, String type, String areaName, String backupId) {
-        // Info item
-        ItemStack infoItem = new ItemStack(Material.PAPER);
+        // Info item - center of info row
+        ItemStack infoItem = new ItemStack(Material.PAINTING);
         ItemMeta infoMeta = infoItem.getItemMeta();
-        infoMeta.setDisplayName(ChatColor.AQUA + "Icon Selection");
+        infoMeta.setDisplayName(ChatColor.AQUA + "📋 Icon Selection");
         List<String> infoLore = new ArrayList<>();
-        infoLore.add(ChatColor.GRAY + "Setting icon for: " +
+        infoLore.add("");
+        infoLore.add(ChatColor.WHITE + "Target: " + ChatColor.YELLOW +
                 (type.equals("area") ? "Area '" + areaName + "'" : "Backup #" + backupId));
         infoLore.add("");
-        infoLore.add(ChatColor.YELLOW + "Click any material to select it");
-        infoLore.add(ChatColor.YELLOW + "Or use the item in your hand");
+        infoLore.add(ChatColor.GRAY + "━━━━━━━━━━━━━━━━");
+        infoLore.add(ChatColor.GREEN + "▶ " + ChatColor.WHITE + "Click any material to select");
+        infoLore.add(ChatColor.GREEN + "▶ " + ChatColor.WHITE + "Use hand item for custom icons");
         infoLore.add("");
-        infoLore.add(ChatColor.AQUA + "Pro tip: Hold a custom player head");
-        infoLore.add(ChatColor.AQUA + "and use 'Use Item in Hand' to set");
-        infoLore.add(ChatColor.AQUA + "a custom head with textures!");
+        infoLore.add(ChatColor.DARK_AQUA + "💡 Tip: " + ChatColor.GRAY + "Hold a custom player head");
+        infoLore.add(ChatColor.GRAY + "   to set textured icons!");
         infoMeta.setLore(infoLore);
         infoItem.setItemMeta(infoMeta);
         gui.setItem(INFO_ROW_START + 4, infoItem);
 
         // Use item in hand button
-        ItemStack handItem = new ItemStack(Material.STICK);
+        ItemStack handItem = new ItemStack(Material.DIAMOND);
         ItemMeta handMeta = handItem.getItemMeta();
-        handMeta.setDisplayName(ChatColor.GREEN + "Use Item in Hand");
+        handMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "✋ Use Item in Hand");
         List<String> handLore = new ArrayList<>();
-        handLore.add(ChatColor.GRAY + "Use the item you're currently holding");
-        handLore.add(ChatColor.GRAY + "as the icon material");
         handLore.add("");
-        handLore.add(ChatColor.AQUA + "Supports custom player heads with");
-        handLore.add(ChatColor.AQUA + "textures and special properties!");
+        handLore.add(ChatColor.GRAY + "Use the item you're");
+        handLore.add(ChatColor.GRAY + "currently holding.");
         handLore.add("");
-        handLore.add(ChatColor.YELLOW + "Click to use held item");
+        handLore.add(ChatColor.DARK_GRAY + "Supports custom heads,");
+        handLore.add(ChatColor.DARK_GRAY + "textures & special items!");
+        handLore.add("");
+        handLore.add(ChatColor.YELLOW + "▶ Click to use");
         handMeta.setLore(handLore);
         handItem.setItemMeta(handMeta);
         gui.setItem(NAVIGATION_ROW_START + 3, handItem);
 
         // Cancel button
-        ItemStack cancelItem = new ItemStack(Material.BARRIER);
+        ItemStack cancelItem = new ItemStack(Material.ARROW);
         ItemMeta cancelMeta = cancelItem.getItemMeta();
-        cancelMeta.setDisplayName(ChatColor.RED + "Cancel");
+        cancelMeta.setDisplayName(ChatColor.RED + "✖ Cancel");
         List<String> cancelLore = new ArrayList<>();
-        cancelLore.add(ChatColor.GRAY + "Cancel icon selection");
-        cancelLore.add(ChatColor.GRAY + "Return to previous menu");
+        cancelLore.add("");
+        cancelLore.add(ChatColor.GRAY + "Cancel selection and");
+        cancelLore.add(ChatColor.GRAY + "return to previous menu.");
         cancelMeta.setLore(cancelLore);
         cancelItem.setItemMeta(cancelMeta);
         gui.setItem(NAVIGATION_ROW_START + 5, cancelItem);

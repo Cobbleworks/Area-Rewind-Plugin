@@ -40,79 +40,123 @@ public class SettingsGUIPage implements IGUIPage {
             return;
         }
 
-        Inventory gui = Bukkit.createInventory(null, 54, ChatColor.DARK_PURPLE + "Area Rewind Settings");
+        Inventory gui = Bukkit.createInventory(null, 45, ChatColor.DARK_PURPLE + "⚙ Personal Settings");
+
+        // Fill background
+        fillBackground(gui);
+
+        // === HEADER ===
+        addHeader(gui, player);
 
         // === PERSONAL SETTINGS (Always available) ===
         if (playerListener != null) {
-            // Wooden Hoe Selection Setting
-            boolean hoeEnabled = playerListener.getPlayerWoodenHoeMode(player);
-            ItemStack hoeItem = new ItemStack(hoeEnabled ? Material.WOODEN_HOE : Material.GRAY_DYE);
-            ItemMeta hoeMeta = hoeItem.getItemMeta();
-            hoeMeta.setDisplayName(ChatColor.YELLOW + "Wooden Hoe Selection");
-            List<String> hoeLore = new ArrayList<>();
-            hoeLore.add(ChatColor.GRAY + "Enable wooden hoe for area selection");
-            hoeLore.add("");
-            hoeLore.add(ChatColor.YELLOW + "Current: " +
-                    (hoeEnabled ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled"));
-            hoeLore.add("");
-            if (hoeEnabled) {
-                hoeLore.add(ChatColor.RED + "Click to disable");
-            } else {
-                hoeLore.add(ChatColor.GREEN + "Click to enable");
-            }
-            hoeMeta.setLore(hoeLore);
-            hoeItem.setItemMeta(hoeMeta);
-            gui.setItem(10, hoeItem);
-
-            // Progress Logging Setting
-            boolean progressEnabled = playerListener.getPlayerProgressLoggingMode(player);
-            ItemStack progressItem = new ItemStack(progressEnabled ? Material.PAPER : Material.GRAY_DYE);
-            ItemMeta progressMeta = progressItem.getItemMeta();
-            progressMeta.setDisplayName(ChatColor.YELLOW + "Progress Logging");
-            List<String> progressLore = new ArrayList<>();
-            progressLore.add(ChatColor.GRAY + "Show progress messages during");
-            progressLore.add(ChatColor.GRAY + "long restore operations");
-            progressLore.add("");
-            progressLore.add(ChatColor.YELLOW + "Current: " +
-                    (progressEnabled ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled"));
-            progressLore.add("");
-            if (progressEnabled) {
-                progressLore.add(ChatColor.RED + "Click to disable");
-                progressLore.add(ChatColor.GRAY + "Hide progress messages");
-            } else {
-                progressLore.add(ChatColor.GREEN + "Click to enable");
-                progressLore.add(ChatColor.GRAY + "Show progress messages");
-            }
-            progressMeta.setLore(progressLore);
-            progressItem.setItemMeta(progressMeta);
-            gui.setItem(12, progressItem);
+            addPersonalSettings(gui, player);
         }
 
-        // === INFORMATION ===
-        ItemStack infoItem = new ItemStack(Material.BOOK);
+        // === NAVIGATION BAR ===
+        addNavigationBar(gui);
+
+        player.openInventory(gui);
+        guiManager.registerOpenGUI(player, getPageType());
+    }
+
+    private void fillBackground(Inventory gui) {
+        ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = filler.getItemMeta();
+        meta.setDisplayName(" ");
+        filler.setItemMeta(meta);
+        
+        for (int i = 0; i < gui.getSize(); i++) {
+            gui.setItem(i, filler.clone());
+        }
+    }
+
+    private void addHeader(Inventory gui, Player player) {
+        // Plugin Info header (center top)
+        ItemStack infoItem = new ItemStack(Material.NETHER_STAR);
         ItemMeta infoMeta = infoItem.getItemMeta();
-        infoMeta.setDisplayName(ChatColor.GOLD + "Plugin Information");
+        infoMeta.setDisplayName(ChatColor.GOLD + "✦ Area Rewind");
         List<String> infoLore = new ArrayList<>();
-        infoLore.add(ChatColor.GRAY + "Area Rewind Plugin");
-        infoLore.add(ChatColor.GRAY + "Version: 1.0.6-SNAPSHOT");
-        infoLore.add(ChatColor.GRAY + "Manage area backups and restoration");
         infoLore.add("");
-        if (playerListener != null) {
-            infoLore.add(ChatColor.AQUA + "Personal Settings Available");
-        }
+        infoLore.add(ChatColor.GRAY + "━━━━━━━━━━━━━━━━");
+        infoLore.add(ChatColor.WHITE + "Version: " + ChatColor.AQUA + "1.0.9-SNAPSHOT");
+        infoLore.add(ChatColor.GRAY + "━━━━━━━━━━━━━━━━");
+        infoLore.add("");
+        infoLore.add(ChatColor.GRAY + "Manage area backups and");
+        infoLore.add(ChatColor.GRAY + "restoration with ease.");
         infoMeta.setLore(infoLore);
         infoItem.setItemMeta(infoMeta);
         gui.setItem(4, infoItem);
 
-        // Back button
-        ItemStack backItem = new ItemStack(Material.BARRIER);
-        ItemMeta backMeta = backItem.getItemMeta();
-        backMeta.setDisplayName(ChatColor.GRAY + "Back to My Areas");
-        backItem.setItemMeta(backMeta);
-        gui.setItem(49, backItem);
+        // Section header for settings
+        ItemStack sectionHeader = new ItemStack(Material.LIGHT_BLUE_STAINED_GLASS_PANE);
+        ItemMeta sectionMeta = sectionHeader.getItemMeta();
+        sectionMeta.setDisplayName(ChatColor.AQUA + "▼ Your Preferences");
+        sectionHeader.setItemMeta(sectionMeta);
+        gui.setItem(13, sectionHeader);
+    }
 
-        player.openInventory(gui);
-        guiManager.registerOpenGUI(player, getPageType());
+    private void addPersonalSettings(Inventory gui, Player player) {
+        // Wooden Hoe Selection Setting - slot 20
+        boolean hoeEnabled = playerListener.getPlayerWoodenHoeMode(player);
+        ItemStack hoeItem = new ItemStack(hoeEnabled ? Material.WOODEN_HOE : Material.BARRIER);
+        ItemMeta hoeMeta = hoeItem.getItemMeta();
+        hoeMeta.setDisplayName(ChatColor.YELLOW + "🪓 Wooden Hoe Selection");
+        List<String> hoeLore = new ArrayList<>();
+        hoeLore.add("");
+        hoeLore.add(ChatColor.GRAY + "Use a wooden hoe to");
+        hoeLore.add(ChatColor.GRAY + "select area corners.");
+        hoeLore.add("");
+        hoeLore.add(ChatColor.GRAY + "━━━━━━━━━━━━━━━━");
+        hoeLore.add(ChatColor.WHITE + "Status: " + 
+                (hoeEnabled ? ChatColor.GREEN + "✔ Enabled" : ChatColor.RED + "✘ Disabled"));
+        hoeLore.add("");
+        hoeLore.add((hoeEnabled ? ChatColor.RED + "▶ Click to disable" : ChatColor.GREEN + "▶ Click to enable"));
+        hoeMeta.setLore(hoeLore);
+        hoeItem.setItemMeta(hoeMeta);
+        gui.setItem(20, hoeItem);
+
+        // Progress Logging Setting - slot 24
+        boolean progressEnabled = playerListener.getPlayerProgressLoggingMode(player);
+        ItemStack progressItem = new ItemStack(progressEnabled ? Material.WRITABLE_BOOK : Material.BARRIER);
+        ItemMeta progressMeta = progressItem.getItemMeta();
+        progressMeta.setDisplayName(ChatColor.AQUA + "📝 Progress Messages");
+        List<String> progressLore = new ArrayList<>();
+        progressLore.add("");
+        progressLore.add(ChatColor.GRAY + "Show progress updates");
+        progressLore.add(ChatColor.GRAY + "during restore operations.");
+        progressLore.add("");
+        progressLore.add(ChatColor.GRAY + "━━━━━━━━━━━━━━━━");
+        progressLore.add(ChatColor.WHITE + "Status: " +
+                (progressEnabled ? ChatColor.GREEN + "✔ Enabled" : ChatColor.RED + "✘ Disabled"));
+        progressLore.add("");
+        progressLore.add((progressEnabled ? ChatColor.RED + "▶ Click to disable" : ChatColor.GREEN + "▶ Click to enable"));
+        progressMeta.setLore(progressLore);
+        progressItem.setItemMeta(progressMeta);
+        gui.setItem(24, progressItem);
+    }
+
+    private void addNavigationBar(Inventory gui) {
+        // Black glass for nav bar
+        ItemStack navFiller = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemMeta navMeta = navFiller.getItemMeta();
+        navMeta.setDisplayName(" ");
+        navFiller.setItemMeta(navMeta);
+        for (int i = 36; i < 45; i++) {
+            gui.setItem(i, navFiller.clone());
+        }
+
+        // Back button - slot 40
+        ItemStack backItem = new ItemStack(Material.ARROW);
+        ItemMeta backMeta = backItem.getItemMeta();
+        backMeta.setDisplayName(ChatColor.GRAY + "◀ Back to My Areas");
+        List<String> backLore = new ArrayList<>();
+        backLore.add("");
+        backLore.add(ChatColor.GRAY + "Return to your");
+        backLore.add(ChatColor.GRAY + "areas overview.");
+        backMeta.setLore(backLore);
+        backItem.setItemMeta(backMeta);
+        gui.setItem(40, backItem);
     }
 
     @Override
@@ -122,6 +166,11 @@ public class SettingsGUIPage implements IGUIPage {
             return;
 
         String displayName = item.getItemMeta().getDisplayName();
+        
+        // Ignore filler glass panes
+        if (displayName.equals(" ") || displayName.startsWith("▼")) {
+            return;
+        }
 
         if (displayName.contains("Back to My Areas")) {
             player.closeInventory();
@@ -140,7 +189,7 @@ public class SettingsGUIPage implements IGUIPage {
                 player.closeInventory();
                 openGUI(player);
                 return;
-            } else if (displayName.contains("Progress Logging")) {
+            } else if (displayName.contains("Progress")) {
                 // Toggle personal progress logging setting
                 boolean current = playerListener.getPlayerProgressLoggingMode(player);
                 playerListener.setPlayerProgressLoggingMode(player, !current);

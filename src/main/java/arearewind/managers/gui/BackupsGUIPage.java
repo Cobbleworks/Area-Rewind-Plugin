@@ -77,15 +77,22 @@ public class BackupsGUIPage implements IGUIPage {
         GUIPaginationHelper.updatePaginationData(player.getUniqueId(),
                 paginationInfo.getCurrentPage(), paginationInfo.getMaxPage(), getPageType(), areaName);
 
-        // Create inventory with page info in title
-        String title = ChatColor.DARK_BLUE + "Area Management: " + areaName;
+        // Create inventory with improved title
+        String title = ChatColor.DARK_BLUE + "📦 Backups: " + ChatColor.WHITE + areaName;
         if (paginationInfo.getMaxPage() > 0) {
-            title += " (" + (paginationInfo.getCurrentPage() + 1) + "/" + (paginationInfo.getMaxPage() + 1) + ")";
+            title += ChatColor.GRAY + " (" + (paginationInfo.getCurrentPage() + 1) + "/" + (paginationInfo.getMaxPage() + 1) + ")";
         }
         Inventory gui = Bukkit.createInventory(null, 54, title);
 
+        // Fill info row with glass
+        fillInfoRow(gui);
+        
+        // Fill navigation row with black glass
+        fillNavigationRow(gui);
+
         // Add backup items for current page
         int slot = 0;
+        int currentPointer = backupManager.getUndoPointer(areaName);
         for (int i = paginationInfo.getStartIndex(); i < paginationInfo.getEndIndex(); i++) {
             AreaBackup backup = backups.get(i);
 
@@ -93,33 +100,39 @@ public class BackupsGUIPage implements IGUIPage {
             ItemStack item = backup.getIconItem() != null ? backup.getIconItem().clone()
                     : new ItemStack(Material.CHEST);
             ItemMeta meta = item.getItemMeta();
-            meta.setDisplayName(ChatColor.AQUA + "Backup #" + i);
+            
+            // Highlight current state backup
+            boolean isCurrent = (currentPointer == i);
+            String prefix = isCurrent ? ChatColor.GREEN + "▶ " : ChatColor.AQUA + "";
+            meta.setDisplayName(prefix + "Backup #" + i);
 
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Created: " + backup.getTimestamp().format(
-                    DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss")));
-            lore.add(ChatColor.GRAY + "Blocks: " + backup.getBlocksNonAirOnly().size());
+            lore.add("");
+            lore.add(ChatColor.WHITE + "Created: " + ChatColor.YELLOW + backup.getTimestamp().format(
+                    DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss")));
+            lore.add(ChatColor.WHITE + "Blocks: " + ChatColor.AQUA + String.format("%,d", backup.getBlocksNonAirOnly().size()));
 
             // Check if this backup is used for auto-restore
             var intervalConfig = intervalManager.getIntervalConfig(areaName);
             if (intervalConfig != null && intervalConfig.backupId == i) {
-                lore.add(ChatColor.GREEN + "Used for auto-restore (" + intervalConfig.minutes + "m)");
+                lore.add(ChatColor.LIGHT_PURPLE + "⏰ Auto-Restore: " + ChatColor.GREEN + "Every " + intervalConfig.minutes + "m");
             }
 
-            // Show "← Current State" on the backup that represents the current state of the
-            // area
-            if (backupManager.getUndoPointer(areaName) == i) {
-                lore.add(ChatColor.GREEN + "← Current State");
+            // Show "← Current State" on the backup that represents the current state
+            if (isCurrent) {
+                lore.add("");
+                lore.add(ChatColor.GREEN + "★ Current State");
             }
 
             lore.add("");
+            lore.add(ChatColor.GRAY + "━━━━━━━━━━━━━━━━");
             if (permissionManager.canRestoreBackup(player, area)) {
-                lore.add(ChatColor.YELLOW + "Left Click: Restore");
+                lore.add(ChatColor.GREEN + "▶ Left-click: " + ChatColor.WHITE + "Restore");
             }
-            lore.add(ChatColor.YELLOW + "Shift+Click: Compare with current");
-            lore.add(ChatColor.RED + "Shift+Right Click: Delete Backup");
+            lore.add(ChatColor.YELLOW + "▶ Shift-click: " + ChatColor.WHITE + "Compare");
+            lore.add(ChatColor.RED + "▶ Shift+Right: " + ChatColor.WHITE + "Delete");
             if (permissionManager.canModifyBoundaries(player, area)) {
-                lore.add(ChatColor.YELLOW + "Middle Click: Set Icon");
+                lore.add(ChatColor.LIGHT_PURPLE + "▶ Middle-click: " + ChatColor.WHITE + "Set Icon");
             }
 
             meta.setLore(lore);
@@ -127,10 +140,13 @@ public class BackupsGUIPage implements IGUIPage {
             gui.setItem(slot++, item);
         }
 
+        // Add info item in info row
+        addInfoItem(gui, areaName, area, backups, paginationInfo);
+
         // Add pagination navigation if needed
         if (paginationInfo.getMaxPage() > 0) {
             GUIPaginationHelper.addPaginationButtons(gui, paginationInfo,
-                    NAVIGATION_ROW_START, NAVIGATION_ROW_START + 8, -1); // No info button for backups page
+                    NAVIGATION_ROW_START, NAVIGATION_ROW_START + 8, -1);
         }
 
         // Add control items in bottom row (45-53)
@@ -138,6 +154,60 @@ public class BackupsGUIPage implements IGUIPage {
 
         player.openInventory(gui);
         guiManager.registerOpenGUI(player, getPageType() + ":" + areaName);
+    }
+
+    private void fillInfoRow(Inventory gui) {
+        ItemStack filler = new ItemStack(Material.LIGHT_GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = filler.getItemMeta();
+        meta.setDisplayName(" ");
+        filler.setItemMeta(meta);
+        for (int i = 28; i < 45; i++) {
+            gui.setItem(i, filler.clone());
+        }
+    }
+
+    private void fillNavigationRow(Inventory gui) {
+        ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemMeta meta = filler.getItemMeta();
+        meta.setDisplayName(" ");
+        filler.setItemMeta(meta);
+        for (int i = NAVIGATION_ROW_START; i < 54; i++) {
+            gui.setItem(i, filler.clone());
+        }
+    }
+
+    private void addInfoItem(Inventory gui, String areaName, ProtectedArea area, List<AreaBackup> backups, PaginationInfo paginationInfo) {
+        ItemStack infoItem = new ItemStack(Material.BOOK);
+        ItemMeta infoMeta = infoItem.getItemMeta();
+        infoMeta.setDisplayName(ChatColor.AQUA + "📊 Backup Overview");
+        List<String> infoLore = new ArrayList<>();
+        infoLore.add("");
+        infoLore.add(ChatColor.WHITE + "Area: " + ChatColor.GREEN + areaName);
+        infoLore.add(ChatColor.WHITE + "Owner: " + ChatColor.GOLD + Bukkit.getOfflinePlayer(area.getOwner()).getName());
+        infoLore.add(ChatColor.WHITE + "Total Backups: " + ChatColor.YELLOW + backups.size());
+        
+        int currentPointer = backupManager.getUndoPointer(areaName);
+        infoLore.add(ChatColor.WHITE + "Current Position: " + ChatColor.AQUA + "#" + currentPointer);
+        
+        if (paginationInfo.getMaxPage() > 0) {
+            infoLore.add("");
+            infoLore.add(ChatColor.GRAY + "Showing: " + 
+                    (paginationInfo.getStartIndex() + 1) + "-" + paginationInfo.getEndIndex() +
+                    " of " + backups.size());
+        }
+        
+        // Auto-restore status
+        infoLore.add("");
+        var intervalConfig = intervalManager.getIntervalConfig(areaName);
+        if (intervalConfig != null) {
+            infoLore.add(ChatColor.LIGHT_PURPLE + "⏰ Auto-Restore: " + ChatColor.GREEN + "Active");
+        } else {
+            infoLore.add(ChatColor.LIGHT_PURPLE + "⏰ Auto-Restore: " + ChatColor.DARK_GRAY + "Inactive");
+        }
+        
+        infoMeta.setLore(infoLore);
+        infoItem.setItemMeta(infoMeta);
+        gui.setItem(36, infoItem);
     }
 
     @Override
@@ -193,6 +263,13 @@ public class BackupsGUIPage implements IGUIPage {
             return;
 
         String displayName = item.getItemMeta().getDisplayName();
+        
+        // Ignore filler glass panes
+        if (displayName.equals(" ")) {
+            return;
+        }
+        
+        String strippedName = ChatColor.stripColor(displayName);
 
         // Handle pagination navigation
         GUIPaginationHelper.PaginationAction paginationAction = GUIPaginationHelper.checkPaginationClick(item);
@@ -352,16 +429,16 @@ public class BackupsGUIPage implements IGUIPage {
     }
 
     private void addAreaSettingsButton(Inventory gui, ProtectedArea area, String areaName, int slot) {
-        // Area Settings Button (moved from addAreaInfoItems)
+        // Area Settings Button
         ItemStack settingsItem = new ItemStack(Material.COMPARATOR);
         ItemMeta settingsMeta = settingsItem.getItemMeta();
-        settingsMeta.setDisplayName(ChatColor.GOLD + "Area Settings");
+        settingsMeta.setDisplayName(ChatColor.GOLD + "⚙ Area Settings");
         List<String> settingsLore = new ArrayList<>();
-        settingsLore.add(ChatColor.GRAY + "Manage area settings and permissions");
-        settingsLore.add(ChatColor.GRAY + "View backup statistics");
-        settingsLore.add(ChatColor.GRAY + "Area management options");
         settingsLore.add("");
-        settingsLore.add(ChatColor.YELLOW + "Click to open settings");
+        settingsLore.add(ChatColor.GRAY + "Manage area settings,");
+        settingsLore.add(ChatColor.GRAY + "permissions, and more.");
+        settingsLore.add("");
+        settingsLore.add(ChatColor.YELLOW + "▶ Click to open");
         settingsMeta.setLore(settingsLore);
         settingsItem.setItemMeta(settingsMeta);
         gui.setItem(slot, settingsItem);
@@ -369,47 +446,55 @@ public class BackupsGUIPage implements IGUIPage {
 
     private void addControlItems(Inventory gui, String areaName, ProtectedArea area, Player player,
             PaginationInfo paginationInfo) {
-        // Adjust slot positions based on whether pagination is present
-        // New order: create backup, undo + redo, teleport to, return to areas, preview,
-        // interval, empty, "Area Settings"
-        int createSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 1 : NAVIGATION_ROW_START;
-        int undoSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 2 : NAVIGATION_ROW_START + 1;
-        int redoSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 3 : NAVIGATION_ROW_START + 2;
-        int teleportSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 4 : NAVIGATION_ROW_START + 3;
-        int backSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 5 : NAVIGATION_ROW_START + 4;
-        int previewSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 6 : NAVIGATION_ROW_START + 5;
-        int intervalSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 7 : NAVIGATION_ROW_START + 6;
-        // Slot 7/8 is empty
-        int settingsSlot = NAVIGATION_ROW_START + 8; // Always at the end
+        // Fixed slot positions in navigation row
+        int createSlot = 46;
+        int undoSlot = 47;
+        int redoSlot = 48;
+        int teleportSlot = 49;
+        int backSlot = 50;
+        int previewSlot = 51;
+        int intervalSlot = 52;
+        int settingsSlot = 53;
 
         // Create Backup
         if (permissionManager.canCreateBackup(player, area)) {
-            ItemStack createItem = new ItemStack(Material.CRAFTING_TABLE);
+            ItemStack createItem = new ItemStack(Material.EMERALD);
             ItemMeta createMeta = createItem.getItemMeta();
-            createMeta.setDisplayName(ChatColor.GREEN + "Create Backup");
+            createMeta.setDisplayName(ChatColor.GREEN + "➕ Create Backup");
+            List<String> createLore = new ArrayList<>();
+            createLore.add("");
+            createLore.add(ChatColor.GRAY + "Save the current state");
+            createLore.add(ChatColor.GRAY + "of this area.");
+            createLore.add("");
+            createLore.add(ChatColor.YELLOW + "▶ Click to create");
+            createMeta.setLore(createLore);
             createItem.setItemMeta(createMeta);
             gui.setItem(createSlot, createItem);
         }
 
-        // Undo/Redo
+        // Undo
         if (permissionManager.canUndoRedo(player, area) && backupManager.canUndo(areaName)) {
-            ItemStack undoItem = new ItemStack(Material.ARROW);
+            ItemStack undoItem = new ItemStack(Material.ORANGE_DYE);
             ItemMeta undoMeta = undoItem.getItemMeta();
-            undoMeta.setDisplayName(ChatColor.YELLOW + "Undo Last Restore");
+            undoMeta.setDisplayName(ChatColor.GOLD + "↩ Undo");
             List<String> undoLore = new ArrayList<>();
-            undoLore.add(ChatColor.GRAY + "Restore the area to its state");
-            undoLore.add(ChatColor.GRAY + "before the last backup restore");
+            undoLore.add("");
+            undoLore.add(ChatColor.GRAY + "Revert to previous");
+            undoLore.add(ChatColor.GRAY + "backup state.");
             undoMeta.setLore(undoLore);
             undoItem.setItemMeta(undoMeta);
             gui.setItem(undoSlot, undoItem);
         }
 
+        // Redo
         if (permissionManager.canUndoRedo(player, area) && backupManager.canRedo(areaName)) {
-            ItemStack redoItem = new ItemStack(Material.ARROW);
+            ItemStack redoItem = new ItemStack(Material.LIME_DYE);
             ItemMeta redoMeta = redoItem.getItemMeta();
-            redoMeta.setDisplayName(ChatColor.YELLOW + "Redo Last Undo");
+            redoMeta.setDisplayName(ChatColor.GREEN + "↪ Redo");
             List<String> redoLore = new ArrayList<>();
-            redoLore.add(ChatColor.GRAY + "Redo the last undo operation");
+            redoLore.add("");
+            redoLore.add(ChatColor.GRAY + "Redo the last");
+            redoLore.add(ChatColor.GRAY + "undo operation.");
             redoMeta.setLore(redoLore);
             redoItem.setItemMeta(redoMeta);
             gui.setItem(redoSlot, redoItem);
@@ -419,41 +504,39 @@ public class BackupsGUIPage implements IGUIPage {
         if (permissionManager.hasAreaPermission(player, area)) {
             ItemStack teleportItem = new ItemStack(Material.ENDER_PEARL);
             ItemMeta teleportMeta = teleportItem.getItemMeta();
-            teleportMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Teleport to Area");
+            teleportMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "🌀 Teleport to Area");
+            List<String> teleportLore = new ArrayList<>();
+            teleportLore.add("");
+            teleportLore.add(ChatColor.GRAY + "Teleport to the");
+            teleportLore.add(ChatColor.GRAY + "area center.");
+            teleportMeta.setLore(teleportLore);
             teleportItem.setItemMeta(teleportMeta);
             gui.setItem(teleportSlot, teleportItem);
         }
 
-        // Preview Area - NOW WITH AREA INFO IN TOOLTIP
+        // Back button
+        ItemStack backItem = new ItemStack(Material.ARROW);
+        ItemMeta backMeta = backItem.getItemMeta();
+        backMeta.setDisplayName(ChatColor.GRAY + "◀ Back to My Areas");
+        List<String> backLore = new ArrayList<>();
+        backLore.add("");
+        backLore.add(ChatColor.GRAY + "Return to areas list.");
+        backMeta.setLore(backLore);
+        backItem.setItemMeta(backMeta);
+        gui.setItem(backSlot, backItem);
+
+        // Preview Area
         if (permissionManager.canVisualize(player, area)) {
             ItemStack previewItem = new ItemStack(Material.SPYGLASS);
             ItemMeta previewMeta = previewItem.getItemMeta();
-            previewMeta.setDisplayName(ChatColor.AQUA + "Preview Area");
+            previewMeta.setDisplayName(ChatColor.AQUA + "👁 Preview Area");
 
-            // Add area information to the preview button tooltip
             List<String> previewLore = new ArrayList<>();
+            previewLore.add("");
             previewLore.add(ChatColor.GRAY + "Visualize area boundaries");
+            previewLore.add(ChatColor.GRAY + "with particle effects.");
             previewLore.add("");
-            previewLore.add(ChatColor.GREEN + "Area Information:");
-            previewLore.add(ChatColor.GRAY + "Name: " + areaName);
-            previewLore.add(ChatColor.GRAY + "Owner: " + Bukkit.getOfflinePlayer(area.getOwner()).getName());
-            previewLore.add(ChatColor.GRAY + "World: " + area.getPos1().getWorld().getName());
-            previewLore.add(ChatColor.GRAY + "Size: " + area.getSize() + " blocks");
-
-            // Add interval information to preview button
-            var intervalConfig = intervalManager.getIntervalConfig(areaName);
-            if (intervalConfig != null) {
-                previewLore.add("");
-                previewLore.add(ChatColor.AQUA + "Auto-Restore: " + ChatColor.GREEN + "Active");
-                previewLore.add(ChatColor.GRAY + "Interval: " + intervalConfig.minutes + " minutes");
-                previewLore.add(ChatColor.GRAY + "Backup: #" + intervalConfig.backupId);
-            } else {
-                previewLore.add("");
-                previewLore.add(ChatColor.AQUA + "Auto-Restore: " + ChatColor.RED + "Inactive");
-            }
-
-            previewLore.add("");
-            previewLore.add(ChatColor.YELLOW + "Click to preview area boundaries");
+            previewLore.add(ChatColor.YELLOW + "▶ Click to preview");
 
             previewMeta.setLore(previewLore);
             previewItem.setItemMeta(previewMeta);
@@ -467,21 +550,23 @@ public class BackupsGUIPage implements IGUIPage {
             ItemMeta intervalMeta = intervalItem.getItemMeta();
 
             if (intervalConfig != null) {
-                intervalMeta.setDisplayName(ChatColor.AQUA + "Auto-Restore Settings");
+                intervalMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "⏰ Auto-Restore");
                 List<String> intervalLore = new ArrayList<>();
-                intervalLore.add(ChatColor.GREEN + "Auto-restore is active");
-                intervalLore.add(ChatColor.GRAY + "Interval: " + intervalConfig.minutes + " minutes");
-                intervalLore.add(ChatColor.GRAY + "Backup: #" + intervalConfig.backupId);
                 intervalLore.add("");
-                intervalLore.add(ChatColor.YELLOW + "Left Click: Disable auto-restore");
-                intervalLore.add(ChatColor.YELLOW + "Right Click: Configure settings");
+                intervalLore.add(ChatColor.GREEN + "✔ Active");
+                intervalLore.add(ChatColor.WHITE + "Interval: " + ChatColor.AQUA + intervalConfig.minutes + "m");
+                intervalLore.add(ChatColor.WHITE + "Backup: " + ChatColor.YELLOW + "#" + intervalConfig.backupId);
+                intervalLore.add("");
+                intervalLore.add(ChatColor.GREEN + "Left-click: " + ChatColor.WHITE + "Disable");
+                intervalLore.add(ChatColor.YELLOW + "Right-click: " + ChatColor.WHITE + "Configure");
                 intervalMeta.setLore(intervalLore);
             } else {
-                intervalMeta.setDisplayName(ChatColor.GRAY + "Auto-Restore Settings");
+                intervalMeta.setDisplayName(ChatColor.GRAY + "⏰ Auto-Restore");
                 List<String> intervalLore = new ArrayList<>();
-                intervalLore.add(ChatColor.RED + "Auto-restore is inactive");
                 intervalLore.add("");
-                intervalLore.add(ChatColor.YELLOW + "Click to set up auto-restore");
+                intervalLore.add(ChatColor.RED + "✘ Inactive");
+                intervalLore.add("");
+                intervalLore.add(ChatColor.YELLOW + "▶ Click to set up");
                 intervalMeta.setLore(intervalLore);
             }
 
@@ -489,14 +574,7 @@ public class BackupsGUIPage implements IGUIPage {
             gui.setItem(intervalSlot, intervalItem);
         }
 
-        // Back button
-        ItemStack backItem = new ItemStack(Material.BARRIER);
-        ItemMeta backMeta = backItem.getItemMeta();
-        backMeta.setDisplayName(ChatColor.GRAY + "Back to My Areas");
-        backItem.setItemMeta(backMeta);
-        gui.setItem(backSlot, backItem);
-
-        // Area Settings button (always at the end)
+        // Area Settings button
         addAreaSettingsButton(gui, area, areaName, settingsSlot);
     }
 }

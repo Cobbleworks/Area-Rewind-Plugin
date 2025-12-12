@@ -168,6 +168,11 @@ public class GUIManager implements Listener {
                 title.contains("Area Rewind Settings") ||
                 title.contains("Personal Settings") ||
                 title.contains("Area Settings:") ||
-                title.contains("Set Icon:");
+                title.contains("Settings") ||  // Catch new "⚙ <name> Settings" format
+                title.contains("Set Icon:") ||
+                title.contains("Select Icon") ||
+                title.contains("Backups:") ||  // New backup page format
+                title.contains("My Areas") ||  // My Areas page
+                title.contains("All Areas");   // All Areas page
     }
 }

@@ -68,13 +68,19 @@ public class MyAreasGUIPage implements IGUIPage {
         GUIPaginationHelper.updatePaginationData(player.getUniqueId(),
                 paginationInfo.getCurrentPage(), paginationInfo.getMaxPage(), getPageType(), null);
 
-        // Create inventory with title
-        String title = ChatColor.DARK_GREEN + "My Protected Areas" +
-                (paginationInfo.getMaxPage() > 0
-                        ? ChatColor.DARK_GREEN + " (" + (paginationInfo.getCurrentPage() + 1) + "/"
-                                + (paginationInfo.getMaxPage() + 1) + ")"
-                        : "");
+        // Create inventory with improved title
+        String title = ChatColor.DARK_GREEN + "👤 My Protected Areas";
+        if (paginationInfo.getMaxPage() > 0) {
+            title += ChatColor.GRAY + " (" + (paginationInfo.getCurrentPage() + 1) + "/" 
+                    + (paginationInfo.getMaxPage() + 1) + ")";
+        }
         Inventory gui = Bukkit.createInventory(null, 54, title);
+
+        // Fill info row with glass
+        fillInfoRow(gui);
+        
+        // Fill navigation row with black glass
+        fillNavigationRow(gui);
 
         // Add area items for current page
         int slot = 0;
@@ -87,35 +93,41 @@ public class MyAreasGUIPage implements IGUIPage {
             ItemStack item = area.getIconItem() != null ? area.getIconItem().clone()
                     : new ItemStack(Material.GRASS_BLOCK);
             ItemMeta meta = item.getItemMeta();
-            meta.setDisplayName(ChatColor.GREEN + areaName);
+            meta.setDisplayName(ChatColor.GREEN + "✦ " + areaName);
 
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Owner: " + ChatColor.YELLOW + "You");
-            lore.add(ChatColor.GRAY + "Size: " + area.getSize() + " blocks");
-            lore.add(ChatColor.GRAY + "Backups: " + backupManager.getBackupHistory(areaName).size());
+            lore.add("");
+            lore.add(ChatColor.WHITE + "Owner: " + ChatColor.RED + "You 👑");
+            lore.add(ChatColor.WHITE + "Size: " + ChatColor.AQUA + String.format("%,d", area.getSize()) + ChatColor.GRAY + " blocks");
+            lore.add(ChatColor.WHITE + "Backups: " + ChatColor.YELLOW + backupManager.getBackupHistory(areaName).size());
+            lore.add(ChatColor.WHITE + "Trusted: " + ChatColor.GREEN + area.getTrustedPlayers().size() + ChatColor.GRAY + " players");
 
             // Add interval information
+            lore.add("");
             var intervalConfig = intervalManager.getIntervalConfig(areaName);
             if (intervalConfig != null) {
-                lore.add(ChatColor.AQUA + "Auto-Restore: " + ChatColor.GREEN + intervalConfig.minutes + "m (#"
-                        + intervalConfig.backupId + ")");
+                lore.add(ChatColor.LIGHT_PURPLE + "⏰ Auto-Restore: " + ChatColor.GREEN + "Every " + intervalConfig.minutes + "m");
             } else {
-                lore.add(ChatColor.AQUA + "Auto-Restore: " + ChatColor.RED + "Inactive");
+                lore.add(ChatColor.LIGHT_PURPLE + "⏰ Auto-Restore: " + ChatColor.DARK_GRAY + "Inactive");
             }
 
             lore.add("");
-            lore.add(ChatColor.YELLOW + "Click: Manage Area & Backups");
-            lore.add(ChatColor.YELLOW + "Middle Click: Set Icon");
+            lore.add(ChatColor.GRAY + "━━━━━━━━━━━━━━━━");
+            lore.add(ChatColor.GREEN + "▶ Left-click: " + ChatColor.WHITE + "View Backups");
+            lore.add(ChatColor.LIGHT_PURPLE + "▶ Middle-click: " + ChatColor.WHITE + "Set Icon");
 
             meta.setLore(lore);
             item.setItemMeta(meta);
             gui.setItem(slot++, item);
         }
 
+        // Add info item in info row
+        addInfoItem(gui, myAreas.size(), paginationInfo);
+
         // Add pagination navigation if needed
         if (paginationInfo.getMaxPage() > 0) {
             GUIPaginationHelper.addPaginationButtons(gui, paginationInfo,
-                    NAVIGATION_ROW_START, NAVIGATION_ROW_START + 8, NAVIGATION_ROW_START + 4);
+                    NAVIGATION_ROW_START, NAVIGATION_ROW_START + 8, -1);
         }
 
         // Add other navigation items
@@ -125,13 +137,60 @@ public class MyAreasGUIPage implements IGUIPage {
         guiManager.registerOpenGUI(player, getPageType());
     }
 
+    private void fillInfoRow(Inventory gui) {
+        ItemStack filler = new ItemStack(Material.LIGHT_GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = filler.getItemMeta();
+        meta.setDisplayName(" ");
+        filler.setItemMeta(meta);
+        for (int i = 35; i < 45; i++) {
+            gui.setItem(i, filler.clone());
+        }
+    }
+
+    private void fillNavigationRow(Inventory gui) {
+        ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemMeta meta = filler.getItemMeta();
+        meta.setDisplayName(" ");
+        filler.setItemMeta(meta);
+        for (int i = NAVIGATION_ROW_START; i < 54; i++) {
+            gui.setItem(i, filler.clone());
+        }
+    }
+
+    private void addInfoItem(Inventory gui, int totalAreas, PaginationInfo paginationInfo) {
+        ItemStack infoItem = new ItemStack(Material.BOOK);
+        ItemMeta infoMeta = infoItem.getItemMeta();
+        infoMeta.setDisplayName(ChatColor.AQUA + "📊 Your Areas");
+        List<String> infoLore = new ArrayList<>();
+        infoLore.add("");
+        infoLore.add(ChatColor.WHITE + "Total Owned: " + ChatColor.GREEN + totalAreas);
+        if (paginationInfo.getMaxPage() > 0) {
+            infoLore.add(ChatColor.WHITE + "Showing: " + ChatColor.YELLOW + 
+                    (paginationInfo.getStartIndex() + 1) + "-" + paginationInfo.getEndIndex() +
+                    ChatColor.GRAY + " of " + totalAreas);
+        }
+        infoLore.add("");
+        infoLore.add(ChatColor.GRAY + "These are areas you");
+        infoLore.add(ChatColor.GRAY + "own and can manage.");
+        infoMeta.setLore(infoLore);
+        infoItem.setItemMeta(infoMeta);
+        gui.setItem(39, infoItem);
+    }
+
     @Override
     public void handleClick(Player player, InventoryClickEvent event) {
         ItemStack item = event.getCurrentItem();
         if (item == null || !item.hasItemMeta())
             return;
 
-        String displayName = ChatColor.stripColor(item.getItemMeta().getDisplayName());
+        String displayName = item.getItemMeta().getDisplayName();
+        
+        // Ignore filler glass panes
+        if (displayName.equals(" ")) {
+            return;
+        }
+        
+        String strippedName = ChatColor.stripColor(displayName);
 
         // Handle pagination navigation
         GUIPaginationHelper.PaginationAction paginationAction = GUIPaginationHelper.checkPaginationClick(item);
@@ -141,40 +200,40 @@ public class MyAreasGUIPage implements IGUIPage {
         }
 
         // Handle navigation buttons
-        if (displayName.equals("Close")) {
+        if (strippedName.contains("Close")) {
             player.closeInventory();
             return;
-        } else if (displayName.equals("Refresh")) {
+        } else if (strippedName.contains("Refresh")) {
             player.closeInventory();
             // Get current page from pagination data
             GUIPaginationHelper.PaginationData paginationData = GUIPaginationHelper
                     .getPaginationData(player.getUniqueId(), getPageType(), null);
             openGUI(player, paginationData.getCurrentPage());
             return;
-        } else if (displayName.equals("Settings")) {
+        } else if (strippedName.contains("Settings")) {
             player.closeInventory();
             guiManager.openSettingsGUI(player);
             return;
-        } else if (displayName.equals("All Areas")) {
+        } else if (strippedName.contains("All Areas")) {
             // Switch to All Areas page
             player.closeInventory();
             guiManager.openAreasGUI(player);
             return;
         }
 
-        // Handle area selection - left click to open backup management, middle click
-        // for icon selection
-        ProtectedArea area = areaManager.getArea(displayName);
+        // Handle area selection - remove the "✦ " prefix if present
+        String areaName = strippedName.startsWith("✦ ") ? strippedName.substring(2) : strippedName;
+        ProtectedArea area = areaManager.getArea(areaName);
         if (area == null)
             return;
 
         if (event.isLeftClick()) {
             player.closeInventory();
-            guiManager.openBackupsGUI(player, displayName);
+            guiManager.openBackupsGUI(player, areaName);
         } else if (event.getClick().name().contains("MIDDLE")) {
             // Middle click to set area icon (player owns the area, so they can modify it)
             player.closeInventory();
-            guiManager.openMaterialSelector(player, "area", displayName, null);
+            guiManager.openMaterialSelector(player, "area", areaName, null);
         }
     }
 
@@ -233,38 +292,55 @@ public class MyAreasGUIPage implements IGUIPage {
     }
 
     private void addNavigationItems(Inventory gui, PaginationInfo paginationInfo) {
-        // Adjust slot positions based on whether pagination is present
-        int refreshSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 1 : NAVIGATION_ROW_START;
-        int allAreasSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 2 : NAVIGATION_ROW_START + 1;
-        int closeSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 3 : NAVIGATION_ROW_START + 4;
-        int settingsSlot = paginationInfo.getMaxPage() > 0 ? NAVIGATION_ROW_START + 7 : NAVIGATION_ROW_START + 8;
+        // Fixed slot positions in navigation row
+        int refreshSlot = 46;
+        int allAreasSlot = 47;
+        int closeSlot = 49;
+        int settingsSlot = 52;
 
+        // Refresh button
         ItemStack refreshItem = new ItemStack(Material.EMERALD);
         ItemMeta refreshMeta = refreshItem.getItemMeta();
-        refreshMeta.setDisplayName(ChatColor.GREEN + "Refresh");
+        refreshMeta.setDisplayName(ChatColor.GREEN + "🔄 Refresh");
+        List<String> refreshLore = new ArrayList<>();
+        refreshLore.add("");
+        refreshLore.add(ChatColor.GRAY + "Reload the area list");
+        refreshMeta.setLore(refreshLore);
         refreshItem.setItemMeta(refreshMeta);
         gui.setItem(refreshSlot, refreshItem);
 
         // All Areas navigation button
-        ItemStack allAreasItem = new ItemStack(Material.CYAN_CONCRETE);
+        ItemStack allAreasItem = new ItemStack(Material.ENDER_EYE);
         ItemMeta allAreasMeta = allAreasItem.getItemMeta();
-        allAreasMeta.setDisplayName(ChatColor.AQUA + "All Areas");
+        allAreasMeta.setDisplayName(ChatColor.AQUA + "🌍 All Areas");
         List<String> allAreasLore = new ArrayList<>();
-        allAreasLore.add(ChatColor.GRAY + "Show all accessible areas");
-        allAreasLore.add(ChatColor.YELLOW + "Click to switch");
+        allAreasLore.add("");
+        allAreasLore.add(ChatColor.GRAY + "Show all accessible");
+        allAreasLore.add(ChatColor.GRAY + "areas (owned + trusted).");
+        allAreasLore.add("");
+        allAreasLore.add(ChatColor.YELLOW + "▶ Click to switch");
         allAreasMeta.setLore(allAreasLore);
         allAreasItem.setItemMeta(allAreasMeta);
         gui.setItem(allAreasSlot, allAreasItem);
 
+        // Close button
         ItemStack closeItem = new ItemStack(Material.BARRIER);
         ItemMeta closeMeta = closeItem.getItemMeta();
-        closeMeta.setDisplayName(ChatColor.RED + "Close");
+        closeMeta.setDisplayName(ChatColor.RED + "✖ Close");
         closeItem.setItemMeta(closeMeta);
         gui.setItem(closeSlot, closeItem);
 
+        // Settings button
         ItemStack settingsItem = new ItemStack(Material.COMPARATOR);
         ItemMeta settingsMeta = settingsItem.getItemMeta();
-        settingsMeta.setDisplayName(ChatColor.YELLOW + "Settings");
+        settingsMeta.setDisplayName(ChatColor.YELLOW + "⚙ Settings");
+        List<String> settingsLore = new ArrayList<>();
+        settingsLore.add("");
+        settingsLore.add(ChatColor.GRAY + "Configure your");
+        settingsLore.add(ChatColor.GRAY + "personal preferences.");
+        settingsLore.add("");
+        settingsLore.add(ChatColor.YELLOW + "▶ Click to open");
+        settingsMeta.setLore(settingsLore);
         settingsItem.setItemMeta(settingsMeta);
         gui.setItem(settingsSlot, settingsItem);
     }

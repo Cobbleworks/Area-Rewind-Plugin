@@ -55,25 +55,52 @@ public class AreaSettingsGUIPage implements IGUIPage {
             return;
         }
 
-        Inventory gui = Bukkit.createInventory(null, 45, ChatColor.DARK_GREEN + "Area Settings: " + areaName);
+        Inventory gui = Bukkit.createInventory(null, 54, ChatColor.DARK_GREEN + "⚙ " + areaName + " Settings");
 
-        // Area Information (top row)
-        addAreaInfoItem(gui, area, areaName, 10);
+        // Fill background with dark gray glass
+        fillBackground(gui);
 
-        // Backup Statistics (top row)
-        addBackupStatisticsItem(gui, areaName, 12);
+        // === TOP SECTION: Info Panel (Row 1) ===
+        addSectionHeader(gui, 4, Material.LIME_STAINED_GLASS_PANE, ChatColor.GREEN + "▼ Information");
+        
+        // Info items centered in row 2
+        addAreaInfoItem(gui, area, areaName, 11);
+        addBackupStatisticsItem(gui, areaName, 13);
+        addPermissionInfoItem(gui, area, player, 15);
 
-        // Permission Information (top row)
-        addPermissionInfoItem(gui, area, player, 14);
-
-        // Management options (middle rows)
+        // === MIDDLE SECTION: Management Actions (Rows 3-4) ===
+        addSectionHeader(gui, 22, Material.YELLOW_STAINED_GLASS_PANE, ChatColor.YELLOW + "▼ Management");
+        
+        // Management options in rows 3-4 (slots 27-35)
         addManagementItems(gui, area, areaName, player);
 
-        // Navigation (bottom row)
-        addNavigationItems(gui, areaName);
+        // === BOTTOM SECTION: Danger Zone (Row 5) ===
+        addDangerZone(gui, area, areaName, player);
+
+        // === NAVIGATION BAR (Row 6) ===
+        addNavigationBar(gui, areaName);
 
         player.openInventory(gui);
         guiManager.registerOpenGUI(player, getPageType() + ":" + areaName);
+    }
+
+    private void fillBackground(Inventory gui) {
+        ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = filler.getItemMeta();
+        meta.setDisplayName(" ");
+        filler.setItemMeta(meta);
+        
+        for (int i = 0; i < gui.getSize(); i++) {
+            gui.setItem(i, filler.clone());
+        }
+    }
+
+    private void addSectionHeader(Inventory gui, int slot, Material material, String title) {
+        ItemStack header = new ItemStack(material);
+        ItemMeta meta = header.getItemMeta();
+        meta.setDisplayName(title);
+        header.setItemMeta(meta);
+        gui.setItem(slot, header);
     }
 
     @Override
@@ -97,9 +124,14 @@ public class AreaSettingsGUIPage implements IGUIPage {
             return;
 
         String displayName = item.getItemMeta().getDisplayName();
+        
+        // Ignore filler glass panes
+        if (displayName.equals(" ") || displayName.startsWith("▼")) {
+            return;
+        }
 
         // Handle navigation buttons
-        if (displayName.contains("Back to Backups")) {
+        if (displayName.contains("View Backups")) {
             player.closeInventory();
             guiManager.openBackupsGUI(player, areaName);
             return;
@@ -184,7 +216,7 @@ public class AreaSettingsGUIPage implements IGUIPage {
                 player.sendMessage(ChatColor.RED + "This action cannot be undone!");
             }
             return;
-        } else if (displayName.contains("Delete All Backups Except Last")) {
+        } else if (displayName.contains("Clear Old Backups")) {
             // Confirmation required for this destructive action
             if (event.isShiftClick()) {
                 ProtectedArea area = areaManager.getArea(areaName);
@@ -205,11 +237,11 @@ public class AreaSettingsGUIPage implements IGUIPage {
                         ChatColor.GREEN + "Deleted " + removed + " backups for area '" + areaName + "' (kept latest)");
             } else {
                 player.sendMessage(ChatColor.RED + "To delete all backups except the last one:");
-                player.sendMessage(ChatColor.YELLOW + "SHIFT+CLICK the button or use:");
-                player.sendMessage(ChatColor.RED + "This action cannot be undone for the removed backups!");
+                player.sendMessage(ChatColor.YELLOW + "SHIFT+CLICK the button!");
+                player.sendMessage(ChatColor.RED + "This action cannot be undone!");
             }
             return;
-        } else if (displayName.contains("Export to Schematic")) {
+        } else if (displayName.contains("Export Schematic")) {
             ProtectedArea area = areaManager.getArea(areaName);
             if (area == null) {
                 player.sendMessage(ChatColor.RED + "Area not found!");
@@ -227,16 +259,19 @@ public class AreaSettingsGUIPage implements IGUIPage {
     }
 
     private void addAreaInfoItem(Inventory gui, ProtectedArea area, String areaName, int slot) {
-        ItemStack infoItem = new ItemStack(Material.PAPER);
+        ItemStack infoItem = new ItemStack(Material.FILLED_MAP);
         ItemMeta infoMeta = infoItem.getItemMeta();
-        infoMeta.setDisplayName(ChatColor.GREEN + "Area Information");
+        infoMeta.setDisplayName(ChatColor.GREEN + "📋 Area Details");
         List<String> infoLore = new ArrayList<>();
-        infoLore.add(ChatColor.GRAY + "Name: " + areaName);
-        infoLore.add(ChatColor.GRAY + "Owner: " + Bukkit.getOfflinePlayer(area.getOwner()).getName());
-        infoLore.add(ChatColor.GRAY + "World: " + area.getPos1().getWorld().getName());
-        infoLore.add(ChatColor.GRAY + "Size: " + area.getSize() + " blocks");
-        infoLore.add(ChatColor.GRAY + "Pos1: " + areaManager.locationToString(area.getPos1()));
-        infoLore.add(ChatColor.GRAY + "Pos2: " + areaManager.locationToString(area.getPos2()));
+        infoLore.add("");
+        infoLore.add(ChatColor.WHITE + "Name: " + ChatColor.AQUA + areaName);
+        infoLore.add(ChatColor.WHITE + "Owner: " + ChatColor.GOLD + Bukkit.getOfflinePlayer(area.getOwner()).getName());
+        infoLore.add(ChatColor.WHITE + "World: " + ChatColor.YELLOW + area.getPos1().getWorld().getName());
+        infoLore.add("");
+        infoLore.add(ChatColor.GRAY + "━━━━━━━━━━━━━━━━");
+        infoLore.add(ChatColor.WHITE + "Size: " + ChatColor.GREEN + String.format("%,d", area.getSize()) + ChatColor.GRAY + " blocks");
+        infoLore.add(ChatColor.DARK_GRAY + "Corner 1: " + ChatColor.GRAY + areaManager.locationToString(area.getPos1()));
+        infoLore.add(ChatColor.DARK_GRAY + "Corner 2: " + ChatColor.GRAY + areaManager.locationToString(area.getPos2()));
         infoMeta.setLore(infoLore);
         infoItem.setItemMeta(infoMeta);
         gui.setItem(slot, infoItem);
@@ -245,22 +280,28 @@ public class AreaSettingsGUIPage implements IGUIPage {
     private void addBackupStatisticsItem(Inventory gui, String areaName, int slot) {
         ItemStack backupInfoItem = new ItemStack(Material.CHEST);
         ItemMeta backupMeta = backupInfoItem.getItemMeta();
-        backupMeta.setDisplayName(ChatColor.BLUE + "Backup Statistics");
+        backupMeta.setDisplayName(ChatColor.BLUE + "📊 Backup Statistics");
         List<String> backupLore = new ArrayList<>();
         List<AreaBackup> backups = backupManager.getBackupHistory(areaName);
-        backupLore.add(ChatColor.GRAY + "Total Backups: " + backups.size());
+        
+        backupLore.add("");
+        backupLore.add(ChatColor.WHITE + "Total Backups: " + ChatColor.AQUA + backups.size());
+        
         if (!backups.isEmpty()) {
+            backupLore.add("");
+            backupLore.add(ChatColor.GRAY + "━━━━━━━━━━━━━━━━");
             AreaBackup lastBackup = backups.get(backups.size() - 1);
-            backupLore.add(ChatColor.GRAY + "Last Backup: " +
-                    lastBackup.getTimestamp().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
+            backupLore.add(ChatColor.WHITE + "Latest: " + ChatColor.GREEN +
+                    lastBackup.getTimestamp().format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm")));
 
             AreaBackup firstBackup = backups.get(0);
-            backupLore.add(ChatColor.GRAY + "First Backup: " +
-                    firstBackup.getTimestamp().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
+            backupLore.add(ChatColor.WHITE + "Oldest: " + ChatColor.GRAY +
+                    firstBackup.getTimestamp().format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm")));
         }
 
         int undoPointer = backupManager.getUndoPointer(areaName);
-        backupLore.add(ChatColor.GRAY + "Current State: Backup #" + undoPointer);
+        backupLore.add("");
+        backupLore.add(ChatColor.YELLOW + "Current Position: " + ChatColor.WHITE + "#" + undoPointer + ChatColor.DARK_GRAY + " / " + backups.size());
 
         backupMeta.setLore(backupLore);
         backupInfoItem.setItemMeta(backupMeta);
@@ -268,203 +309,285 @@ public class AreaSettingsGUIPage implements IGUIPage {
     }
 
     private void addPermissionInfoItem(Inventory gui, ProtectedArea area, Player player, int slot) {
-        ItemStack permItem = new ItemStack(Material.NAME_TAG);
+        ItemStack permItem = new ItemStack(Material.SHIELD);
         ItemMeta permMeta = permItem.getItemMeta();
-        permMeta.setDisplayName(ChatColor.YELLOW + "Permission Information");
+        permMeta.setDisplayName(ChatColor.GOLD + "🔐 Permissions");
         List<String> permLore = new ArrayList<>();
-        permLore.add(ChatColor.GRAY + "Your Level: " + permissionManager.getPermissionLevelString(player, area));
-        permLore.add(ChatColor.GRAY + "Trusted Players: " + area.getTrustedPlayers().size());
+        
+        permLore.add("");
+        String levelStr = permissionManager.getPermissionLevelString(player, area);
+        ChatColor levelColor = levelStr.equals("Owner") ? ChatColor.RED : 
+                               levelStr.equals("Trusted") ? ChatColor.GREEN : ChatColor.GRAY;
+        permLore.add(ChatColor.WHITE + "Your Role: " + levelColor + levelStr);
+        permLore.add(ChatColor.WHITE + "Trusted: " + ChatColor.AQUA + area.getTrustedPlayers().size() + ChatColor.GRAY + " players");
 
         if (!area.getTrustedPlayers().isEmpty()) {
-            permLore.add(ChatColor.GRAY + "Trust List:");
+            permLore.add("");
+            permLore.add(ChatColor.GRAY + "━━━ Trust List ━━━");
+            int shown = 0;
             for (java.util.UUID trustedUuid : area.getTrustedPlayers()) {
+                if (shown >= 5) {
+                    permLore.add(ChatColor.DARK_GRAY + "  ... and " + (area.getTrustedPlayers().size() - 5) + " more");
+                    break;
+                }
                 String trustedName = Bukkit.getOfflinePlayer(trustedUuid).getName();
-                permLore.add(ChatColor.GRAY + "  - " + trustedName);
+                permLore.add(ChatColor.GRAY + "  • " + ChatColor.WHITE + trustedName);
+                shown++;
             }
         }
 
         permLore.add("");
-        permLore.add(ChatColor.YELLOW + "Permissions:");
-        permLore.add(ChatColor.GRAY + "Create Backup: "
-                + (permissionManager.canCreateBackup(player, area) ? ChatColor.GREEN + "Yes" : ChatColor.RED + "No"));
-        permLore.add(ChatColor.GRAY + "Restore Backup: "
-                + (permissionManager.canRestoreBackup(player, area) ? ChatColor.GREEN + "Yes" : ChatColor.RED + "No"));
-        permLore.add(ChatColor.GRAY + "Undo/Redo: "
-                + (permissionManager.canUndoRedo(player, area) ? ChatColor.GREEN + "Yes" : ChatColor.RED + "No"));
-        permLore.add(ChatColor.GRAY + "Modify Boundaries: "
-                + (permissionManager.canModifyBoundaries(player, area) ? ChatColor.GREEN + "Yes"
-                        : ChatColor.RED + "No"));
+        permLore.add(ChatColor.GRAY + "━━━ Your Access ━━━");
+        permLore.add(formatPermission("Create Backup", permissionManager.canCreateBackup(player, area)));
+        permLore.add(formatPermission("Restore Backup", permissionManager.canRestoreBackup(player, area)));
+        permLore.add(formatPermission("Undo/Redo", permissionManager.canUndoRedo(player, area)));
+        permLore.add(formatPermission("Modify Area", permissionManager.canModifyBoundaries(player, area)));
 
         permMeta.setLore(permLore);
         permItem.setItemMeta(permMeta);
         gui.setItem(slot, permItem);
     }
 
+    private String formatPermission(String name, boolean hasPermission) {
+        return (hasPermission ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ") + 
+               ChatColor.GRAY + name;
+    }
+
     private void addManagementItems(Inventory gui, ProtectedArea area, String areaName, Player player) {
-        // Rename Area
+        // Row 4 (slots 27-35): Management actions in a clean grid
+        
+        // Rename Area - slot 28
         if (permissionManager.canModifyBoundaries(player, area)) {
-            ItemStack renameItem = new ItemStack(Material.WRITABLE_BOOK);
+            ItemStack renameItem = new ItemStack(Material.NAME_TAG);
             ItemMeta renameMeta = renameItem.getItemMeta();
-            renameMeta.setDisplayName(ChatColor.AQUA + "Rename Area");
+            renameMeta.setDisplayName(ChatColor.AQUA + "✏ Rename Area");
             List<String> renameLore = new ArrayList<>();
-            renameLore.add(ChatColor.GRAY + "Change the name of this area");
             renameLore.add("");
-            renameLore.add(ChatColor.YELLOW + "Click for rename command");
+            renameLore.add(ChatColor.GRAY + "Change the display name");
+            renameLore.add(ChatColor.GRAY + "of this protected area.");
+            renameLore.add("");
+            renameLore.add(ChatColor.YELLOW + "▶ Click for command");
             renameMeta.setLore(renameLore);
             renameItem.setItemMeta(renameMeta);
-            gui.setItem(19, renameItem);
+            gui.setItem(28, renameItem);
         }
 
-        // Modify Boundaries
+        // Modify Boundaries - slot 29
         if (permissionManager.canModifyBoundaries(player, area)) {
-            ItemStack boundaryItem = new ItemStack(Material.IRON_PICKAXE);
+            ItemStack boundaryItem = new ItemStack(Material.SCAFFOLDING);
             ItemMeta boundaryMeta = boundaryItem.getItemMeta();
-            boundaryMeta.setDisplayName(ChatColor.GOLD + "Modify Boundaries");
+            boundaryMeta.setDisplayName(ChatColor.GOLD + "⬛ Modify Boundaries");
             List<String> boundaryLore = new ArrayList<>();
-            boundaryLore.add(ChatColor.GRAY + "Expand or contract area boundaries");
             boundaryLore.add("");
-            boundaryLore.add(ChatColor.YELLOW + "Click for boundary commands");
+            boundaryLore.add(ChatColor.GRAY + "Expand or contract the");
+            boundaryLore.add(ChatColor.GRAY + "area in any direction.");
+            boundaryLore.add("");
+            boundaryLore.add(ChatColor.YELLOW + "▶ Click for commands");
             boundaryMeta.setLore(boundaryLore);
             boundaryItem.setItemMeta(boundaryMeta);
-            gui.setItem(21, boundaryItem);
+            gui.setItem(29, boundaryItem);
         }
 
-        // Manage Trust
+        // Manage Trust - slot 30
         if (permissionManager.canModifyBoundaries(player, area)) {
             ItemStack trustItem = new ItemStack(Material.PLAYER_HEAD);
             ItemMeta trustMeta = trustItem.getItemMeta();
-            trustMeta.setDisplayName(ChatColor.GREEN + "Manage Trust");
+            trustMeta.setDisplayName(ChatColor.GREEN + "👥 Manage Trust");
             List<String> trustLore = new ArrayList<>();
-            trustLore.add(ChatColor.GRAY + "Add or remove trusted players");
             trustLore.add("");
-            trustLore.add(ChatColor.YELLOW + "Click for trust commands");
+            trustLore.add(ChatColor.GRAY + "Add or remove players");
+            trustLore.add(ChatColor.GRAY + "who can access this area.");
+            trustLore.add("");
+            trustLore.add(ChatColor.WHITE + "Currently Trusted: " + ChatColor.AQUA + area.getTrustedPlayers().size());
+            trustLore.add("");
+            trustLore.add(ChatColor.YELLOW + "▶ Click for commands");
             trustMeta.setLore(trustLore);
             trustItem.setItemMeta(trustMeta);
-            gui.setItem(23, trustItem);
+            gui.setItem(30, trustItem);
         }
 
-        // Set Icon
+        // Set Icon - slot 32
         if (permissionManager.canModifyBoundaries(player, area)) {
             ItemStack iconItem = area.getIconItem() != null ? area.getIconItem().clone()
-                    : new ItemStack(Material.GRASS_BLOCK);
+                    : new ItemStack(Material.PAINTING);
             ItemMeta iconMeta = iconItem.getItemMeta();
-            iconMeta.setDisplayName(ChatColor.AQUA + "Set Icon");
+            iconMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "🎨 Set Icon");
             List<String> iconLore = new ArrayList<>();
-            iconLore.add(ChatColor.GRAY + "Change the icon for this area");
-            iconLore.add(
-                    ChatColor.GRAY + "Current: " + (area.getIcon() != null ? area.getIcon().name() : "GRASS_BLOCK"));
             iconLore.add("");
-            iconLore.add(ChatColor.YELLOW + "Click to select new icon");
+            iconLore.add(ChatColor.GRAY + "Customize the icon shown");
+            iconLore.add(ChatColor.GRAY + "in the areas list GUI.");
+            iconLore.add("");
+            iconLore.add(ChatColor.WHITE + "Current: " + ChatColor.AQUA + 
+                    (area.getIcon() != null ? formatMaterialName(area.getIcon()) : "Grass Block"));
+            iconLore.add("");
+            iconLore.add(ChatColor.YELLOW + "▶ Click to select");
             iconMeta.setLore(iconLore);
             iconItem.setItemMeta(iconMeta);
-            gui.setItem(24, iconItem);
+            gui.setItem(32, iconItem);
         }
 
-        // Restore Speed Setting
+        // Restore Speed - slot 33
         if (permissionManager.canModifyBoundaries(player, area)) {
-            ItemStack speedItem = new ItemStack(Material.FEATHER);
+            ItemStack speedItem = new ItemStack(Material.CLOCK);
             ItemMeta speedMeta = speedItem.getItemMeta();
-            speedMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Restore Speed");
+            speedMeta.setDisplayName(ChatColor.YELLOW + "⚡ Restore Speed");
             List<String> speedLore = new ArrayList<>();
-            speedLore.add(ChatColor.GRAY + "Configure restoration speed for this area");
+            speedLore.add("");
 
             if (area.hasCustomRestoreSpeed()) {
-                speedLore.add(ChatColor.YELLOW + "Current: " + ChatColor.WHITE + area.getCustomRestoreSpeed()
-                        + " blocks/tick (custom)");
+                speedLore.add(ChatColor.WHITE + "Mode: " + ChatColor.GOLD + "Custom");
+                speedLore.add(ChatColor.WHITE + "Speed: " + ChatColor.AQUA + area.getCustomRestoreSpeed() + ChatColor.GRAY + " blocks/tick");
             } else {
-                speedLore.add(ChatColor.YELLOW + "Current: " + ChatColor.WHITE + "Dynamic (auto-calculated)");
+                speedLore.add(ChatColor.WHITE + "Mode: " + ChatColor.GREEN + "Dynamic");
+                speedLore.add(ChatColor.DARK_GRAY + "(Auto-calculated)");
             }
 
             speedLore.add("");
-            speedLore.add(ChatColor.GRAY + "Dynamic: Automatically calculates optimal speed");
-            speedLore.add(ChatColor.GRAY + "Custom: Set fixed speed (1-10000 blocks/tick)");
+            speedLore.add(ChatColor.GRAY + "Lower = slower, less lag");
+            speedLore.add(ChatColor.GRAY + "Higher = faster, more lag");
             speedLore.add("");
 
             if (area.hasCustomRestoreSpeed()) {
-                speedLore.add(ChatColor.GREEN + "Left-click: " + ChatColor.GRAY + "Modify speed");
-                speedLore.add(ChatColor.RED + "Right-click: " + ChatColor.GRAY + "Reset to dynamic");
+                speedLore.add(ChatColor.GREEN + "Left-click: " + ChatColor.WHITE + "Modify");
+                speedLore.add(ChatColor.RED + "Right-click: " + ChatColor.WHITE + "Reset to dynamic");
             } else {
-                speedLore.add(ChatColor.GREEN + "Click: " + ChatColor.GRAY + "Set custom speed");
+                speedLore.add(ChatColor.YELLOW + "▶ Click to customize");
             }
 
             speedMeta.setLore(speedLore);
             speedItem.setItemMeta(speedMeta);
-            gui.setItem(25, speedItem);
+            gui.setItem(33, speedItem);
         }
 
-        // Transfer Ownership
+        // Transfer Ownership - slot 34
         if (area.getOwner().equals(player.getUniqueId())) {
             ItemStack transferItem = new ItemStack(Material.GOLDEN_HELMET);
             ItemMeta transferMeta = transferItem.getItemMeta();
-            transferMeta.setDisplayName(ChatColor.YELLOW + "Transfer Ownership");
+            transferMeta.setDisplayName(ChatColor.GOLD + "👑 Transfer Ownership");
             List<String> transferLore = new ArrayList<>();
-            transferLore.add(ChatColor.GRAY + "Transfer ownership to another player");
             transferLore.add("");
-            transferLore.add(ChatColor.YELLOW + "Click for transfer command");
+            transferLore.add(ChatColor.GRAY + "Give ownership of this");
+            transferLore.add(ChatColor.GRAY + "area to another player.");
+            transferLore.add("");
+            transferLore.add(ChatColor.RED + "⚠ This cannot be undone!");
+            transferLore.add("");
+            transferLore.add(ChatColor.YELLOW + "▶ Click for command");
             transferMeta.setLore(transferLore);
             transferItem.setItemMeta(transferMeta);
-            gui.setItem(26, transferItem);
+            gui.setItem(34, transferItem);
         }
 
-        // Delete Area (dangerous action)
-        if (permissionManager.canDeleteArea(player, area)) {
-            ItemStack deleteItem = new ItemStack(Material.TNT);
-            ItemMeta deleteMeta = deleteItem.getItemMeta();
-            deleteMeta.setDisplayName(ChatColor.DARK_RED + "Delete Area");
-            List<String> deleteLore = new ArrayList<>();
-            deleteLore.add(ChatColor.RED + "Delete this area and ALL backups");
-            deleteLore.add(ChatColor.RED + "This action CANNOT be undone!");
-            deleteLore.add("");
-            deleteLore.add(ChatColor.YELLOW + "SHIFT+CLICK to delete");
-            deleteLore.add(ChatColor.GRAY + "or use: /rewind delete " + areaName + " confirm");
-            deleteMeta.setLore(deleteLore);
-            deleteItem.setItemMeta(deleteMeta);
-            gui.setItem(31, deleteItem);
-        }
-
-        // Delete All Backups Except Last (dangerous action but less destructive)
-        if (permissionManager.canDeleteArea(player, area)) {
-            ItemStack deleteExceptLast = new ItemStack(Material.REDSTONE);
-            ItemMeta delExceptMeta = deleteExceptLast.getItemMeta();
-            delExceptMeta.setDisplayName(ChatColor.DARK_RED + "Delete All Backups Except Last");
-            List<String> delExceptLore = new ArrayList<>();
-            delExceptLore.add(ChatColor.RED + "Delete all backups for this area,");
-            delExceptLore.add(ChatColor.RED + "except the most recent one");
-            delExceptLore.add("");
-            delExceptLore.add(ChatColor.YELLOW + "SHIFT+CLICK to perform");
-            delExceptMeta.setLore(delExceptLore);
-            deleteExceptLast.setItemMeta(delExceptMeta);
-            gui.setItem(30, deleteExceptLast);
-        }
-        // Export to Schematic button
+        // Export to Schematic - slot 31
         if (permissionManager.canExport(player, area)) {
-            ItemStack exportItem = new ItemStack(Material.COMPASS);
+            ItemStack exportItem = new ItemStack(Material.MAP);
             ItemMeta exportMeta = exportItem.getItemMeta();
-            exportMeta.setDisplayName(ChatColor.AQUA + "Export to Schematic");
+            exportMeta.setDisplayName(ChatColor.AQUA + "📤 Export Schematic");
             List<String> exportLore = new ArrayList<>();
-            exportLore.add(ChatColor.GRAY + "Export the latest backup of this area");
-            exportLore.add(ChatColor.GRAY + "to a WorldEdit .schem file");
             exportLore.add("");
-            exportLore.add(ChatColor.YELLOW + "Click to export");
+            exportLore.add(ChatColor.GRAY + "Export the latest backup");
+            exportLore.add(ChatColor.GRAY + "to a WorldEdit .schem file.");
+            exportLore.add("");
+            exportLore.add(ChatColor.YELLOW + "▶ Click to export");
             exportMeta.setLore(exportLore);
             exportItem.setItemMeta(exportMeta);
-            gui.setItem(28, exportItem);
+            gui.setItem(31, exportItem);
         }
     }
 
-    private void addNavigationItems(Inventory gui, String areaName) {
-        // Back to Backups
+    private String formatMaterialName(Material material) {
+        String name = material.name().toLowerCase().replace('_', ' ');
+        StringBuilder result = new StringBuilder();
+        boolean capitalize = true;
+        for (char c : name.toCharArray()) {
+            if (c == ' ') {
+                capitalize = true;
+                result.append(c);
+            } else if (capitalize) {
+                result.append(Character.toUpperCase(c));
+                capitalize = false;
+            } else {
+                result.append(c);
+            }
+        }
+        return result.toString();
+    }
+
+    private void addDangerZone(Inventory gui, ProtectedArea area, String areaName, Player player) {
+        // Red glass pane separator for danger zone
+        addSectionHeader(gui, 40, Material.RED_STAINED_GLASS_PANE, ChatColor.RED + "▼ Danger Zone");
+        
+        // Delete All Backups Except Last - slot 46
+        if (permissionManager.canDeleteArea(player, area)) {
+            ItemStack deleteExceptLast = new ItemStack(Material.LAVA_BUCKET);
+            ItemMeta delExceptMeta = deleteExceptLast.getItemMeta();
+            delExceptMeta.setDisplayName(ChatColor.RED + "🗑 Clear Old Backups");
+            List<String> delExceptLore = new ArrayList<>();
+            delExceptLore.add("");
+            delExceptLore.add(ChatColor.GRAY + "Delete all backups except");
+            delExceptLore.add(ChatColor.GRAY + "the most recent one.");
+            delExceptLore.add("");
+            delExceptLore.add(ChatColor.RED + "⚠ Cannot be undone!");
+            delExceptLore.add("");
+            delExceptLore.add(ChatColor.YELLOW + "SHIFT+CLICK" + ChatColor.GRAY + " to confirm");
+            delExceptMeta.setLore(delExceptLore);
+            deleteExceptLast.setItemMeta(delExceptMeta);
+            gui.setItem(47, deleteExceptLast);
+        }
+
+        // Delete Area - slot 49
+        if (permissionManager.canDeleteArea(player, area)) {
+            ItemStack deleteItem = new ItemStack(Material.TNT);
+            ItemMeta deleteMeta = deleteItem.getItemMeta();
+            deleteMeta.setDisplayName(ChatColor.DARK_RED + "💣 Delete Area");
+            List<String> deleteLore = new ArrayList<>();
+            deleteLore.add("");
+            deleteLore.add(ChatColor.RED + "Permanently delete this");
+            deleteLore.add(ChatColor.RED + "area and ALL its backups!");
+            deleteLore.add("");
+            deleteLore.add(ChatColor.DARK_RED + "⚠ CANNOT BE UNDONE!");
+            deleteLore.add("");
+            deleteLore.add(ChatColor.YELLOW + "SHIFT+CLICK" + ChatColor.GRAY + " to confirm");
+            deleteMeta.setLore(deleteLore);
+            deleteItem.setItemMeta(deleteMeta);
+            gui.setItem(51, deleteItem);
+        }
+    }
+
+    private void addNavigationBar(Inventory gui, String areaName) {
+        // Clear navigation row slots first with black glass
+        ItemStack navFiller = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemMeta navMeta = navFiller.getItemMeta();
+        navMeta.setDisplayName(" ");
+        navFiller.setItemMeta(navMeta);
+        for (int i = 45; i < 54; i++) {
+            // Only fill if not already set with an action item
+            if (gui.getItem(i) == null || gui.getItem(i).getType() == Material.GRAY_STAINED_GLASS_PANE) {
+                gui.setItem(i, navFiller.clone());
+            }
+        }
+
+        // Back to Backups - slot 45
         ItemStack backToBackupsItem = new ItemStack(Material.CHEST);
         ItemMeta backToBackupsMeta = backToBackupsItem.getItemMeta();
-        backToBackupsMeta.setDisplayName(ChatColor.BLUE + "Back to Backups");
+        backToBackupsMeta.setDisplayName(ChatColor.BLUE + "◀ View Backups");
+        List<String> backupLore = new ArrayList<>();
+        backupLore.add("");
+        backupLore.add(ChatColor.GRAY + "Return to the backup");
+        backupLore.add(ChatColor.GRAY + "list for this area.");
+        backToBackupsMeta.setLore(backupLore);
         backToBackupsItem.setItemMeta(backToBackupsMeta);
-        gui.setItem(38, backToBackupsItem);
+        gui.setItem(45, backToBackupsItem);
 
-        // Back to Areas
-        ItemStack backToAreasItem = new ItemStack(Material.BARRIER);
+        // Back to My Areas - slot 53
+        ItemStack backToAreasItem = new ItemStack(Material.ARROW);
         ItemMeta backToAreasMeta = backToAreasItem.getItemMeta();
-        backToAreasMeta.setDisplayName(ChatColor.GRAY + "Back to My Areas");
+        backToAreasMeta.setDisplayName(ChatColor.GRAY + "◀ Back to My Areas");
+        List<String> areasLore = new ArrayList<>();
+        areasLore.add("");
+        areasLore.add(ChatColor.GRAY + "Return to your");
+        areasLore.add(ChatColor.GRAY + "areas overview.");
+        backToAreasMeta.setLore(areasLore);
         backToAreasItem.setItemMeta(backToAreasMeta);
-        gui.setItem(40, backToAreasItem);
+        gui.setItem(53, backToAreasItem);
     }
 }
