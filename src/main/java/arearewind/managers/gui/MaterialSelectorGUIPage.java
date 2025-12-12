@@ -475,8 +475,8 @@ public class MaterialSelectorGUIPage implements IGUIPage {
         handItem.setItemMeta(handMeta);
         gui.setItem(NAVIGATION_ROW_START + 3, handItem);
 
-        // Cancel button
-        ItemStack cancelItem = new ItemStack(Material.ARROW);
+        // Cancel button (middle of bottom row)
+        ItemStack cancelItem = new ItemStack(Material.BARRIER);
         ItemMeta cancelMeta = cancelItem.getItemMeta();
         cancelMeta.setDisplayName(ChatColor.RED + "✖ Cancel");
         List<String> cancelLore = new ArrayList<>();
@@ -485,7 +485,7 @@ public class MaterialSelectorGUIPage implements IGUIPage {
         cancelLore.add(ChatColor.GRAY + "return to previous menu.");
         cancelMeta.setLore(cancelLore);
         cancelItem.setItemMeta(cancelMeta);
-        gui.setItem(NAVIGATION_ROW_START + 5, cancelItem);
+        gui.setItem(NAVIGATION_ROW_START + 4, cancelItem);
     }
 
     private String formatMaterialName(Material material) {

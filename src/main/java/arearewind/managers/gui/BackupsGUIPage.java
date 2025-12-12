@@ -446,17 +446,17 @@ public class BackupsGUIPage implements IGUIPage {
 
     private void addControlItems(Inventory gui, String areaName, ProtectedArea area, Player player,
             PaginationInfo paginationInfo) {
-        // Fixed slot positions in navigation row
-        int createSlot = 46;
-        int undoSlot = 47;
-        int redoSlot = 48;
-        int teleportSlot = 49;
-        int backSlot = 50;
-        int previewSlot = 51;
-        int intervalSlot = 52;
-        int settingsSlot = 53;
+        // Fixed slot positions in navigation row (rearranged for better UX)
+        int createSlot = 45;       // Create backup at very left
+        int undoSlot = 46;
+        int redoSlot = 47;
+        int teleportSlot = 48;     // Teleport to area
+        int backSlot = 49;         // Back to areas (center position)
+        int previewSlot = 50;
+        int intervalSlot = 51;
+        int settingsSlot = 52;
 
-        // Create Backup
+        // Create Backup (leftmost)
         if (permissionManager.canCreateBackup(player, area)) {
             ItemStack createItem = new ItemStack(Material.EMERALD);
             ItemMeta createMeta = createItem.getItemMeta();
@@ -500,7 +500,18 @@ public class BackupsGUIPage implements IGUIPage {
             gui.setItem(redoSlot, redoItem);
         }
 
-        // Teleport
+        // Back button (with cancel/barrier icon)
+        ItemStack backItem = new ItemStack(Material.BARRIER);
+        ItemMeta backMeta = backItem.getItemMeta();
+        backMeta.setDisplayName(ChatColor.RED + "✖ Back to My Areas");
+        List<String> backLore = new ArrayList<>();
+        backLore.add("");
+        backLore.add(ChatColor.GRAY + "Return to areas list.");
+        backMeta.setLore(backLore);
+        backItem.setItemMeta(backMeta);
+        gui.setItem(backSlot, backItem);
+
+        // Teleport (moved to center)
         if (permissionManager.hasAreaPermission(player, area)) {
             ItemStack teleportItem = new ItemStack(Material.ENDER_PEARL);
             ItemMeta teleportMeta = teleportItem.getItemMeta();
@@ -513,17 +524,6 @@ public class BackupsGUIPage implements IGUIPage {
             teleportItem.setItemMeta(teleportMeta);
             gui.setItem(teleportSlot, teleportItem);
         }
-
-        // Back button
-        ItemStack backItem = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = backItem.getItemMeta();
-        backMeta.setDisplayName(ChatColor.GRAY + "◀ Back to My Areas");
-        List<String> backLore = new ArrayList<>();
-        backLore.add("");
-        backLore.add(ChatColor.GRAY + "Return to areas list.");
-        backMeta.setLore(backLore);
-        backItem.setItemMeta(backMeta);
-        gui.setItem(backSlot, backItem);
 
         // Preview Area
         if (permissionManager.canVisualize(player, area)) {

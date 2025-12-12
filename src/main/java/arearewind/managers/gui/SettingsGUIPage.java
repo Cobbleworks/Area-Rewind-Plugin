@@ -79,7 +79,7 @@ public class SettingsGUIPage implements IGUIPage {
         List<String> infoLore = new ArrayList<>();
         infoLore.add("");
         infoLore.add(ChatColor.GRAY + "━━━━━━━━━━━━━━━━");
-        infoLore.add(ChatColor.WHITE + "Version: " + ChatColor.AQUA + "1.0.9-SNAPSHOT");
+        infoLore.add(ChatColor.WHITE + "Version: " + ChatColor.AQUA + "1.0.10-SNAPSHOT");
         infoLore.add(ChatColor.GRAY + "━━━━━━━━━━━━━━━━");
         infoLore.add("");
         infoLore.add(ChatColor.GRAY + "Manage area backups and");

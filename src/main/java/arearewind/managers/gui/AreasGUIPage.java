@@ -127,9 +127,6 @@ public class AreasGUIPage implements IGUIPage {
             gui.setItem(slot++, item);
         }
 
-        // Add info item in info row
-        addInfoItem(gui, allAreas.size(), paginationInfo);
-
         // Add pagination navigation if needed
         if (paginationInfo.getMaxPage() > 0) {
             GUIPaginationHelper.addPaginationButtons(gui, paginationInfo,
@@ -161,26 +158,6 @@ public class AreasGUIPage implements IGUIPage {
         for (int i = NAVIGATION_ROW_START; i < 54; i++) {
             gui.setItem(i, filler.clone());
         }
-    }
-
-    private void addInfoItem(Inventory gui, int totalAreas, PaginationInfo paginationInfo) {
-        ItemStack infoItem = new ItemStack(Material.BOOK);
-        ItemMeta infoMeta = infoItem.getItemMeta();
-        infoMeta.setDisplayName(ChatColor.AQUA + "📊 Area Overview");
-        List<String> infoLore = new ArrayList<>();
-        infoLore.add("");
-        infoLore.add(ChatColor.WHITE + "Total Areas: " + ChatColor.GREEN + totalAreas);
-        if (paginationInfo.getMaxPage() > 0) {
-            infoLore.add(ChatColor.WHITE + "Showing: " + ChatColor.YELLOW + 
-                    (paginationInfo.getStartIndex() + 1) + "-" + paginationInfo.getEndIndex() +
-                    ChatColor.GRAY + " of " + totalAreas);
-        }
-        infoLore.add("");
-        infoLore.add(ChatColor.GRAY + "This shows all areas you");
-        infoLore.add(ChatColor.GRAY + "own or are trusted in.");
-        infoMeta.setLore(infoLore);
-        infoItem.setItemMeta(infoMeta);
-        gui.setItem(39, infoItem);
     }
 
     @Override
