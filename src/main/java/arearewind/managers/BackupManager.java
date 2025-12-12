@@ -73,20 +73,40 @@ public class BackupManager {
             BlockInfo blockInfo = new BlockInfo(block.getType(), block.getBlockData());
 
             try {
+                // Banner
                 if (block.getState() instanceof Banner) {
                     Banner banner = (Banner) block.getState();
                     if (banner.getPatterns() != null) {
                         blockInfo.setBannerPatterns(new ArrayList<>(banner.getPatterns()));
                     }
-                } else if (block.getState() instanceof Sign) {
+                }
+                // Sign - capture both sides, colors, and glow state
+                else if (block.getState() instanceof Sign) {
                     Sign sign = (Sign) block.getState();
                     try {
-                        // Use modern sign API
-                        String[] lines = new String[4];
+                        // Front side
+                        org.bukkit.block.sign.SignSide front = sign.getSide(org.bukkit.block.sign.Side.FRONT);
+                        String[] frontLines = new String[4];
                         for (int i = 0; i < 4; i++) {
-                            lines[i] = sign.getSide(org.bukkit.block.sign.Side.FRONT).getLine(i);
+                            frontLines[i] = front.getLine(i);
                         }
-                        blockInfo.setSignLines(lines);
+                        blockInfo.setSignLines(frontLines);
+                        blockInfo.setSignGlowing(front.isGlowingText());
+                        if (front.getColor() != null) {
+                            blockInfo.setSignColor(front.getColor().name());
+                        }
+                        
+                        // Back side
+                        org.bukkit.block.sign.SignSide back = sign.getSide(org.bukkit.block.sign.Side.BACK);
+                        String[] backLines = new String[4];
+                        for (int i = 0; i < 4; i++) {
+                            backLines[i] = back.getLine(i);
+                        }
+                        blockInfo.setSignBackLines(backLines);
+                        blockInfo.setSignBackGlowing(back.isGlowingText());
+                        if (back.getColor() != null) {
+                            blockInfo.setSignBackColor(back.getColor().name());
+                        }
                     } catch (Exception e) {
                         // Fallback to legacy method for older versions
                         @SuppressWarnings("deprecation")
@@ -95,7 +115,136 @@ public class BackupManager {
                             blockInfo.setSignLines(legacyLines);
                         }
                     }
-                } else if (block.getState() instanceof org.bukkit.block.Container) {
+                }
+                // Lectern - capture book and page
+                else if (block.getState() instanceof org.bukkit.block.Lectern) {
+                    org.bukkit.block.Lectern lectern = (org.bukkit.block.Lectern) block.getState();
+                    if (lectern.getInventory().getItem(0) != null) {
+                        blockInfo.setLecternBook(lectern.getInventory().getItem(0));
+                        blockInfo.setLecternPage(lectern.getPage());
+                    }
+                }
+                // Campfire - capture cooking items
+                else if (block.getState() instanceof org.bukkit.block.Campfire) {
+                    org.bukkit.block.Campfire campfire = (org.bukkit.block.Campfire) block.getState();
+                    ItemStack[] items = new ItemStack[4];
+                    int[] cookTimes = new int[4];
+                    int[] cookTimesTotal = new int[4];
+                    boolean hasItems = false;
+                    for (int i = 0; i < 4; i++) {
+                        items[i] = campfire.getItem(i);
+                        cookTimes[i] = campfire.getCookTime(i);
+                        cookTimesTotal[i] = campfire.getCookTimeTotal(i);
+                        if (items[i] != null) hasItems = true;
+                    }
+                    if (hasItems) {
+                        blockInfo.setCampfireItems(items);
+                        blockInfo.setCampfireCookTimes(cookTimes);
+                        blockInfo.setCampfireCookTimesTotal(cookTimesTotal);
+                    }
+                }
+                // Beehive/Bee Nest - capture honey level and bee count
+                else if (block.getState() instanceof org.bukkit.block.Beehive) {
+                    org.bukkit.block.Beehive beehive = (org.bukkit.block.Beehive) block.getState();
+                    org.bukkit.block.data.type.Beehive beehiveData = (org.bukkit.block.data.type.Beehive) block.getBlockData();
+                    blockInfo.setBeehiveHoneyLevel(beehiveData.getHoneyLevel());
+                    blockInfo.setBeehiveBeeCount(beehive.getEntityCount());
+                }
+                // Brewing Stand - capture fuel and brewing time
+                else if (block.getState() instanceof org.bukkit.block.BrewingStand) {
+                    org.bukkit.block.BrewingStand brewingStand = (org.bukkit.block.BrewingStand) block.getState();
+                    blockInfo.setBrewingFuel(brewingStand.getFuelLevel());
+                    blockInfo.setBrewingTime(brewingStand.getBrewingTime());
+                    // Container contents handled separately
+                    if (brewingStand.getInventory() != null) {
+                        blockInfo.setContainerContents(brewingStand.getInventory().getContents());
+                    }
+                }
+                // Spawner - capture all spawner settings
+                else if (block.getState() instanceof org.bukkit.block.CreatureSpawner) {
+                    org.bukkit.block.CreatureSpawner spawner = (org.bukkit.block.CreatureSpawner) block.getState();
+                    if (spawner.getSpawnedType() != null) {
+                        blockInfo.setSpawnerEntityType(spawner.getSpawnedType().name());
+                    }
+                    blockInfo.setSpawnerDelay(spawner.getDelay());
+                    blockInfo.setSpawnerMinDelay(spawner.getMinSpawnDelay());
+                    blockInfo.setSpawnerMaxDelay(spawner.getMaxSpawnDelay());
+                    blockInfo.setSpawnerSpawnCount(spawner.getSpawnCount());
+                    blockInfo.setSpawnerMaxNearbyEntities(spawner.getMaxNearbyEntities());
+                    blockInfo.setSpawnerRequiredPlayerRange(spawner.getRequiredPlayerRange());
+                    blockInfo.setSpawnerSpawnRange(spawner.getSpawnRange());
+                }
+                // Command Block - capture command and settings
+                else if (block.getState() instanceof org.bukkit.block.CommandBlock) {
+                    org.bukkit.block.CommandBlock cmdBlock = (org.bukkit.block.CommandBlock) block.getState();
+                    blockInfo.setCommandBlockCommand(cmdBlock.getCommand());
+                    blockInfo.setCommandBlockName(cmdBlock.getName());
+                    // Note: trackOutput requires additional handling
+                }
+                // Decorated Pot - capture sherds
+                else if (block.getState() instanceof org.bukkit.block.DecoratedPot) {
+                    org.bukkit.block.DecoratedPot pot = (org.bukkit.block.DecoratedPot) block.getState();
+                    try {
+                        // Get sherds - the method may vary by API version
+                        java.util.Map<org.bukkit.block.DecoratedPot.Side, Material> sherds = pot.getSherds();
+                        String[] sherdNames = new String[4];
+                        sherdNames[0] = sherds.getOrDefault(org.bukkit.block.DecoratedPot.Side.BACK, Material.BRICK).name();
+                        sherdNames[1] = sherds.getOrDefault(org.bukkit.block.DecoratedPot.Side.LEFT, Material.BRICK).name();
+                        sherdNames[2] = sherds.getOrDefault(org.bukkit.block.DecoratedPot.Side.RIGHT, Material.BRICK).name();
+                        sherdNames[3] = sherds.getOrDefault(org.bukkit.block.DecoratedPot.Side.FRONT, Material.BRICK).name();
+                        blockInfo.setDecoratedPotSherds(sherdNames);
+                    } catch (Exception e) {
+                        plugin.getLogger().fine("Could not capture decorated pot sherds: " + e.getMessage());
+                    }
+                }
+                // Structure Block - capture all structure block data
+                else if (block.getState() instanceof org.bukkit.block.Structure) {
+                    org.bukkit.block.Structure structure = (org.bukkit.block.Structure) block.getState();
+                    blockInfo.setStructureBlockMode(structure.getUsageMode().name());
+                    blockInfo.setStructureBlockName(structure.getStructureName());
+                    blockInfo.setStructureBlockAuthor(structure.getAuthor());
+                    blockInfo.setStructureBlockPosition(new int[]{
+                        structure.getRelativePosition().getBlockX(),
+                        structure.getRelativePosition().getBlockY(),
+                        structure.getRelativePosition().getBlockZ()
+                    });
+                    blockInfo.setStructureBlockSize(new int[]{
+                        structure.getStructureSize().getBlockX(),
+                        structure.getStructureSize().getBlockY(),
+                        structure.getStructureSize().getBlockZ()
+                    });
+                    blockInfo.setStructureBlockMirror(structure.getMirror().name());
+                    blockInfo.setStructureBlockRotation(structure.getRotation().name());
+                    blockInfo.setStructureBlockIntegrity(structure.getIntegrity());
+                    blockInfo.setStructureBlockSeed(structure.getSeed());
+                    blockInfo.setStructureBlockIgnoreEntities(structure.isIgnoreEntities());
+                    blockInfo.setStructureBlockShowBoundingBox(structure.isBoundingBoxVisible());
+                    // ShowAir not available in all versions
+                }
+                // Chiseled Bookshelf - capture stored books
+                else if (block.getState() instanceof org.bukkit.block.ChiseledBookshelf) {
+                    org.bukkit.block.ChiseledBookshelf bookshelf = (org.bukkit.block.ChiseledBookshelf) block.getState();
+                    if (bookshelf.getInventory() != null) {
+                        blockInfo.setChiseledBookshelfBooks(bookshelf.getInventory().getContents());
+                    }
+                }
+                // End Gateway - capture exit location and settings
+                else if (block.getState() instanceof org.bukkit.block.EndGateway) {
+                    org.bukkit.block.EndGateway gateway = (org.bukkit.block.EndGateway) block.getState();
+                    if (gateway.getExitLocation() != null) {
+                        blockInfo.setEndGatewayExitLocation(gateway.getExitLocation());
+                    }
+                    blockInfo.setEndGatewayExactTeleport(gateway.isExactTeleport());
+                    blockInfo.setEndGatewayAge(gateway.getAge());
+                }
+                // Comparator - capture mode
+                else if (block.getState() instanceof org.bukkit.block.Comparator) {
+                    org.bukkit.block.data.type.Comparator comparatorData = 
+                        (org.bukkit.block.data.type.Comparator) block.getBlockData();
+                    blockInfo.setComparatorMode(comparatorData.getMode().name());
+                }
+                // Generic Container (chests, barrels, hoppers, dispensers, droppers, shulker boxes, etc.)
+                else if (block.getState() instanceof org.bukkit.block.Container) {
                     org.bukkit.block.Container container = (org.bukkit.block.Container) block.getState();
                     if (container.getInventory() != null) {
                         ItemStack[] contents = container.getInventory().getContents();
@@ -105,15 +254,19 @@ public class BackupManager {
                                 block.getLocation() + " has " + (contents != null ? contents.length : 0) +
                                 " slots with items: " + getContainerSummary(contents));
                     }
-                } else if (block.getState() instanceof org.bukkit.block.Jukebox) {
+                }
+                // Jukebox
+                else if (block.getState() instanceof org.bukkit.block.Jukebox) {
                     org.bukkit.block.Jukebox jukebox = (org.bukkit.block.Jukebox) block.getState();
                     if (jukebox.getRecord() != null) {
                         blockInfo.setJukeboxRecord(jukebox.getRecord());
                     }
-                } else if (block.getState() instanceof org.bukkit.block.Skull) {
+                }
+                // Skull
+                else if (block.getState() instanceof org.bukkit.block.Skull) {
                     org.bukkit.block.Skull skull = (org.bukkit.block.Skull) block.getState();
                     if (skull.getOwningPlayer() != null) {
-                        blockInfo.setSkullOwner(skull.getOwningPlayer().getName());
+                        blockInfo.setSkullOwner(skull.getOwningPlayer().getUniqueId().toString());
                     }
                 }
             } catch (Exception e) {
@@ -405,7 +558,20 @@ public class BackupManager {
         return info.getBannerPatterns() != null ||
                 info.getSignLines() != null ||
                 info.getJukeboxRecord() != null ||
-                info.getSkullOwner() != null;
+                info.getSkullOwner() != null ||
+                info.getLecternBook() != null ||
+                info.getCampfireItems() != null ||
+                info.getBeehiveHoneyLevel() > 0 ||
+                info.getBeehiveBeeCount() > 0 ||
+                info.getBrewingFuel() > 0 ||
+                info.getBrewingTime() > 0 ||
+                info.getSpawnerEntityType() != null ||
+                info.getCommandBlockCommand() != null ||
+                info.getDecoratedPotSherds() != null ||
+                info.getStructureBlockName() != null ||
+                info.getChiseledBookshelfBooks() != null ||
+                info.getEndGatewayExitLocation() != null ||
+                info.getComparatorMode() != null;
     }
 
     /**
@@ -509,48 +675,240 @@ public class BackupManager {
 
     private void restoreNonContainerSpecialData(Block block, BlockInfo info) {
         try {
+            // Banner
             if (block.getState() instanceof Banner && info.getBannerPatterns() != null) {
                 Banner banner = (Banner) block.getState();
                 banner.setPatterns(info.getBannerPatterns());
                 banner.update(true, false);
-            } else if (block.getState() instanceof Sign && info.getSignLines() != null) {
+            }
+            // Sign - restore both sides, colors, and glow state
+            else if (block.getState() instanceof Sign && info.getSignLines() != null) {
                 Sign sign = (Sign) block.getState();
-                String[] lines = info.getSignLines();
-                for (int i = 0; i < lines.length && i < 4; i++) {
-                    if (lines[i] != null) {
-                        // Use modern sign API if available
+                try {
+                    // Front side
+                    org.bukkit.block.sign.SignSide front = sign.getSide(org.bukkit.block.sign.Side.FRONT);
+                    String[] frontLines = info.getSignLines();
+                    for (int i = 0; i < frontLines.length && i < 4; i++) {
+                        if (frontLines[i] != null) {
+                            front.setLine(i, ChatColor.translateAlternateColorCodes('&', frontLines[i]));
+                        }
+                    }
+                    front.setGlowingText(info.isSignGlowing());
+                    if (info.getSignColor() != null) {
                         try {
-                            sign.getSide(org.bukkit.block.sign.Side.FRONT).setLine(i,
-                                    ChatColor.translateAlternateColorCodes('&', lines[i]));
-                        } catch (Exception e) {
-                            // Fallback for older versions
-                            String line = lines[i];
+                            front.setColor(DyeColor.valueOf(info.getSignColor()));
+                        } catch (IllegalArgumentException e) {
+                            // Ignore invalid color
+                        }
+                    }
+                    
+                    // Back side
+                    String[] backLines = info.getSignBackLines();
+                    if (backLines != null) {
+                        org.bukkit.block.sign.SignSide back = sign.getSide(org.bukkit.block.sign.Side.BACK);
+                        for (int i = 0; i < backLines.length && i < 4; i++) {
+                            if (backLines[i] != null) {
+                                back.setLine(i, ChatColor.translateAlternateColorCodes('&', backLines[i]));
+                            }
+                        }
+                        back.setGlowingText(info.isSignBackGlowing());
+                        if (info.getSignBackColor() != null) {
                             try {
-                                // Use reflection to avoid deprecated warning
-                                java.lang.reflect.Method setLineMethod = sign.getClass().getMethod("setLine", int.class,
-                                        String.class);
-                                setLineMethod.invoke(sign, i, ChatColor.translateAlternateColorCodes('&', line));
+                                back.setColor(DyeColor.valueOf(info.getSignBackColor()));
+                            } catch (IllegalArgumentException e) {
+                                // Ignore invalid color
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    // Fallback for older versions
+                    String[] lines = info.getSignLines();
+                    for (int i = 0; i < lines.length && i < 4; i++) {
+                        if (lines[i] != null) {
+                            try {
+                                java.lang.reflect.Method setLineMethod = sign.getClass().getMethod("setLine", int.class, String.class);
+                                setLineMethod.invoke(sign, i, ChatColor.translateAlternateColorCodes('&', lines[i]));
                             } catch (Exception ex) {
-                                // If reflection fails, skip this line
                                 plugin.getLogger().fine("Could not restore sign line " + i + ": " + ex.getMessage());
                             }
                         }
                     }
                 }
                 sign.update(true, false);
-            } else if (block.getState() instanceof org.bukkit.block.Jukebox && info.getJukeboxRecord() != null) {
+            }
+            // Lectern - use getSnapshotInventory() to modify the snapshot's data before update()
+            else if (block.getState() instanceof org.bukkit.block.Lectern && info.getLecternBook() != null) {
+                org.bukkit.block.Lectern lectern = (org.bukkit.block.Lectern) block.getState();
+                lectern.getSnapshotInventory().setItem(0, info.getLecternBook());
+                lectern.setPage(info.getLecternPage());
+                lectern.update(true, false);
+            }
+            // Campfire
+            else if (block.getState() instanceof org.bukkit.block.Campfire && info.getCampfireItems() != null) {
+                org.bukkit.block.Campfire campfire = (org.bukkit.block.Campfire) block.getState();
+                ItemStack[] items = info.getCampfireItems();
+                int[] cookTimes = info.getCampfireCookTimes();
+                int[] cookTimesTotal = info.getCampfireCookTimesTotal();
+                for (int i = 0; i < 4 && i < items.length; i++) {
+                    if (items[i] != null) {
+                        campfire.setItem(i, items[i]);
+                        if (cookTimes != null && i < cookTimes.length) {
+                            campfire.setCookTime(i, cookTimes[i]);
+                        }
+                        if (cookTimesTotal != null && i < cookTimesTotal.length) {
+                            campfire.setCookTimeTotal(i, cookTimesTotal[i]);
+                        }
+                    }
+                }
+                campfire.update(true, false);
+            }
+            // Beehive - restore honey level (bees are entities, handled separately)
+            else if (block.getState() instanceof org.bukkit.block.Beehive) {
+                if (info.getBeehiveHoneyLevel() > 0) {
+                    org.bukkit.block.data.type.Beehive beehiveData = (org.bukkit.block.data.type.Beehive) block.getBlockData();
+                    beehiveData.setHoneyLevel(info.getBeehiveHoneyLevel());
+                    block.setBlockData(beehiveData, false);
+                }
+            }
+            // Brewing Stand - restore fuel and time (contents handled as container)
+            else if (block.getState() instanceof org.bukkit.block.BrewingStand) {
+                org.bukkit.block.BrewingStand brewingStand = (org.bukkit.block.BrewingStand) block.getState();
+                brewingStand.setFuelLevel(info.getBrewingFuel());
+                brewingStand.setBrewingTime(info.getBrewingTime());
+                // Container contents
+                if (info.hasContainerContents() && brewingStand.getInventory() != null) {
+                    ItemStack[] contents = info.getContainerContents();
+                    for (int i = 0; i < contents.length && i < brewingStand.getInventory().getSize(); i++) {
+                        brewingStand.getInventory().setItem(i, contents[i]);
+                    }
+                }
+                brewingStand.update(true, false);
+            }
+            // Spawner
+            else if (block.getState() instanceof org.bukkit.block.CreatureSpawner && info.getSpawnerEntityType() != null) {
+                org.bukkit.block.CreatureSpawner spawner = (org.bukkit.block.CreatureSpawner) block.getState();
+                try {
+                    spawner.setSpawnedType(org.bukkit.entity.EntityType.valueOf(info.getSpawnerEntityType()));
+                } catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("Unknown entity type for spawner: " + info.getSpawnerEntityType());
+                }
+                spawner.setDelay(info.getSpawnerDelay());
+                spawner.setMinSpawnDelay(info.getSpawnerMinDelay());
+                spawner.setMaxSpawnDelay(info.getSpawnerMaxDelay());
+                spawner.setSpawnCount(info.getSpawnerSpawnCount());
+                spawner.setMaxNearbyEntities(info.getSpawnerMaxNearbyEntities());
+                spawner.setRequiredPlayerRange(info.getSpawnerRequiredPlayerRange());
+                spawner.setSpawnRange(info.getSpawnerSpawnRange());
+                spawner.update(true, false);
+            }
+            // Command Block
+            else if (block.getState() instanceof org.bukkit.block.CommandBlock && info.getCommandBlockCommand() != null) {
+                org.bukkit.block.CommandBlock cmdBlock = (org.bukkit.block.CommandBlock) block.getState();
+                cmdBlock.setCommand(info.getCommandBlockCommand());
+                if (info.getCommandBlockName() != null) {
+                    cmdBlock.setName(info.getCommandBlockName());
+                }
+                cmdBlock.update(true, false);
+            }
+            // Decorated Pot
+            else if (block.getState() instanceof org.bukkit.block.DecoratedPot && info.getDecoratedPotSherds() != null) {
+                try {
+                    org.bukkit.block.DecoratedPot pot = (org.bukkit.block.DecoratedPot) block.getState();
+                    String[] sherdNames = info.getDecoratedPotSherds();
+                    if (sherdNames.length >= 4) {
+                        pot.setSherd(org.bukkit.block.DecoratedPot.Side.BACK, Material.valueOf(sherdNames[0]));
+                        pot.setSherd(org.bukkit.block.DecoratedPot.Side.LEFT, Material.valueOf(sherdNames[1]));
+                        pot.setSherd(org.bukkit.block.DecoratedPot.Side.RIGHT, Material.valueOf(sherdNames[2]));
+                        pot.setSherd(org.bukkit.block.DecoratedPot.Side.FRONT, Material.valueOf(sherdNames[3]));
+                        pot.update(true, false);
+                    }
+                } catch (Exception e) {
+                    plugin.getLogger().fine("Could not restore decorated pot sherds: " + e.getMessage());
+                }
+            }
+            // Structure Block
+            else if (block.getState() instanceof org.bukkit.block.Structure && info.getStructureBlockName() != null) {
+                org.bukkit.block.Structure structure = (org.bukkit.block.Structure) block.getState();
+                try {
+                    structure.setUsageMode(org.bukkit.block.structure.UsageMode.valueOf(info.getStructureBlockMode()));
+                } catch (IllegalArgumentException e) {
+                    // Ignore invalid mode
+                }
+                structure.setStructureName(info.getStructureBlockName());
+                if (info.getStructureBlockAuthor() != null) {
+                    structure.setAuthor(info.getStructureBlockAuthor());
+                }
+                int[] pos = info.getStructureBlockPosition();
+                if (pos != null && pos.length >= 3) {
+                    structure.setRelativePosition(new org.bukkit.util.BlockVector(pos[0], pos[1], pos[2]));
+                }
+                int[] size = info.getStructureBlockSize();
+                if (size != null && size.length >= 3) {
+                    structure.setStructureSize(new org.bukkit.util.BlockVector(size[0], size[1], size[2]));
+                }
+                if (info.getStructureBlockMirror() != null) {
+                    try {
+                        structure.setMirror(org.bukkit.block.structure.Mirror.valueOf(info.getStructureBlockMirror()));
+                    } catch (IllegalArgumentException e) {
+                        // Ignore invalid mirror
+                    }
+                }
+                if (info.getStructureBlockRotation() != null) {
+                    try {
+                        structure.setRotation(org.bukkit.block.structure.StructureRotation.valueOf(info.getStructureBlockRotation()));
+                    } catch (IllegalArgumentException e) {
+                        // Ignore invalid rotation
+                    }
+                }
+                structure.setIntegrity(info.getStructureBlockIntegrity());
+                structure.setSeed(info.getStructureBlockSeed());
+                structure.setIgnoreEntities(info.isStructureBlockIgnoreEntities());
+                structure.setBoundingBoxVisible(info.isStructureBlockShowBoundingBox());
+                structure.update(true, false);
+            }
+            // Chiseled Bookshelf
+            else if (block.getState() instanceof org.bukkit.block.ChiseledBookshelf && info.getChiseledBookshelfBooks() != null) {
+                org.bukkit.block.ChiseledBookshelf bookshelf = (org.bukkit.block.ChiseledBookshelf) block.getState();
+                ItemStack[] books = info.getChiseledBookshelfBooks();
+                if (bookshelf.getInventory() != null) {
+                    for (int i = 0; i < books.length && i < bookshelf.getInventory().getSize(); i++) {
+                        bookshelf.getInventory().setItem(i, books[i]);
+                    }
+                }
+                bookshelf.update(true, false);
+            }
+            // End Gateway
+            else if (block.getState() instanceof org.bukkit.block.EndGateway && info.getEndGatewayExitLocation() != null) {
+                org.bukkit.block.EndGateway gateway = (org.bukkit.block.EndGateway) block.getState();
+                gateway.setExitLocation(info.getEndGatewayExitLocation());
+                gateway.setExactTeleport(info.isEndGatewayExactTeleport());
+                gateway.setAge(info.getEndGatewayAge());
+                gateway.update(true, false);
+            }
+            // Comparator
+            else if (info.getComparatorMode() != null && block.getBlockData() instanceof org.bukkit.block.data.type.Comparator) {
+                org.bukkit.block.data.type.Comparator comparatorData = (org.bukkit.block.data.type.Comparator) block.getBlockData();
+                try {
+                    comparatorData.setMode(org.bukkit.block.data.type.Comparator.Mode.valueOf(info.getComparatorMode()));
+                    block.setBlockData(comparatorData, false);
+                } catch (IllegalArgumentException e) {
+                    // Ignore invalid mode
+                }
+            }
+            // Jukebox
+            else if (block.getState() instanceof org.bukkit.block.Jukebox && info.getJukeboxRecord() != null) {
                 org.bukkit.block.Jukebox jukebox = (org.bukkit.block.Jukebox) block.getState();
                 jukebox.setRecord(info.getJukeboxRecord());
                 jukebox.update(true, false);
-            } else if (block.getState() instanceof org.bukkit.block.Skull && info.getSkullOwner() != null) {
+            }
+            // Skull
+            else if (block.getState() instanceof org.bukkit.block.Skull && info.getSkullOwner() != null) {
                 org.bukkit.block.Skull skull = (org.bukkit.block.Skull) block.getState();
                 try {
-                    // Try modern UUID-based approach first
                     java.util.UUID uuid = java.util.UUID.fromString(info.getSkullOwner());
                     org.bukkit.OfflinePlayer owner = Bukkit.getOfflinePlayer(uuid);
                     skull.setOwningPlayer(owner);
                 } catch (IllegalArgumentException e) {
-                    // Fallback to name-based approach for legacy data
                     @SuppressWarnings("deprecation")
                     org.bukkit.OfflinePlayer owner = Bukkit.getOfflinePlayer(info.getSkullOwner());
                     skull.setOwningPlayer(owner);
@@ -558,12 +916,14 @@ public class BackupManager {
                 skull.update(true, false);
             }
 
+            // Handle POI blocks for villager job sites
             if (isPOIBlock(block.getType())) {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     try {
                         block.getState().update(true, true);
                         block.getChunk().load();
                     } catch (Exception e) {
+                        // Ignore
                     }
                 }, 2L);
             }
@@ -583,44 +943,149 @@ public class BackupManager {
         Location min = area.getMin();
         Location max = area.getMax();
         World world = min.getWorld();
+        int entityCounter = 0;
 
         try {
-            world.getEntities().stream()
-                    .filter(entity -> {
-                        Location loc = entity.getLocation();
-                        return loc.getBlockX() >= min.getBlockX() && loc.getBlockX() <= max.getBlockX() &&
-                                loc.getBlockY() >= min.getBlockY() && loc.getBlockY() <= max.getBlockY() &&
-                                loc.getBlockZ() >= min.getBlockZ() && loc.getBlockZ() <= max.getBlockZ();
-                    })
-                    .forEach(entity -> {
-                        if (entity instanceof org.bukkit.entity.ItemFrame) {
-                            org.bukkit.entity.ItemFrame frame = (org.bukkit.entity.ItemFrame) entity;
+            for (org.bukkit.entity.Entity entity : world.getEntities()) {
+                Location loc = entity.getLocation();
+                if (loc.getBlockX() < min.getBlockX() || loc.getBlockX() > max.getBlockX() ||
+                    loc.getBlockY() < min.getBlockY() || loc.getBlockY() > max.getBlockY() ||
+                    loc.getBlockZ() < min.getBlockZ() || loc.getBlockZ() > max.getBlockZ()) {
+                    continue;
+                }
 
-                            Map<String, Object> frameData = new HashMap<>();
-                            frameData.put("type", "ITEM_FRAME");
-                            frameData.put("x", entity.getLocation().getX());
-                            frameData.put("y", entity.getLocation().getY());
-                            frameData.put("z", entity.getLocation().getZ());
-                            frameData.put("facing", frame.getFacing().name());
-                            frameData.put("rotation", frame.getRotation().name());
+                // Item Frame (regular and glow)
+                if (entity instanceof org.bukkit.entity.ItemFrame) {
+                    org.bukkit.entity.ItemFrame frame = (org.bukkit.entity.ItemFrame) entity;
+                    Map<String, Object> frameData = new HashMap<>();
+                    
+                    boolean isGlow = entity instanceof org.bukkit.entity.GlowItemFrame;
+                    frameData.put("type", isGlow ? "GLOW_ITEM_FRAME" : "ITEM_FRAME");
+                    frameData.put("x", loc.getX());
+                    frameData.put("y", loc.getY());
+                    frameData.put("z", loc.getZ());
+                    frameData.put("yaw", loc.getYaw());
+                    frameData.put("pitch", loc.getPitch());
+                    frameData.put("facing", frame.getFacing().name());
+                    frameData.put("rotation", frame.getRotation().name());
+                    frameData.put("fixed", frame.isFixed());
+                    frameData.put("visible", frame.isVisible());
+                    frameData.put("invulnerable", frame.isInvulnerable());
+                    
+                    if (frame.getItem() != null && frame.getItem().getType() != Material.AIR) {
+                        frameData.put("item", frame.getItem());
+                    }
+                    if (frame.getCustomName() != null) {
+                        frameData.put("customName", frame.getCustomName());
+                    }
+                    frameData.put("customNameVisible", frame.isCustomNameVisible());
 
-                            if (frame.getItem() != null && frame.getItem().getType() != Material.AIR) {
-                                frameData.put("item", frame.getItem());
-                            }
-
-                            String key = "frame_" + entity.getLocation().getBlockX() + "_" +
-                                    entity.getLocation().getBlockY() + "_" +
-                                    entity.getLocation().getBlockZ();
-                            entities.put(key, frameData);
-                        } else if (entity instanceof org.bukkit.entity.ArmorStand) {
+                    String key = "frame_" + (entityCounter++);
+                    entities.put(key, frameData);
+                }
+                // Armor Stand
+                else if (entity instanceof org.bukkit.entity.ArmorStand) {
+                    org.bukkit.entity.ArmorStand stand = (org.bukkit.entity.ArmorStand) entity;
+                    Map<String, Object> standData = new HashMap<>();
+                    
+                    standData.put("type", "ARMOR_STAND");
+                    standData.put("x", loc.getX());
+                    standData.put("y", loc.getY());
+                    standData.put("z", loc.getZ());
+                    standData.put("yaw", loc.getYaw());
+                    standData.put("pitch", loc.getPitch());
+                    
+                    // Equipment
+                    org.bukkit.inventory.EntityEquipment equipment = stand.getEquipment();
+                    if (equipment != null) {
+                        if (equipment.getHelmet() != null && equipment.getHelmet().getType() != Material.AIR) {
+                            standData.put("helmet", equipment.getHelmet());
                         }
-                    });
+                        if (equipment.getChestplate() != null && equipment.getChestplate().getType() != Material.AIR) {
+                            standData.put("chestplate", equipment.getChestplate());
+                        }
+                        if (equipment.getLeggings() != null && equipment.getLeggings().getType() != Material.AIR) {
+                            standData.put("leggings", equipment.getLeggings());
+                        }
+                        if (equipment.getBoots() != null && equipment.getBoots().getType() != Material.AIR) {
+                            standData.put("boots", equipment.getBoots());
+                        }
+                        if (equipment.getItemInMainHand() != null && equipment.getItemInMainHand().getType() != Material.AIR) {
+                            standData.put("mainHand", equipment.getItemInMainHand());
+                        }
+                        if (equipment.getItemInOffHand() != null && equipment.getItemInOffHand().getType() != Material.AIR) {
+                            standData.put("offHand", equipment.getItemInOffHand());
+                        }
+                    }
+                    
+                    // Poses (stored as arrays: [x, y, z])
+                    standData.put("headPose", eulerAngleToArray(stand.getHeadPose()));
+                    standData.put("bodyPose", eulerAngleToArray(stand.getBodyPose()));
+                    standData.put("leftArmPose", eulerAngleToArray(stand.getLeftArmPose()));
+                    standData.put("rightArmPose", eulerAngleToArray(stand.getRightArmPose()));
+                    standData.put("leftLegPose", eulerAngleToArray(stand.getLeftLegPose()));
+                    standData.put("rightLegPose", eulerAngleToArray(stand.getRightLegPose()));
+                    
+                    // Properties
+                    standData.put("visible", stand.isVisible());
+                    standData.put("arms", stand.hasArms());
+                    standData.put("basePlate", stand.hasBasePlate());
+                    standData.put("small", stand.isSmall());
+                    standData.put("marker", stand.isMarker());
+                    standData.put("invulnerable", stand.isInvulnerable());
+                    standData.put("gravity", stand.hasGravity());
+                    standData.put("glowing", stand.isGlowing());
+                    
+                    if (stand.getCustomName() != null) {
+                        standData.put("customName", stand.getCustomName());
+                    }
+                    standData.put("customNameVisible", stand.isCustomNameVisible());
+
+                    String key = "armorstand_" + (entityCounter++);
+                    entities.put(key, standData);
+                }
+                // Painting
+                else if (entity instanceof org.bukkit.entity.Painting) {
+                    org.bukkit.entity.Painting painting = (org.bukkit.entity.Painting) entity;
+                    Map<String, Object> paintingData = new HashMap<>();
+                    
+                    paintingData.put("type", "PAINTING");
+                    paintingData.put("x", loc.getX());
+                    paintingData.put("y", loc.getY());
+                    paintingData.put("z", loc.getZ());
+                    paintingData.put("facing", painting.getFacing().name());
+                    paintingData.put("art", painting.getArt().name());
+
+                    String key = "painting_" + (entityCounter++);
+                    entities.put(key, paintingData);
+                }
+            }
 
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to backup entities: " + e.getMessage());
+            e.printStackTrace();
         }
 
         return entities;
+    }
+    
+    private double[] eulerAngleToArray(org.bukkit.util.EulerAngle angle) {
+        return new double[] { angle.getX(), angle.getY(), angle.getZ() };
+    }
+    
+    private org.bukkit.util.EulerAngle arrayToEulerAngle(Object obj) {
+        if (obj instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<Number> list = (List<Number>) obj;
+            if (list.size() >= 3) {
+                return new org.bukkit.util.EulerAngle(
+                    list.get(0).doubleValue(),
+                    list.get(1).doubleValue(),
+                    list.get(2).doubleValue()
+                );
+            }
+        }
+        return org.bukkit.util.EulerAngle.ZERO;
     }
 
     public void restoreEntitiesInArea(ProtectedArea area, Map<String, Object> entityData) {
@@ -631,6 +1096,7 @@ public class BackupManager {
         Location max = area.getMax();
         World world = min.getWorld();
 
+        // Remove existing entities of the types we're restoring
         world.getEntities().stream()
                 .filter(entity -> {
                     Location loc = entity.getLocation();
@@ -638,40 +1104,150 @@ public class BackupManager {
                             loc.getBlockY() >= min.getBlockY() && loc.getBlockY() <= max.getBlockY() &&
                             loc.getBlockZ() >= min.getBlockZ() && loc.getBlockZ() <= max.getBlockZ();
                 })
-                .filter(entity -> entity instanceof org.bukkit.entity.ItemFrame)
+                .filter(entity -> entity instanceof org.bukkit.entity.ItemFrame ||
+                                  entity instanceof org.bukkit.entity.ArmorStand ||
+                                  entity instanceof org.bukkit.entity.Painting)
                 .forEach(org.bukkit.entity.Entity::remove);
 
         for (Map.Entry<String, Object> entry : entityData.entrySet()) {
             try {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> data = (Map<String, Object>) entry.getValue();
+                String type = (String) data.get("type");
 
-                if ("ITEM_FRAME".equals(data.get("type"))) {
-                    double x = (Double) data.get("x");
-                    double y = (Double) data.get("y");
-                    double z = (Double) data.get("z");
+                double x = ((Number) data.get("x")).doubleValue();
+                double y = ((Number) data.get("y")).doubleValue();
+                double z = ((Number) data.get("z")).doubleValue();
+                float yaw = data.containsKey("yaw") ? ((Number) data.get("yaw")).floatValue() : 0;
+                float pitch = data.containsKey("pitch") ? ((Number) data.get("pitch")).floatValue() : 0;
+                Location loc = new Location(world, x, y, z, yaw, pitch);
 
-                    Location loc = new Location(world, x, y, z);
+                // Item Frame / Glow Item Frame
+                if ("ITEM_FRAME".equals(type) || "GLOW_ITEM_FRAME".equals(type)) {
                     org.bukkit.block.BlockFace facing = org.bukkit.block.BlockFace.valueOf((String) data.get("facing"));
-
-                    org.bukkit.entity.ItemFrame frame = world.spawn(loc, org.bukkit.entity.ItemFrame.class,
-                            itemFrame -> {
-                                itemFrame.setFacingDirection(facing);
-
-                                if (data.containsKey("rotation")) {
-                                    org.bukkit.Rotation rotation = org.bukkit.Rotation
-                                            .valueOf((String) data.get("rotation"));
-                                    itemFrame.setRotation(rotation);
-                                }
-
-                                if (data.containsKey("item")) {
-                                    ItemStack item = (ItemStack) data.get("item");
-                                    itemFrame.setItem(item);
-                                }
-                            });
-
-                    plugin.getLogger().fine("Restored item frame at " + loc + " with item: " +
-                            (frame.getItem() != null ? frame.getItem().getType() : "none"));
+                    
+                    Class<? extends org.bukkit.entity.ItemFrame> frameClass = 
+                        "GLOW_ITEM_FRAME".equals(type) ? org.bukkit.entity.GlowItemFrame.class : org.bukkit.entity.ItemFrame.class;
+                    
+                    world.spawn(loc, frameClass, frame -> {
+                        frame.setFacingDirection(facing);
+                        
+                        if (data.containsKey("rotation")) {
+                            frame.setRotation(org.bukkit.Rotation.valueOf((String) data.get("rotation")));
+                        }
+                        if (data.containsKey("item")) {
+                            frame.setItem((ItemStack) data.get("item"));
+                        }
+                        if (data.containsKey("fixed")) {
+                            frame.setFixed((Boolean) data.get("fixed"));
+                        }
+                        if (data.containsKey("visible")) {
+                            frame.setVisible((Boolean) data.get("visible"));
+                        }
+                        if (data.containsKey("invulnerable")) {
+                            frame.setInvulnerable((Boolean) data.get("invulnerable"));
+                        }
+                        if (data.containsKey("customName")) {
+                            frame.setCustomName((String) data.get("customName"));
+                        }
+                        if (data.containsKey("customNameVisible")) {
+                            frame.setCustomNameVisible((Boolean) data.get("customNameVisible"));
+                        }
+                    });
+                }
+                // Armor Stand
+                else if ("ARMOR_STAND".equals(type)) {
+                    world.spawn(loc, org.bukkit.entity.ArmorStand.class, stand -> {
+                        org.bukkit.inventory.EntityEquipment equipment = stand.getEquipment();
+                        
+                        // Equipment
+                        if (equipment != null) {
+                            if (data.containsKey("helmet")) {
+                                equipment.setHelmet((ItemStack) data.get("helmet"));
+                            }
+                            if (data.containsKey("chestplate")) {
+                                equipment.setChestplate((ItemStack) data.get("chestplate"));
+                            }
+                            if (data.containsKey("leggings")) {
+                                equipment.setLeggings((ItemStack) data.get("leggings"));
+                            }
+                            if (data.containsKey("boots")) {
+                                equipment.setBoots((ItemStack) data.get("boots"));
+                            }
+                            if (data.containsKey("mainHand")) {
+                                equipment.setItemInMainHand((ItemStack) data.get("mainHand"));
+                            }
+                            if (data.containsKey("offHand")) {
+                                equipment.setItemInOffHand((ItemStack) data.get("offHand"));
+                            }
+                        }
+                        
+                        // Poses
+                        if (data.containsKey("headPose")) {
+                            stand.setHeadPose(arrayToEulerAngle(data.get("headPose")));
+                        }
+                        if (data.containsKey("bodyPose")) {
+                            stand.setBodyPose(arrayToEulerAngle(data.get("bodyPose")));
+                        }
+                        if (data.containsKey("leftArmPose")) {
+                            stand.setLeftArmPose(arrayToEulerAngle(data.get("leftArmPose")));
+                        }
+                        if (data.containsKey("rightArmPose")) {
+                            stand.setRightArmPose(arrayToEulerAngle(data.get("rightArmPose")));
+                        }
+                        if (data.containsKey("leftLegPose")) {
+                            stand.setLeftLegPose(arrayToEulerAngle(data.get("leftLegPose")));
+                        }
+                        if (data.containsKey("rightLegPose")) {
+                            stand.setRightLegPose(arrayToEulerAngle(data.get("rightLegPose")));
+                        }
+                        
+                        // Properties
+                        if (data.containsKey("visible")) {
+                            stand.setVisible((Boolean) data.get("visible"));
+                        }
+                        if (data.containsKey("arms")) {
+                            stand.setArms((Boolean) data.get("arms"));
+                        }
+                        if (data.containsKey("basePlate")) {
+                            stand.setBasePlate((Boolean) data.get("basePlate"));
+                        }
+                        if (data.containsKey("small")) {
+                            stand.setSmall((Boolean) data.get("small"));
+                        }
+                        if (data.containsKey("marker")) {
+                            stand.setMarker((Boolean) data.get("marker"));
+                        }
+                        if (data.containsKey("invulnerable")) {
+                            stand.setInvulnerable((Boolean) data.get("invulnerable"));
+                        }
+                        if (data.containsKey("gravity")) {
+                            stand.setGravity((Boolean) data.get("gravity"));
+                        }
+                        if (data.containsKey("glowing")) {
+                            stand.setGlowing((Boolean) data.get("glowing"));
+                        }
+                        if (data.containsKey("customName")) {
+                            stand.setCustomName((String) data.get("customName"));
+                        }
+                        if (data.containsKey("customNameVisible")) {
+                            stand.setCustomNameVisible((Boolean) data.get("customNameVisible"));
+                        }
+                    });
+                }
+                // Painting
+                else if ("PAINTING".equals(type)) {
+                    org.bukkit.block.BlockFace facing = org.bukkit.block.BlockFace.valueOf((String) data.get("facing"));
+                    String artName = (String) data.get("art");
+                    
+                    world.spawn(loc, org.bukkit.entity.Painting.class, painting -> {
+                        painting.setFacingDirection(facing);
+                        try {
+                            painting.setArt(org.bukkit.Art.valueOf(artName));
+                        } catch (IllegalArgumentException e) {
+                            plugin.getLogger().fine("Unknown art type: " + artName);
+                        }
+                    });
                 }
 
             } catch (Exception e) {
