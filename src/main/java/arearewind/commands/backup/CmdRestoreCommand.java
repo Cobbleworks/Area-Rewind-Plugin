@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
  * This version doesn't require player permissions and is designed for
  * automation
  */
-public class RestoreBlockCommand extends BaseCommand {
+public class CmdRestoreCommand extends BaseCommand {
 
-    public RestoreBlockCommand(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
+    public CmdRestoreCommand(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
             GUIManager guiManager, VisualizationManager visualizationManager,
             PermissionManager permissionManager, ConfigurationManager configManager,
             FileManager fileManager, IntervalManager intervalManager) {
@@ -52,7 +52,7 @@ public class RestoreBlockCommand extends BaseCommand {
      */
     public boolean executeForCommandBlock(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            logToSender(sender, "Usage: /rewind restoreblock <area> <backup_id|latest|oldest> [world]");
+            logToSender(sender, "Usage: /rewind cmdrestore <area> <backup_id|latest|oldest> [world]");
             return true;
         }
 
@@ -101,7 +101,7 @@ public class RestoreBlockCommand extends BaseCommand {
                 }
             } catch (Exception e) {
                 logToSender(sender, "Error restoring backup: " + e.getMessage());
-                plugin.getLogger().severe("Error in restoreblock command: " + e.getMessage());
+                plugin.getLogger().severe("Error in cmdrestore command: " + e.getMessage());
                 e.printStackTrace();
             }
         });
@@ -135,7 +135,7 @@ public class RestoreBlockCommand extends BaseCommand {
             sender.sendMessage(message);
         }
         // Also log to console for command blocks
-        plugin.getLogger().info("[RestoreBlock] " + ChatColor.stripColor(message));
+        plugin.getLogger().info("[CmdRestore] " + ChatColor.stripColor(message));
     }
 
     @Override
@@ -161,7 +161,7 @@ public class RestoreBlockCommand extends BaseCommand {
 
     @Override
     public String getName() {
-        return "restoreblock";
+        return "cmdrestore";
     }
 
     @Override
@@ -171,6 +171,6 @@ public class RestoreBlockCommand extends BaseCommand {
 
     @Override
     public String getUsage() {
-        return "/rewind restoreblock <area> <backup_id|latest|oldest> [world]";
+        return "/rewind cmdrestore <area> <backup_id|latest|oldest> [world]";
     }
 }
