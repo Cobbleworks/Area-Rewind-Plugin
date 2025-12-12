@@ -578,10 +578,10 @@ public class AreaSettingsGUIPage implements IGUIPage {
         backToBackupsItem.setItemMeta(backToBackupsMeta);
         gui.setItem(45, backToBackupsItem);
 
-        // Back to My Areas - slot 53
+        // Back to My Areas / Cancel - slot 53
         ItemStack backToAreasItem = new ItemStack(Material.ARROW);
         ItemMeta backToAreasMeta = backToAreasItem.getItemMeta();
-        backToAreasMeta.setDisplayName(ChatColor.GRAY + "◀ Back to My Areas");
+        backToAreasMeta.setDisplayName(ChatColor.GRAY + "◀ Back to My Areas / Cancel");
         List<String> areasLore = new ArrayList<>();
         areasLore.add("");
         areasLore.add(ChatColor.GRAY + "Return to your");

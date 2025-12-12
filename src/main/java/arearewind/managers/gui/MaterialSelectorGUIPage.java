@@ -239,7 +239,7 @@ public class MaterialSelectorGUIPage implements IGUIPage {
         if (displayName.contains("Cancel")) {
             player.closeInventory();
             if (type.equals("area")) {
-                guiManager.openAreaSettingsGUI(player, areaName);
+                guiManager.openBackupsGUI(player, areaName);
             } else {
                 guiManager.openBackupsGUI(player, areaName);
             }
@@ -284,7 +284,7 @@ public class MaterialSelectorGUIPage implements IGUIPage {
                     ChatColor.YELLOW + formatMaterialName(material) + ChatColor.GREEN + "!");
 
             player.closeInventory();
-            guiManager.openAreaSettingsGUI(player, areaName);
+            guiManager.openBackupsGUI(player, areaName);
 
         } else {
             ProtectedArea area = areaManager.getArea(areaName);
@@ -360,7 +360,7 @@ public class MaterialSelectorGUIPage implements IGUIPage {
 
             areaManager.saveAreas();
             player.closeInventory();
-            guiManager.openAreaSettingsGUI(player, areaName);
+            guiManager.openBackupsGUI(player, areaName);
 
         } else {
             ProtectedArea area = areaManager.getArea(areaName);
