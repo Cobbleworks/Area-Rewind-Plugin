@@ -171,9 +171,7 @@ public class PlayerInteractionListener implements Listener {
                     showToolInfo(player);
                 } else if (isOurTool) {
                     showBasicSelectionInfo(player);
-                } else if (isWorldEditWand) {
-                    showWorldEditSelectionInfo(player);
-                }
+                } 
 
                 // Don't cancel WorldEdit wand events
                 if (isOurTool) {
@@ -229,9 +227,18 @@ public class PlayerInteractionListener implements Listener {
         }
     }
 
-    private void syncWorldEditSelection(Player player) {
+    /**
+     * Syncs the WorldEdit selection to the Area Rewind selection.
+     * This captures the bounding box of any WorldEdit selection type
+     * (cuboid, polygon, extend, convex, sphere, cylinder, etc.)
+     * and stores it as pos1/pos2 for area creation.
+     * 
+     * @param player The player whose selection to sync
+     * @return true if sync was successful, false if no valid selection
+     */
+    public boolean syncWorldEditSelection(Player player) {
         if (!worldEditEnabled) {
-            return;
+            return false;
         }
 
         try {
@@ -244,24 +251,26 @@ public class PlayerInteractionListener implements Listener {
             if (region != null) {
                 // Get the bounding box for any type of WorldEdit selection
                 // This ensures we always work with a rectangular area
+                // Works with: cuboid, polygon, extend, convex, sphere, cylinder, etc.
                 com.sk89q.worldedit.math.BlockVector3 min = region.getMinimumPoint();
                 com.sk89q.worldedit.math.BlockVector3 max = region.getMaximumPoint();
 
                 Location pos1 = new Location(player.getWorld(), min.getX(), min.getY(), min.getZ());
                 Location pos2 = new Location(player.getWorld(), max.getX(), max.getY(), max.getZ());
 
-                // Validate selection size (prevent huge selections)
+                // Validate selection size using configurable limit
                 long blockCount = region.getVolume();
-                if (blockCount > 1000000) { // 1M block limit
-                    player.sendMessage(ChatColor.RED + "Selection too large! Maximum 1,000,000 blocks.");
-                    return;
+                int maxAreaSize = configManager.getMaxAreaSize();
+                if (blockCount > maxAreaSize) {
+                    player.sendMessage(ChatColor.RED + "Selection too large! Maximum " + 
+                            String.format("%,d", maxAreaSize) + " blocks.");
+                    return false;
                 }
 
                 areaManager.setPosition1(player.getUniqueId(), pos1);
                 areaManager.setPosition2(player.getUniqueId(), pos2);
 
-                // Provide feedback about the conversion
-                // showSelectionInfo(player);
+                return true;
             }
         } catch (IncompleteRegionException e) {
             // Selection is incomplete, this is normal - don't spam the player
@@ -271,6 +280,7 @@ public class PlayerInteractionListener implements Listener {
             player.sendMessage(
                     ChatColor.YELLOW + "Could not sync WorldEdit selection. Try again or use wooden hoe instead.");
         }
+        return false;
     }
 
     private void showWorldEditSelectionInfo(Player player) {

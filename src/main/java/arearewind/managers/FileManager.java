@@ -181,7 +181,10 @@ public class FileManager {
                     signatureToPaletteKey.put(blockSignature, paletteKey);
                 }
 
-                positionMappings.put(entry.getKey(), paletteKey);
+                // Encode position key to prevent YAML from interpreting commas as nested keys
+                // Format: "x;y;z" instead of "x,y,z" to avoid YAML nested key interpretation
+                String encodedPosition = encodePositionKey(entry.getKey());
+                positionMappings.put(encodedPosition, paletteKey);
 
             } catch (Exception blockError) {
                 plugin.getLogger().warning("Failed to optimize block at " + entry.getKey() +
@@ -243,9 +246,13 @@ public class FileManager {
                     }
                 }
 
-                // Apply palette to positions
-                for (String position : positionsSection.getKeys(false)) {
-                    String paletteKey = positionsSection.getString(position);
+                // Apply palette to positions - handle both new encoded format and legacy format
+                for (String encodedPosition : positionsSection.getKeys(false)) {
+                    String paletteKey = positionsSection.getString(encodedPosition);
+                    
+                    // Decode position key (handles both new ";" format and legacy "," format)
+                    String position = decodePositionKey(encodedPosition);
+                    
                     if (paletteKey != null && palette.containsKey(paletteKey)) {
                         try {
                             BlockInfo info = BlockInfo.deserialize(palette.get(paletteKey));
@@ -257,6 +264,13 @@ public class FileManager {
                                     ": " + ex.getMessage());
                         }
                     }
+                }
+
+                // If we loaded very few blocks but expected more, try legacy nested key format
+                if (blocks.size() < 100 && positionsSection.getKeys(true).size() > blocks.size() * 3) {
+                    plugin.getLogger().info("Detected legacy nested position format, attempting recovery...");
+                    blocks.clear();
+                    loadLegacyNestedPositions(positionsSection, palette, blocks);
                 }
 
                 plugin.getLogger().fine("Loaded " + blocks.size() + " blocks from palette optimization");
@@ -286,6 +300,90 @@ public class FileManager {
         }
 
         return blocks;
+    }
+
+    /**
+     * Encodes a position key to prevent YAML from interpreting commas as nested keys.
+     * Changes "x,y,z" format to "x;y;z" format.
+     */
+    private String encodePositionKey(String position) {
+        return position.replace(',', ';');
+    }
+
+    /**
+     * Decodes a position key back to the original format.
+     * Handles both new "x;y;z" format and legacy "x,y,z" format.
+     */
+    private String decodePositionKey(String encodedPosition) {
+        // Convert semicolon format back to comma format for internal use
+        return encodedPosition.replace(';', ',');
+    }
+
+    /**
+     * Attempts to recover blocks from legacy nested position format.
+     * This handles old backups where "x,y,z" was interpreted as nested YAML keys.
+     */
+    private void loadLegacyNestedPositions(org.bukkit.configuration.ConfigurationSection positionsSection,
+            Map<String, Map<String, Object>> palette, Map<String, BlockInfo> blocks) {
+        // In legacy format, positions like "100,64,200" became nested: 100 -> 64 -> 200 -> value
+        // We need to reconstruct the original position from the nested structure
+        for (String xKey : positionsSection.getKeys(false)) {
+            org.bukkit.configuration.ConfigurationSection xSection = positionsSection.getConfigurationSection(xKey);
+            if (xSection != null) {
+                // This is nested format - traverse the Y keys
+                for (String yKey : xSection.getKeys(false)) {
+                    org.bukkit.configuration.ConfigurationSection ySection = xSection.getConfigurationSection(yKey);
+                    if (ySection != null) {
+                        // Traverse the Z keys to get the palette key values
+                        for (String zKey : ySection.getKeys(false)) {
+                            String paletteKey = ySection.getString(zKey);
+                            if (paletteKey != null && palette.containsKey(paletteKey)) {
+                                String position = xKey + "," + yKey + "," + zKey;
+                                try {
+                                    BlockInfo info = BlockInfo.deserialize(palette.get(paletteKey));
+                                    if (info != null) {
+                                        blocks.put(position, info);
+                                    }
+                                } catch (Exception ex) {
+                                    plugin.getLogger().warning("Error loading legacy block at " + position +
+                                            ": " + ex.getMessage());
+                                }
+                            }
+                        }
+                    } else {
+                        // Could be a direct value (non-nested format for this key)
+                        String paletteKey = xSection.getString(yKey);
+                        if (paletteKey != null && palette.containsKey(paletteKey)) {
+                            // This might be "x;y;z" format already decoded
+                            String position = xKey + "," + yKey;
+                            try {
+                                BlockInfo info = BlockInfo.deserialize(palette.get(paletteKey));
+                                if (info != null) {
+                                    blocks.put(position, info);
+                                }
+                            } catch (Exception ex) {
+                                // Ignore - may not be a valid format
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Direct value - already in correct format
+                String paletteKey = positionsSection.getString(xKey);
+                if (paletteKey != null && palette.containsKey(paletteKey)) {
+                    String position = decodePositionKey(xKey);
+                    try {
+                        BlockInfo info = BlockInfo.deserialize(palette.get(paletteKey));
+                        if (info != null) {
+                            blocks.put(position, info);
+                        }
+                    } catch (Exception ex) {
+                        // Ignore
+                    }
+                }
+            }
+        }
+        plugin.getLogger().info("Legacy format recovery loaded " + blocks.size() + " blocks");
     }
 
     /**

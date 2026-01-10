@@ -33,6 +33,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         private final Map<UUID, Long> lastUsage = new HashMap<>();
         private final CmdRestoreCommand cmdRestoreCommand;
         private final ConfigCommand configCommand;
+        private final SaveCommand saveCommand;
 
         // Rate limiting
         private static final long RATE_LIMIT_MS = 1000;
@@ -51,6 +52,10 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 this.configCommand = new ConfigCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager);
 
+                // Initialize save command (needs WorldEdit sync)
+                this.saveCommand = new SaveCommand(plugin, areaManager, backupManager, guiManager,
+                                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
+
                 // Register all commands
                 registerCommands(plugin, areaManager, backupManager, guiManager, visualizationManager,
                                 permissionManager, configManager, fileManager, intervalManager);
@@ -66,8 +71,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new Pos2Command(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-                commandRegistry.registerCommand(new SaveCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
+                commandRegistry.registerCommand(saveCommand);
                 commandRegistry.registerCommand(new ContractCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new ExpandCommand(plugin, areaManager, backupManager, guiManager,
@@ -235,6 +239,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         public void setPlayerInteractionListener(PlayerInteractionListener listener) {
                 // Set the listener for commands that need it
                 configCommand.setPlayerInteractionListener(listener);
+                saveCommand.setPlayerInteractionListener(listener);
         }
 
         /**

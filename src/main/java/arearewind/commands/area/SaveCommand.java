@@ -2,6 +2,7 @@ package arearewind.commands.area;
 
 import arearewind.commands.base.BaseCommand;
 import arearewind.data.ProtectedArea;
+import arearewind.listeners.PlayerInteractionListener;
 import arearewind.managers.*;
 import arearewind.util.ConfigurationManager;
 import org.bukkit.Bukkit;
@@ -18,12 +19,18 @@ import java.util.UUID;
  */
 public class SaveCommand extends BaseCommand {
 
+    private PlayerInteractionListener playerListener;
+
     public SaveCommand(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
             GUIManager guiManager, VisualizationManager visualizationManager,
             PermissionManager permissionManager, ConfigurationManager configManager,
             FileManager fileManager, IntervalManager intervalManager) {
         super(plugin, areaManager, backupManager, guiManager, visualizationManager,
                 permissionManager, configManager, fileManager, intervalManager);
+    }
+
+    public void setPlayerInteractionListener(PlayerInteractionListener listener) {
+        this.playerListener = listener;
     }
 
     @Override
@@ -34,6 +41,12 @@ public class SaveCommand extends BaseCommand {
 
         String name = args[0];
         UUID playerId = player.getUniqueId();
+
+        // Sync WorldEdit selection before checking if we have a valid selection
+        // This ensures extended/polygon selections get their full bounding box captured
+        if (playerListener != null) {
+            playerListener.syncWorldEditSelection(player);
+        }
 
         if (!validateSelection(player)) {
             return true;
