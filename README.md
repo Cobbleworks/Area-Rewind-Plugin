@@ -1,3 +1,6 @@
+<p align="center">
+  <img src="images/plugin-logo.png" alt="Area Rewind" width="128" />
+</p>
 # Area-Rewind
 
 Area-Rewind is an advanced Minecraft region protection and rollback plugin focused on fast recovery workflows, collaborative trust management, and visual administration tools.
@@ -175,3 +178,4 @@ Below is a guide to the main components of the plugin and where to modify each p
   - Description: The compiled plugin JAR to deploy on your server.
 
 Refer to these locations when customizing or extending the plugin for your server's needs.
+
