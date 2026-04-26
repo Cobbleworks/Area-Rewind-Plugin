@@ -1,83 +1,95 @@
-# AreaRewind
+# Area-Rewind
 
-Advanced area protection and backup system for Minecraft servers
-
-🎉 **Special thanks to Bernd Hagen, the original author of AreaRewind!** 🎉
-
-## Overview
-
-AreaRewind is a powerful Minecraft plugin that allows server administrators and players to protect, manage, and restore areas in their world. It features an intuitive GUI, robust backup/restore capabilities, and fine-grained permissions for collaborative play.
+Area-Rewind is an advanced Minecraft region protection and rollback plugin focused on fast recovery workflows, collaborative trust management, and visual administration tools.
 
 ## Features
 
-- **Protected Areas**: Create, manage, and delete protected regions.
-- **Backups**: Create backups of areas, restore previous states, preview and compare backups, undo/redo changes.
-- **Enhanced GUI System**: Comprehensive graphical interface with:
-  - Main menu with categorized access to all features
-  - Area management with creation wizard and quick actions
-  - Advanced backup management with visual timeline
-  - Permission and trust management interfaces
-  - Visualization controls and boundary editing
-  - Import/export functionality
-  - Administrative tools and settings
-- **Permissions**: Fine-grained permission system for all plugin features, including area creation, deletion, backup, restore, trust management, visualization, import/export, and GUI access.
-- **Trusted Players**: Manage trusted players for each area.
-- **Visualization**: Visualize area boundaries and states.
-- **Import/Export**: Export and import area data for portability. Either drag into folders, or use the /rewind export command to export to a WorldEdit schematic file.
-- **WorldEdit Integration**: Enhanced functionality if WorldEdit is present.
+- Protected region management with ownership and trust rules
+- Backup lifecycle tools: create, list, diff, restore, undo, and cleanup
+- Visual region controls including show, hide, and backup preview particles
+- Automatic backup intervals for routine protection points
+- Import and export support for schematic-style workflows
+- Full GUI-driven management for players and admins
+- Optional WorldEdit integration for enhanced editing workflows
 
 ## Commands
 
-AreaRewind provides a rich set of commands for managing protected areas, backups, permissions, and more. Below is a comprehensive list of all available commands:
+Main command:
 
-| Command    | Usage                                                                                     | Description                                                        | Aliases            |
-| ---------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------ |
-| rewind     | /rewind                                                                                   | Open the AreaRewind management GUI                                 | gui                |
-| reload     | /rewind reload                                                                            | Reload plugin configuration                                        |                    |
-| diff       | /rewind diff <area> <id1> <id2>                                                           | Compare two backups and show differences                           | compare            |
-| scan       | /rewind scan <area>                                                                       | Scan for changes since the last backup                             |                    |
-| contract   | /rewind contract <area> <direction> <amount>                                              | Contract an area in a specific direction                           |                    |
-| delete     | /rewind delete <area>                                                                     | Delete an area and all its backups                                 |                    |
-| expand     | /rewind expand <area> <direction> <amount>                                                | Expand an area in a specific direction                             |                    |
-| pos1       | /rewind pos1                                                                              | Set the first position for area selection                          |                    |
-| pos2       | /rewind pos2                                                                              | Set the second position for area selection                         |                    |
-| rename     | /rewind rename <old_name> <new_name>                                                      | Rename an area                                                     |                    |
-| save       | /rewind save <name>                                                                       | Save the selected area with a name                                 |                    |
-| backup     | /rewind backup <area>                                                                     | Create a backup of an area                                         |                    |
-| rollback   | /rewind rollback <area> <time>                                                            | Rollback an area to a specific time ago                            |                    |
-| undo       | /rewind undo <area>                                                                       | Undo the last backup restore operation                             |                    |
-| cmdrestore | /rewind cmdrestore <area> <backup_id\|latest\|oldest> [world]                             | Restore an area from a backup (for command blocks and console)     |                    |
-| restore    | /rewind restore <area> <backup_id\|latest\|oldest>                                        | Restore an area from a backup                                      |                    |
-| history    | /rewind history <area> [page]                                                             | View backup history for an area                                    |                    |
-| info       | /rewind info <area>                                                                       | View detailed information about an area                            |                    |
-| list       | /rewind list [all\|owned\|trusted]                                                        | List protected areas                                               |                    |
-| cleanup    | /rewind cleanup <area> [days]                                                             | Clean up old backups for an area                                   |                    |
-| permission | /rewind permission <add\|remove\|list> <area> [player]                                    | Manage area permissions                                            | perm, permissions  |
-| seticon    | /rewind seticon <area> <material> OR /rewind seticon backup <area> <backup_id> <material> | Set custom icons for areas and backups                             | icon, setitem      |
-| trust      | /rewind trust <area> <player>                                                             | Add a player as trusted for an area                                |                    |
-| untrust    | /rewind untrust <area> <player>                                                           | Remove a player's trust for an area                                |                    |
-| interval   | /rewind interval <set\|remove\|check> <area> [minutes] [backup_id]                        | Manage automatic backup intervals                                  | timer, schedule    |
-| teleport   | /rewind teleport <area>                                                                   | Teleport to an area                                                | tp                 |
-| help       | /rewind help                                                                              | Show help information                                              |                    |
-| hide       | /rewind hide [area]                                                                       | Hide area visualization                                            | clear              |
-| preview    | /rewind preview <area> [backup_id] [particle_type]                                        | Show a visual preview of a backup with particles                   | particle           |
-| show       | /rewind show <area>                                                                       | Show area visualization                                            | display, visualize |
-| status     | /rewind status                                                                            | Show system status and statistics                                  |                    |
-| tool       | /rewind tool                                                                              | Get the area selection tool                                        | wand, item         |
-| export     | /rewind export                                                                            | Export an areas latest backup to a .schem file for WorldEdit usage |                    |
+- `/rewind` (aliases: `/arearewind`, `/protect`, `/ar`)
+
+Common workflows:
+
+| Command | Description |
+| --- | --- |
+| `/rewind save <name>` | Save a selected area as a protected region |
+| `/rewind backup <area>` | Create a backup snapshot |
+| `/rewind history <area> [page]` | View backup history |
+| `/rewind restore <area> <backup_id\|latest\|oldest>` | Restore an area from a backup |
+| `/rewind rollback <area> <time>` | Roll back to a time offset |
+| `/rewind undo <area>` | Undo the last restore/rollback action |
+| `/rewind trust <area> <player>` | Add trusted player access |
+| `/rewind untrust <area> <player>` | Remove trusted player access |
+| `/rewind show <area>` | Visualize area boundaries |
+| `/rewind hide [area]` | Hide visualization |
+| `/rewind cleanup <area> [days]` | Remove older backups |
+| `/rewind export` | Export latest area backup for external workflows |
+
+Administrative and utility commands:
+
+- `/rewind reload`
+- `/rewind list [all|owned|trusted]`
+- `/rewind info <area>`
+- `/rewind status`
+- `/rewind help`
+- `/rewind tool`
+- `/rewind pos1`
+- `/rewind pos2`
+- `/rewind expand <area> <direction> <amount>`
+- `/rewind contract <area> <direction> <amount>`
+- `/rewind rename <old_name> <new_name>`
+- `/rewind delete <area>`
+- `/rewind scan <area>`
+- `/rewind diff <area> <id1> <id2>`
+- `/rewind permission <add|remove|list> <area> [player]`
+- `/rewind seticon <area> <material>`
+- `/rewind seticon backup <area> <backup_id> <material>`
+- `/rewind interval <set|remove|check> <area> [minutes] [backup_id]`
+- `/rewind teleport <area>`
+- `/rewind preview <area> [backup_id] [particle_type]`
 
 ## Permissions
 
-AreaRewind uses a hierarchical permission system. All permissions are configurable in `plugin.yml`:
+| Permission | Default | Description |
+| --- | --- | --- |
+| `arearewind.*` | op | Full access to all Area-Rewind capabilities |
+| `arearewind.admin` | op | Administrative access |
+| `arearewind.use` | true | Basic plugin usage |
+| `arearewind.create` | true | Create areas |
+| `arearewind.delete` | true | Delete owned areas |
+| `arearewind.backup` | true | Create backups |
+| `arearewind.restore` | true | Restore backups |
+| `arearewind.trust` | true | Manage trusted users |
+| `arearewind.visualize` | true | Visualization controls |
+| `arearewind.gui` | true | GUI access |
+| `arearewind.export` | true | Export area data |
+| `arearewind.import` | true | Import area data |
 
-- `arearewind.*`: Grants access to all features (default: op)
-- `arearewind.admin`: Administrative access (default: op)
-- `arearewind.use`: Basic usage (default: true)
-- `arearewind.create`: Create protected areas (default: true)
-- `arearewind.delete`: Delete owned areas (default: true)
-- `arearewind.backup`: Create backups (default: true)
-- `arearewind.restore`: Restore from backups (default: true)
-- `arearewind.trust`: Manage trusted players (default: true)
+## Installation
+
+1. Download the latest jar from Releases.
+2. Place the jar in your server `plugins` directory.
+3. Restart the server.
+4. Configure permissions (and optional WorldEdit integration).
+
+## Compatibility
+
+- API: Paper/Spigot/Bukkit 1.19+
+- Optional integration: WorldEdit
+
+## License
+
+This project is licensed under the MIT License.
 - `arearewind.visualize`: Visualize area boundaries (default: true)
 - `arearewind.gui`: Use GUI interfaces (default: true)
 - `arearewind.export`: Export areas (default: true)
