@@ -90,3 +90,26 @@ Area Rewind is an open-source Minecraft plugin that provides comprehensive area 
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
+
+## **Screenshots**
+
+The screenshots below demonstrate the core features of the Area Rewind plugin, including the area management GUI, backup system, boundary visualization, and restore functionality.
+
+<table>
+  <tr>
+    <th>Area Rewind - Management GUI</th>
+    <th>Area Rewind - Backup System</th>
+  </tr>
+  <tr>
+    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-gui.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-gui.png" alt="Management GUI" width="450"></a></td>
+    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-backup.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-backup.png" alt="Backup System" width="450"></a></td>
+  </tr>
+  <tr>
+    <th>Area Rewind - Area Visualization</th>
+    <th>Area Rewind - Restore Features</th>
+  </tr>
+  <tr>
+    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-visualization.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-visualization.png" alt="Area Visualization" width="450"></a></td>
+    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-restore.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-restore.png" alt="Restore Features" width="450"></a></td>
+  </tr>
+</table>
