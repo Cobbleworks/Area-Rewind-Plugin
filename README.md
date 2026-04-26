@@ -1,181 +1,92 @@
 <p align="center">
   <img src="images/plugin-logo.png" alt="Area Rewind" width="128" />
 </p>
-# Area-Rewind
+<h1 align="center">Area Rewind</h1>
+<p align="center">
+  <b>Advanced area protection and backup system for Minecraft servers.</b><br>
+  <b>GUI management, automatic backups, undo/redo, and WorldEdit integration.</b>
+</p>
+<p align="center">
+  <a href="https://github.com/Cobbleworks/Area-Rewind/releases"><img src="https://img.shields.io/github/v/release/Cobbleworks/Area-Rewind?include_prereleases&style=flat-square&color=4CAF50" alt="Latest Release"></a>&nbsp;&nbsp;<a href="https://github.com/Cobbleworks/Area-Rewind/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License"></a>&nbsp;&nbsp;<img src="https://img.shields.io/badge/Java-17+-orange?style=flat-square" alt="Java Version">&nbsp;&nbsp;<img src="https://img.shields.io/badge/Minecraft-1.21+-green?style=flat-square" alt="Minecraft Version">&nbsp;&nbsp;<img src="https://img.shields.io/badge/Platform-Spigot%2FPaper-yellow?style=flat-square" alt="Platform">&nbsp;&nbsp;<img src="https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square" alt="Status">
+</p>
 
-Area-Rewind is an advanced Minecraft region protection and rollback plugin focused on fast recovery workflows, collaborative trust management, and visual administration tools.
+Area Rewind is an open-source Minecraft plugin that provides comprehensive area protection and backup management for Spigot and Paper servers. Players and administrators can create protected zones with a wooden hoe selection tool, schedule automatic backups at configurable intervals, and restore any area to a previous state using an intuitive GUI or command system. The plugin supports undo/redo history, WorldEdit schematic export, particle-based boundary visualization, and fine-grained permission management with owner and trusted player roles.
 
-## Features
+### **Core Features**
 
-- Protected region management with ownership and trust rules
-- Backup lifecycle tools: create, list, diff, restore, undo, and cleanup
-- Visual region controls including show, hide, and backup preview particles
-- Automatic backup intervals for routine protection points
-- Import and export support for schematic-style workflows
-- Full GUI-driven management for players and admins
-- Optional WorldEdit integration for enhanced editing workflows
+- **Enhanced GUI System:** Comprehensive graphical interface with main menu, area creation wizard, backup management timeline, permission and trust management, visualization controls, and administrative tools
+- **Area Protection:** Create and manage protected areas using a wooden hoe selection tool with position-based corner selection
+- **Automatic Backups:** Scheduled backups with configurable intervals and retention policies to protect against griefing and accidents
+- **Manual Backups:** Create on-demand backups for important moments before major builds or events
+- **Undo/Redo System:** Full undo/redo functionality for area changes with complete history tracking
+- **Advanced Restoration:** Restore areas to any previous backup state with preview functionality and time-based rollback support
+- **Permission System:** Owner and trusted player system with granular per-permission control
+- **Visualization:** Particle-based area boundary visualization with customizable particle types and effects
+- **Import/Export:** Export and import area data for portability, including WorldEdit schematic export
+- **WorldEdit Integration:** Enhanced functionality and compatibility when WorldEdit is installed
+- **Block State Support:** Full support for containers with inventory contents, signs with text, banners with patterns, and all complex block states
+- **Custom Icons:** Set custom display icons for areas and individual backups in the GUI
+- **Change Detection:** Scan for changes since the last backup and compare any two backups with a diff tool
 
-## Commands
+### **Supported Platforms**
 
-Main command:
+- **Server Software:** `Spigot`, `Paper`, `Purpur`, `CraftBukkit`
+- **Minecraft Versions:** `1.21.5`, `1.21.6`, `1.21.7`, `1.21.8`, `1.21.9`, `1.21.10` and higher
+- **Java Requirements:** `Java 17+`
 
-- `/rewind` (aliases: `/arearewind`, `/protect`, `/ar`)
+### **Installation**
 
-Common workflows:
+1. Download the latest `.jar` from the [Releases](https://github.com/Cobbleworks/Area-Rewind/releases) page
+2. Stop your Minecraft server
+3. Copy the `.jar` into your server's `plugins` folder
+4. Start your server — a default configuration folder is generated at `plugins/AreaRewind/`
+
+### **Player Commands**
 
 | Command | Description |
-| --- | --- |
-| `/rewind save <name>` | Save a selected area as a protected region |
-| `/rewind backup <area>` | Create a backup snapshot |
-| `/rewind history <area> [page]` | View backup history |
+|---------|-------------|
+| `/rewind` | Open the Area Rewind management GUI |
+| `/rewind tool` | Get the area selection tool (wooden hoe) |
+| `/rewind pos1` | Set position 1 to the block you are looking at |
+| `/rewind pos2` | Set position 2 to the block you are looking at |
+| `/rewind save <name>` | Create a protected area with the current selection |
+| `/rewind list [owned\|trusted\|all]` | List protected areas with filtering |
+| `/rewind info <area>` | Show detailed information about an area |
+| `/rewind teleport <area>` | Teleport to the center of an area |
+| `/rewind backup <area>` | Create a manual backup of an area |
 | `/rewind restore <area> <backup_id\|latest\|oldest>` | Restore an area from a backup |
-| `/rewind rollback <area> <time>` | Roll back to a time offset |
-| `/rewind undo <area>` | Undo the last restore/rollback action |
-| `/rewind trust <area> <player>` | Add trusted player access |
-| `/rewind untrust <area> <player>` | Remove trusted player access |
-| `/rewind show <area>` | Visualize area boundaries |
-| `/rewind hide [area]` | Hide visualization |
-| `/rewind cleanup <area> [days]` | Remove older backups |
-| `/rewind export` | Export latest area backup for external workflows |
+| `/rewind undo <area>` | Undo the last change to an area |
+| `/rewind history <area> [page]` | View backup history with pagination |
+| `/rewind rollback <area> <time>` | Roll back to a specific time offset (e.g., `2h`, `30m`, `1d`) |
+| `/rewind preview <area> [backup_id] [particle_type]` | Preview a backup with particle visualization |
+| `/rewind show <area>` | Visualize area boundaries with particles |
+| `/rewind hide [area]` | Hide area boundary visualization |
+| `/rewind trust <area> <player>` | Add a trusted player to an area |
+| `/rewind untrust <area> <player>` | Remove a trusted player from an area |
+| `/rewind export` | Export the area's latest backup to a WorldEdit `.schem` file |
 
-Administrative and utility commands:
+### **Administrative Commands**
 
-- `/rewind reload`
-- `/rewind list [all|owned|trusted]`
-- `/rewind info <area>`
-- `/rewind status`
-- `/rewind help`
-- `/rewind tool`
-- `/rewind pos1`
-- `/rewind pos2`
-- `/rewind expand <area> <direction> <amount>`
-- `/rewind contract <area> <direction> <amount>`
-- `/rewind rename <old_name> <new_name>`
-- `/rewind delete <area>`
-- `/rewind scan <area>`
-- `/rewind diff <area> <id1> <id2>`
-- `/rewind permission <add|remove|list> <area> [player]`
-- `/rewind seticon <area> <material>`
-- `/rewind seticon backup <area> <backup_id> <material>`
-- `/rewind interval <set|remove|check> <area> [minutes] [backup_id]`
-- `/rewind teleport <area>`
-- `/rewind preview <area> [backup_id] [particle_type]`
+| Command | Description |
+|---------|-------------|
+| `/rewind reload` | Reload plugin configuration |
+| `/rewind delete <area>` | Delete an area and all its backups |
+| `/rewind rename <old_name> <new_name>` | Rename an area |
+| `/rewind expand <area> <direction> <amount>` | Expand an area in the specified direction |
+| `/rewind contract <area> <direction> <amount>` | Shrink an area in the specified direction |
+| `/rewind permission <add\|remove\|list> <area> [player]` | Manage area permissions |
+| `/rewind seticon <area> <material>` | Set a custom display icon for an area |
+| `/rewind seticon backup <area> <backup_id> <material>` | Set a custom icon for a specific backup |
+| `/rewind cleanup <area> [days]` | Remove old backups older than the specified number of days (default: 7) |
+| `/rewind scan <area>` | Scan for block changes since the last backup |
+| `/rewind diff <area> <id1> <id2>` | Compare two backups and display differences |
+| `/rewind interval <set\|remove\|check> <area> [minutes] [backup_id]` | Manage automatic backup intervals |
+| `/rewind status` | Show system status and statistics |
+| `/rewind help` | Show help information |
 
-## Permissions
+**Aliases:** `/ar`, `/arearewind` — **Tool:** Wooden hoe for area selection
 
-| Permission | Default | Description |
-| --- | --- | --- |
-| `arearewind.*` | op | Full access to all Area-Rewind capabilities |
-| `arearewind.admin` | op | Administrative access |
-| `arearewind.use` | true | Basic plugin usage |
-| `arearewind.create` | true | Create areas |
-| `arearewind.delete` | true | Delete owned areas |
-| `arearewind.backup` | true | Create backups |
-| `arearewind.restore` | true | Restore backups |
-| `arearewind.trust` | true | Manage trusted users |
-| `arearewind.visualize` | true | Visualization controls |
-| `arearewind.gui` | true | GUI access |
-| `arearewind.export` | true | Export area data |
-| `arearewind.import` | true | Import area data |
+### **License**
 
-## Installation
-
-1. Download the latest jar from Releases.
-2. Place the jar in your server `plugins` directory.
-3. Restart the server.
-4. Configure permissions (and optional WorldEdit integration).
-
-## Compatibility
-
-- API: Paper/Spigot/Bukkit 1.19+
-- Optional integration: WorldEdit
-
-## License
-
-This project is licensed under the MIT License.
-- `arearewind.visualize`: Visualize area boundaries (default: true)
-- `arearewind.gui`: Use GUI interfaces (default: true)
-- `arearewind.export`: Export areas (default: true)
-- `arearewind.import`: Import areas (default: true)
-
-## Installation
-
-1. Build with Maven: `mvn clean package`
-2. Place the generated JAR in your server's `plugins` folder.
-3. Configure `config.yml` and `plugin.yml` as needed.
-
-## Configuration
-
-- `config.yml`: Plugin settings
-- `plugin.yml`: Bukkit plugin metadata
-
-## Authors
-
-- Bernd Julian Hagen
-- Andreas Hagen
-
-## Website
-
-[GitHub Repository](https://github.com/BerndHagen/Minecraft-Server-Plugins)
-
-## License
-
-See `LICENSE` file for details.
-
-## Project Structure & Customization
-
-Below is a guide to the main components of the plugin and where to modify each part:
-
-- **Modern GUI System:**
-
-  - Location: `src/main/java/arearewind/gui/`
-    - `EnhancedGUIManager.java`: Coordinates the new GUI system
-    - `utils/`: Base classes, item builders, and GUI utilities
-    - `menus/`: Specific menu implementations for different features
-  - Description: Comprehensive graphical interface system providing intuitive access to all plugin features. The new system includes a main menu, area management with creation wizards, advanced backup management, permission interfaces, and administrative tools. All functionality is accessible through easy-to-navigate menus with visual feedback and confirmation dialogs.
-
-- **GUI Manager (Integration Layer):**
-
-  - Location: `src/main/java/arearewind/managers/GUIManager.java`
-  - Description: Clean integration layer that delegates to the enhanced GUI system while maintaining backwards compatibility. All legacy GUI code has been removed in favor of the modern, modular approach.
-
-- **Core Functionality:**
-
-  - Location: `src/main/java/arearewind/managers/`
-    - `AreaManager.java`: Area creation, management, and logic
-    - `BackupManager.java`: Backup and restore logic
-    - `PermissionManager.java`: Permission checks and management
-    - `FileManager.java`, `IntervalManager.java`, `VisualizationManager.java`: Supporting features
-  - Description: These files implement the main logic for area protection, backup, permissions, and other features. Edit these to change how the plugin works internally.
-
-- **Commands:**
-
-  - Location: `src/main/java/arearewind/commands/CommandHandler.java`
-  - Description: Handles all `/rewind` commands and their subcommands. Modify here to add, remove, or change command behavior.
-
-- **Event Listeners:**
-
-  - Location: `src/main/java/arearewind/listeners/`
-  - Description: Responds to player actions and world events. Edit these files to customize plugin reactions to events.
-
-- **Data Models:**
-
-  - Location: `src/main/java/arearewind/data/`
-  - Description: Classes representing protected areas, backups, and block info. Change these to adjust how data is stored and managed.
-
-- **Configuration:**
-
-  - Location: `src/main/resources/config.yml`
-  - Description: Main plugin configuration file. Adjust settings, defaults, and options here.
-
-- **Plugin Metadata & Permissions:**
-
-  - Location: `src/main/resources/plugin.yml`
-  - Description: Defines plugin name, version, commands, and permissions. Edit to change command registration and permission nodes.
-
-- **Build Output:**
-  - Location: `target/Area-Rewind-<version>.jar`
-  - Description: The compiled plugin JAR to deploy on your server.
-
-Refer to these locations when customizing or extending the plugin for your server's needs.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
