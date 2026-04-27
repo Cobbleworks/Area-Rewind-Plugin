@@ -155,15 +155,15 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 ## **Screenshots**
 
-The screenshots below demonstrate the core features of the Area Rewind plugin, including the area management GUI, backup system, boundary visualisation, and restore functionality.
+The screenshots below demonstrate the core features of the Area Rewind plugin, including restore operations on complex structures such as a pirate ship and an Asian temple.
 
 <table>
   <tr>
-    <th>Area Rewind - House Rebuild</th>
-    <th>Area Rewind - Area Visualization</th>
+    <th>Area Rewind - Pirate Ship Restoration</th>
+    <th>Area Rewind - Asian Temple Restoration</th>
   </tr>
   <tr>
-    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-house-rebuild.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-house-rebuild.png" alt="House Rebuild" width="450"></a></td>
-    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-visualization.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-visualization.png" alt="Area Visualization" width="450"></a></td>
+    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-pirate-ship.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-pirate-ship.png" alt="Pirate Ship Restoration" width="450"></a></td>
+    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-asian-temple.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-asian-temple.png" alt="Asian Temple Restoration" width="450"></a></td>
   </tr>
 </table>
