@@ -159,19 +159,11 @@ The screenshots below demonstrate the core features of the Area Rewind plugin, i
 
 <table>
   <tr>
-    <th>Area Rewind - Management GUI</th>
-    <th>Area Rewind - Frozen Bridge Repair</th>
-  </tr>
-  <tr>
-    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-gui.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-gui.png" alt="Management GUI" width="450"></a></td>
-    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-frozen-bridge.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-frozen-bridge.png" alt="Frozen Bridge Repair" width="450"></a></td>
-  </tr>
-  <tr>
     <th>Area Rewind - House Rebuild</th>
-    <th>Area Rewind - Restore Features</th>
+    <th>Area Rewind - Area Visualization</th>
   </tr>
   <tr>
     <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-house-rebuild.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-house-rebuild.png" alt="House Rebuild" width="450"></a></td>
-    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-restore.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-restore.png" alt="Restore Features" width="450"></a></td>
+    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-visualization.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-visualization.png" alt="Area Visualization" width="450"></a></td>
   </tr>
 </table>
