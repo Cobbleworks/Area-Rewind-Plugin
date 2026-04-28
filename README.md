@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="images/plugin-logo.png" alt="Area Rewind Plugin" width="180" />
 </p>
 <h1 align="center">Area Rewind Plugin</h1>
@@ -7,28 +7,28 @@
   <b>GUI-driven management, per-area intervals, and full WorldEdit integration.</b>
 </p>
 <p align="center">
-  <a href="https://github.com/Cobbleworks/Area-Rewind/releases"><img src="https://img.shields.io/github/v/release/Cobbleworks/Area-Rewind?include_prereleases&style=flat-square&color=4CAF50" alt="Latest Release"></a>&nbsp;&nbsp;<a href="https://github.com/Cobbleworks/Area-Rewind/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License"></a>&nbsp;&nbsp;<img src="https://img.shields.io/badge/Java-17+-orange?style=flat-square" alt="Java Version">&nbsp;&nbsp;<img src="https://img.shields.io/badge/Minecraft-1.19+-green?style=flat-square" alt="Minecraft Version">&nbsp;&nbsp;<img src="https://img.shields.io/badge/Platform-Spigot%2FPaper-yellow?style=flat-square" alt="Platform">&nbsp;&nbsp;<img src="https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square" alt="Status">&nbsp;&nbsp;<a href="https://github.com/Cobbleworks/Area-Rewind/issues"><img src="https://img.shields.io/github/issues/Cobbleworks/Area-Rewind?style=flat-square&color=orange" alt="Open Issues"></a>
+  <a href="https://github.com/Cobbleworks/Area-Rewind-Plugin/releases"><img src="https://img.shields.io/github/v/release/Cobbleworks/Area-Rewind-Plugin?include_prereleases&style=flat-square&color=4CAF50" alt="Latest Release"></a>&nbsp;&nbsp;<a href="https://github.com/Cobbleworks/Area-Rewind-Plugin/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License"></a>&nbsp;&nbsp;<img src="https://img.shields.io/badge/Java-17+-orange?style=flat-square" alt="Java Version">&nbsp;&nbsp;<img src="https://img.shields.io/badge/Minecraft-1.19+-green?style=flat-square" alt="Minecraft Version">&nbsp;&nbsp;<img src="https://img.shields.io/badge/Platform-Spigot%2FPaper-yellow?style=flat-square" alt="Platform">&nbsp;&nbsp;<img src="https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square" alt="Status">&nbsp;&nbsp;<a href="https://github.com/Cobbleworks/Area-Rewind-Plugin/issues"><img src="https://img.shields.io/github/issues/Cobbleworks/Area-Rewind-Plugin?style=flat-square&color=orange" alt="Open Issues"></a>
 </p>
 
-Area Rewind is an open-source Minecraft plugin that gives server administrators and players a complete area protection and backup system. Define protected regions using a wooden hoe or coordinate commands, take named backups at any point, and restore any backup at any later time — including from the past with time-based rollback. Every restoration runs in a batched, lag-aware manner so large areas (up to 1,000,000 blocks) can be rebuilt without freezing the server. The plugin stores each backup as individual block states, including full container inventories, sign text, and banner patterns, so nothing is lost on restore.
+Area Rewind is an open-source Minecraft plugin that gives server administrators and players a complete area protection and backup system. Define protected regions using a wooden hoe or coordinate commands, take named backups at any point, and restore any backup at any later time â€” including from the past with time-based rollback. Every restoration runs in a batched, lag-aware manner so large areas (up to 1,000,000 blocks) can be rebuilt without freezing the server. The plugin stores each backup as individual block states, including full container inventories, sign text, and banner patterns, so nothing is lost on restore.
 
 A built-in inventory GUI makes managing areas and backups accessible to any player without needing to memorize commands. Automatic backup intervals, backup comparison (diff), particle preview of what will change, WorldEdit `.schem` export, and a comprehensive trust and permission system round out the feature set.
 
 ### **Core Features**
 
 - **Area Selection:** Select two corner positions with a wooden hoe (left-click = pos1, right-click = pos2) or using `/rewind pos1` and `/rewind pos2` commands; WorldEdit selections are also accepted if WorldEdit is installed
-- **Protected Areas:** Named, owner-bound regions stored persistently in YAML files — creation, deletion, rename, expand, and contract all supported
+- **Protected Areas:** Named, owner-bound regions stored persistently in YAML files â€” creation, deletion, rename, expand, and contract all supported
 - **Manual & Automatic Backups:** Create on-demand backups at any moment, or configure per-area automatic backup intervals (in minutes) that run indefinitely without admin attention
-- **Full Restoration:** Restore any saved backup by ID, by `latest` or `oldest` shorthand, or by time expression (e.g., `2h`, `30m`, `1d`) — all block states, inventories, signs, and banners are restored exactly
+- **Full Restoration:** Restore any saved backup by ID, by `latest` or `oldest` shorthand, or by time expression (e.g., `2h`, `30m`, `1d`) â€” all block states, inventories, signs, and banners are restored exactly
 - **Undo/Redo:** Instantly revert or re-apply the most recent restore or change to an area without specifying a backup ID
 - **Diff & Scan:** Compare any two backups side by side to see exactly which blocks changed (`/rewind diff`), or scan an area for changes since the last backup (`/rewind scan`)
-- **Particle Preview:** Preview what a restoration will change before committing — affected blocks are highlighted with configurable particle effects
+- **Particle Preview:** Preview what a restoration will change before committing â€” affected blocks are highlighted with configurable particle effects
 - **Boundary Visualization:** Display particle-based area boundaries in real time to confirm region extents and avoid mistakes
 - **WorldEdit Export:** Export an area's latest backup directly to a `.schem` file for use in WorldEdit, VoxelSniper, or external map editors
 - **Trust System:** Grant specific players trust on individual areas, allowing them to create backups and restore without being the area owner
 - **Granular Permissions:** 9 independent permission nodes (`arearewind.create`, `arearewind.backup`, `arearewind.restore`, etc.) for fine-grained access control via any permission manager
 - **Full Block State Support:** Containers with inventories (chests, barrels, shulker boxes), signs with text, banners with patterns, and all other complex block states are fully serialized and restored
-- **GUI Management:** Complete inventory-based GUI with area overview, backup timeline, trust management, visualization controls, icon customization, and admin tools — all without entering commands
+- **GUI Management:** Complete inventory-based GUI with area overview, backup timeline, trust management, visualization controls, icon customization, and admin tools â€” all without entering commands
 - **Performance Tuning:** Configurable restoration batch sizes (min/max blocks per tick), max area size cap, and rate-limit cooldown to balance restoration speed against server performance
 
 ### **Supported Platforms**
@@ -78,11 +78,11 @@ Before installing Area Rewind, confirm the following requirements are met:
 
 ### **Installation Steps**
 
-1. Download the latest `AreaRewind-x.x.x.jar` from the [Releases](https://github.com/Cobbleworks/Area-Rewind/releases) page
+1. Download the latest `AreaRewind-x.x.x.jar` from the [Releases](https://github.com/Cobbleworks/Area-Rewind-Plugin/releases) page
 2. (Optional) Download and install [WorldEdit](https://enginehub.org/worldedit) if you want schematic export support
 3. **Stop your server completely** before placing any files
 4. Copy the `.jar` into your server's `plugins/` directory
-5. Start the server — Area Rewind generates its configuration folder automatically on first boot
+5. Start the server â€” Area Rewind generates its configuration folder automatically on first boot
 
 ### **First Launch & Configuration**
 
@@ -90,10 +90,10 @@ On the first server start after installation, Area Rewind creates:
 
 ```
 plugins/
-└── AreaRewind/
-    ├── config.yml        ← Performance, backup limits, and visualization settings
-    ├── areas/            ← One YAML file per protected area
-    └── backups/          ← One YAML file per backup
+â””â”€â”€ AreaRewind/
+    â”œâ”€â”€ config.yml        â† Performance, backup limits, and visualization settings
+    â”œâ”€â”€ areas/            â† One YAML file per protected area
+    â””â”€â”€ backups/          â† One YAML file per backup
 ```
 
 - **`config.yml`** controls backup retention limits, area size caps, restoration batch performance, rate-limit cooldowns, particle distances, and wooden hoe selection behavior. See the [Configuration](#configuration) section for all keys and their defaults.
@@ -102,9 +102,9 @@ plugins/
 
 ### **Verifying Installation**
 
-- Run `/plugins` in-game — `AreaRewind` should appear green in the list
+- Run `/plugins` in-game â€” `AreaRewind` should appear green in the list
 - Run `/version AreaRewind` to confirm the installed version
-- Run `/rewind` in-game to open the management GUI — a chest inventory should open
+- Run `/rewind` in-game to open the management GUI â€” a chest inventory should open
 - Left-click a block with a wooden hoe to confirm pos1 selection is working
 - If the plugin fails to load, check the server console for `AreaRewind` error messages
 
@@ -121,8 +121,8 @@ performance:
   rate-limit-cooldown: 1000      # Milliseconds between consecutive backup/restore operations
 
   restore:
-    max-batch-size: 400          # Max blocks restored per tick (large areas) — higher = faster, more lag
-    min-batch-size: 100          # Min blocks restored per tick (small areas) — lower = slower, less lag
+    max-batch-size: 400          # Max blocks restored per tick (large areas) â€” higher = faster, more lag
+    min-batch-size: 100          # Min blocks restored per tick (small areas) â€” lower = slower, less lag
 
 visualization:
   particle-distance: 50          # Max distance (blocks) at which visualization particles are rendered
@@ -165,11 +165,11 @@ Each backup captures the block type, block data (facing direction, open/closed s
 Restoration runs in batches across multiple server ticks to avoid TPS drops. The batch size scales with the area size between `min-batch-size` and `max-batch-size`. Players receive real-time progress feedback via chat messages during restoration.
 
 Restores can be triggered by:
-- **Backup ID**: `/rewind restore <area> <id>` — use `/rewind history <area>` to see available IDs
+- **Backup ID**: `/rewind restore <area> <id>` â€” use `/rewind history <area>` to see available IDs
 - **Shorthand**: `/rewind restore <area> latest` or `/rewind restore <area> oldest`
-- **Time expression**: `/rewind rollback <area> 2h` — restores to the state closest to 2 hours ago
+- **Time expression**: `/rewind rollback <area> 2h` â€” restores to the state closest to 2 hours ago
 - **GUI**: select the area, browse the backup timeline, and click to restore
-- **Command block / console**: `/rewind restoreblock <area> <id> [world]` — safe for automation
+- **Command block / console**: `/rewind restoreblock <area> <id> [world]` â€” safe for automation
 
 ### **Interval Backups**
 
@@ -250,7 +250,7 @@ These commands require `arearewind.admin` (operator by default) and are intended
 | `/rewind restoreblock <area> <id/latest/oldest> [world]` | Restore from a command block or console (safe for automation) |
 | `/rewind status` | Show plugin status: loaded areas, backup count, running intervals, queue status |
 
-**Aliases:** `/ar`, `/arearewind`, `/protect` — all subcommands work with all aliases  
+**Aliases:** `/ar`, `/arearewind`, `/protect` â€” all subcommands work with all aliases  
 **Command aliases:** `perm` = `permission`, `tp` = `teleport`, `compare` = `diff`
 
 ## **Permissions**
@@ -282,7 +282,7 @@ Example using LuckPerms to restrict area creation to a specific rank:
 
 ## **Building from Source**
 
-Area Rewind uses **Apache Maven** as its build system. WorldEdit is a soft dependency — the plugin compiles and runs without it, but including it enables additional features.
+Area Rewind uses **Apache Maven** as its build system. WorldEdit is a soft dependency â€” the plugin compiles and runs without it, but including it enables additional features.
 
 **Requirements:**
 - Java 17 or newer
@@ -292,7 +292,7 @@ Area Rewind uses **Apache Maven** as its build system. WorldEdit is a soft depen
 
 ```bash
 # Clone the repository
-git clone https://github.com/Cobbleworks/Area-Rewind.git
+git clone https://github.com/Cobbleworks/Area-Rewind-Plugin.git
 cd Area-Rewind
 
 # Compile and package
@@ -305,40 +305,40 @@ The output JAR is written to `target/AreaRewind-x.x.x.jar`. Copy it into your se
 
 ```
 src/main/
-├── java/arearewind/
-│   ├── AreaRewindPlugin.java              ← Plugin entry point, manager initialization
-│   ├── commands/                          ← One class per subcommand (40+ commands)
-│   │   ├── CommandHandler.java            ← Routes all /rewind subcommands
-│   │   ├── admin/, analysis/, area/
-│   │   ├── backup/, export/, info/
-│   │   ├── maintenance/, management/
-│   │   ├── navigation/, utility/
-│   │   └── base/, registry/
-│   ├── data/
-│   │   ├── ProtectedArea.java             ← Area model (bounds, owner, trust list)
-│   │   ├── AreaBackup.java                ← Backup model (block states, timestamp)
-│   │   └── BlockInfo.java                 ← Block state serialization
-│   ├── listeners/
-│   │   └── PlayerInteractionListener.java ← Wooden hoe selection, tool events
-│   ├── managers/
-│   │   ├── AreaManager.java               ← Area CRUD and file persistence
-│   │   ├── BackupManager.java             ← Backup creation, restoration queue
-│   │   ├── FileManager.java               ← File I/O for areas and backups
-│   │   ├── GUIManager.java                ← Inventory GUI event handling
-│   │   ├── IntervalManager.java           ← Automatic interval scheduling
-│   │   ├── PermissionManager.java         ← Permission checks
-│   │   ├── VisualizationManager.java      ← Particle task management
-│   │   └── backup/                        ← Block state, entity, restore handlers
-│   └── util/
-│       └── ConfigurationManager.java      ← Config loading and access
-└── resources/
-    ├── config.yml                         ← Server configuration
-    └── plugin.yml                         ← Plugin metadata, commands, permissions
+â”œâ”€â”€ java/arearewind/
+â”‚   â”œâ”€â”€ AreaRewindPlugin.java              â† Plugin entry point, manager initialization
+â”‚   â”œâ”€â”€ commands/                          â† One class per subcommand (40+ commands)
+â”‚   â”‚   â”œâ”€â”€ CommandHandler.java            â† Routes all /rewind subcommands
+â”‚   â”‚   â”œâ”€â”€ admin/, analysis/, area/
+â”‚   â”‚   â”œâ”€â”€ backup/, export/, info/
+â”‚   â”‚   â”œâ”€â”€ maintenance/, management/
+â”‚   â”‚   â”œâ”€â”€ navigation/, utility/
+â”‚   â”‚   â””â”€â”€ base/, registry/
+â”‚   â”œâ”€â”€ data/
+â”‚   â”‚   â”œâ”€â”€ ProtectedArea.java             â† Area model (bounds, owner, trust list)
+â”‚   â”‚   â”œâ”€â”€ AreaBackup.java                â† Backup model (block states, timestamp)
+â”‚   â”‚   â””â”€â”€ BlockInfo.java                 â† Block state serialization
+â”‚   â”œâ”€â”€ listeners/
+â”‚   â”‚   â””â”€â”€ PlayerInteractionListener.java â† Wooden hoe selection, tool events
+â”‚   â”œâ”€â”€ managers/
+â”‚   â”‚   â”œâ”€â”€ AreaManager.java               â† Area CRUD and file persistence
+â”‚   â”‚   â”œâ”€â”€ BackupManager.java             â† Backup creation, restoration queue
+â”‚   â”‚   â”œâ”€â”€ FileManager.java               â† File I/O for areas and backups
+â”‚   â”‚   â”œâ”€â”€ GUIManager.java                â† Inventory GUI event handling
+â”‚   â”‚   â”œâ”€â”€ IntervalManager.java           â† Automatic interval scheduling
+â”‚   â”‚   â”œâ”€â”€ PermissionManager.java         â† Permission checks
+â”‚   â”‚   â”œâ”€â”€ VisualizationManager.java      â† Particle task management
+â”‚   â”‚   â””â”€â”€ backup/                        â† Block state, entity, restore handlers
+â”‚   â””â”€â”€ util/
+â”‚       â””â”€â”€ ConfigurationManager.java      â† Config loading and access
+â””â”€â”€ resources/
+    â”œâ”€â”€ config.yml                         â† Server configuration
+    â””â”€â”€ plugin.yml                         â† Plugin metadata, commands, permissions
 ```
 
 ## **License**
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** â€” see the [LICENSE](LICENSE) file for details.
 
 ## **Screenshots**
 
@@ -350,23 +350,23 @@ The screenshots below demonstrate Area Rewind across several scenarios: backup c
     <th>Area Rewind Plugin - Mansion Backup Diff</th>
   </tr>
   <tr>
-    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-lighthouse-restore.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-lighthouse-restore.png" alt="Lighthouse Restore" width="450"></a></td>
-    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-mansion-diff.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-mansion-diff.png" alt="Mansion Backup Diff" width="450"></a></td>
+    <td><a href="https://github.com/Cobbleworks/Area-Rewind-Plugin/raw/main/images/screenshot-lighthouse-restore.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind-Plugin/raw/main/images/screenshot-lighthouse-restore.png" alt="Lighthouse Restore" width="450"></a></td>
+    <td><a href="https://github.com/Cobbleworks/Area-Rewind-Plugin/raw/main/images/screenshot-mansion-diff.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind-Plugin/raw/main/images/screenshot-mansion-diff.png" alt="Mansion Backup Diff" width="450"></a></td>
   </tr>
   <tr>
     <th>Area Rewind Plugin - Factory Schematic Export</th>
     <th>Area Rewind Plugin - Asian Temple</th>
   </tr>
   <tr>
-    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-factory-export.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-factory-export.png" alt="Factory Schematic Export" width="450"></a></td>
-    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-asian-temple.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-asian-temple.png" alt="Asian Temple" width="450"></a></td>
+    <td><a href="https://github.com/Cobbleworks/Area-Rewind-Plugin/raw/main/images/screenshot-factory-export.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind-Plugin/raw/main/images/screenshot-factory-export.png" alt="Factory Schematic Export" width="450"></a></td>
+    <td><a href="https://github.com/Cobbleworks/Area-Rewind-Plugin/raw/main/images/screenshot-asian-temple.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind-Plugin/raw/main/images/screenshot-asian-temple.png" alt="Asian Temple" width="450"></a></td>
   </tr>
   <tr>
     <th>Area Rewind Plugin - Bridge Restore</th>
     <th>Area Rewind Plugin - Pirate Ship</th>
   </tr>
   <tr>
-    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-bridge-restore.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-bridge-restore.png" alt="Bridge Restore" width="450"></a></td>
-    <td><a href="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-pirate-ship.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind/raw/main/images/screenshot-pirate-ship.png" alt="Pirate Ship" width="450"></a></td>
+    <td><a href="https://github.com/Cobbleworks/Area-Rewind-Plugin/raw/main/images/screenshot-bridge-restore.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind-Plugin/raw/main/images/screenshot-bridge-restore.png" alt="Bridge Restore" width="450"></a></td>
+    <td><a href="https://github.com/Cobbleworks/Area-Rewind-Plugin/raw/main/images/screenshot-pirate-ship.png" target="_blank" rel="noopener noreferrer"><img src="https://github.com/Cobbleworks/Area-Rewind-Plugin/raw/main/images/screenshot-pirate-ship.png" alt="Pirate Ship" width="450"></a></td>
   </tr>
 </table>
