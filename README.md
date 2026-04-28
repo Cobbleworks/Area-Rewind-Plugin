@@ -19,7 +19,7 @@ A built-in inventory GUI makes managing areas and backups accessible to any play
 - **Area Selection:** Select two corner positions with a wooden hoe (left-click = pos1, right-click = pos2) or using `/rewind pos1` and `/rewind pos2` commands; WorldEdit selections are also accepted if WorldEdit is installed
 - **Protected Areas:** Named, owner-bound regions stored persistently in YAML files -- creation, deletion, rename, expand, and contract all supported
 - **Manual & Automatic Backups:** Create on-demand backups at any moment, or configure per-area automatic backup intervals (in minutes) that run indefinitely without admin attention
-- **Full Restoration:** Restore any saved backup by ID, by `latest` or `oldest` shorthand, or by time expression (e.g., `2h`, `30m`, `1d`) " all block states, inventories, signs, and banners are restored exactly
+- **Full Restoration:** Restore any saved backup by ID, by `latest` or `oldest` shorthand, or by time expression (e.g., `2h`, `30m`, `1d`) - all block states, inventories, signs, and banners are restored exactly
 - **Undo/Redo:** Instantly revert or re-apply the most recent restore or change to an area without specifying a backup ID
 - **Diff & Scan:** Compare any two backups side by side to see exactly which blocks changed (`/rewind diff`), or scan an area for changes since the last backup (`/rewind scan`)
 - **Particle Preview:** Preview what a restoration will change before committing -- affected blocks are highlighted with configurable particle effects
@@ -90,10 +90,10 @@ On the first server start after installation, Area Rewind creates:
 
 ```
 plugins/
-"""" AreaRewind/
-    "oe"" config.yml        + Performance, backup limits, and visualization settings
-    "oe"" areas/            + One YAML file per protected area
-    """" backups/          + One YAML file per backup
+└── AreaRewind/
+    ├── config.yml    - Performance, backup limits, and visualization settings
+    ├── areas/        - One YAML file per protected area
+    └── backups/      - One YAML file per backup
 ```
 
 - **`config.yml`** controls backup retention limits, area size caps, restoration batch performance, rate-limit cooldowns, particle distances, and wooden hoe selection behavior. See the [Configuration](#configuration) section for all keys and their defaults.
@@ -121,8 +121,8 @@ performance:
   rate-limit-cooldown: 1000      # Milliseconds between consecutive backup/restore operations
 
   restore:
-    max-batch-size: 400          # Max blocks restored per tick (large areas) " higher = faster, more lag
-    min-batch-size: 100          # Min blocks restored per tick (small areas) " lower = slower, less lag
+    max-batch-size: 400          # Max blocks restored per tick (large areas) - higher = faster, more lag
+    min-batch-size: 100          # Min blocks restored per tick (small areas) - lower = slower, less lag
 
 visualization:
   particle-distance: 50          # Max distance (blocks) at which visualization particles are rendered
@@ -305,40 +305,40 @@ The output JAR is written to `target/AreaRewind-x.x.x.jar`. Copy it into your se
 
 ```
 src/main/
-"oe"" java/arearewind/
-"   "oe"" AreaRewindPlugin.java              + Plugin entry point, manager initialization
-"   "oe"" commands/                          + One class per subcommand (40+ commands)
-"   "   "oe"" CommandHandler.java            + Routes all /rewind subcommands
-"   "   "oe"" admin/, analysis/, area/
-"   "   "oe"" backup/, export/, info/
-"   "   "oe"" maintenance/, management/
-"   "   "oe"" navigation/, utility/
-"   "   """" base/, registry/
-"   "oe"" data/
-"   "   "oe"" ProtectedArea.java             + Area model (bounds, owner, trust list)
-"   "   "oe"" AreaBackup.java                + Backup model (block states, timestamp)
-"   "   """" BlockInfo.java                 + Block state serialization
-"   "oe"" listeners/
-"   "   """" PlayerInteractionListener.java + Wooden hoe selection, tool events
-"   "oe"" managers/
-"   "   "oe"" AreaManager.java               + Area CRUD and file persistence
-"   "   "oe"" BackupManager.java             + Backup creation, restoration queue
-"   "   "oe"" FileManager.java               + File I/O for areas and backups
-"   "   "oe"" GUIManager.java                + Inventory GUI event handling
-"   "   "oe"" IntervalManager.java           + Automatic interval scheduling
-"   "   "oe"" PermissionManager.java         + Permission checks
-"   "   "oe"" VisualizationManager.java      + Particle task management
-"   "   """" backup/                        + Block state, entity, restore handlers
-"   """" util/
-"       """" ConfigurationManager.java      + Config loading and access
-"""" resources/
-    "oe"" config.yml                         + Server configuration
-    """" plugin.yml                         + Plugin metadata, commands, permissions
+├── java/arearewind/
+│   ├── AreaRewindPlugin.java              - Plugin entry point, manager initialization
+│   ├── commands/                          - One class per subcommand (40+ commands)
+│   │   ├── CommandHandler.java            - Routes all /rewind subcommands
+│   │   ├── admin/, analysis/, area/
+│   │   ├── backup/, export/, info/
+│   │   ├── maintenance/, management/
+│   │   ├── navigation/, utility/
+│   │   └── base/, registry/
+│   ├── data/
+│   │   ├── ProtectedArea.java             - Area model (bounds, owner, trust list)
+│   │   ├── AreaBackup.java                - Backup model (block states, timestamp)
+│   │   └── BlockInfo.java                 - Block state serialization
+│   ├── listeners/
+│   │   └── PlayerInteractionListener.java - Wooden hoe selection, tool events
+│   ├── managers/
+│   │   ├── AreaManager.java               - Area CRUD and file persistence
+│   │   ├── BackupManager.java             - Backup creation, restoration queue
+│   │   ├── FileManager.java               - File I/O for areas and backups
+│   │   ├── GUIManager.java                - Inventory GUI event handling
+│   │   ├── IntervalManager.java           - Automatic interval scheduling
+│   │   ├── PermissionManager.java         - Permission checks
+│   │   ├── VisualizationManager.java      - Particle task management
+│   │   └── backup/                        - Block state, entity, restore handlers
+│   └── util/
+│       └── ConfigurationManager.java      - Config loading and access
+└── resources/
+    ├── config.yml                         - Server configuration
+    └── plugin.yml                         - Plugin metadata, commands, permissions
 ```
 
 ## **License**
 
-This project is licensed under the **MIT License** " see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 ## **Screenshots**
 
