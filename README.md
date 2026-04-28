@@ -10,25 +10,25 @@
   <a href="https://github.com/Cobbleworks/Area-Rewind-Plugin/releases"><img src="https://img.shields.io/github/v/release/Cobbleworks/Area-Rewind-Plugin?include_prereleases&style=flat-square&color=4CAF50" alt="Latest Release"></a>&nbsp;&nbsp;<a href="https://github.com/Cobbleworks/Area-Rewind-Plugin/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License"></a>&nbsp;&nbsp;<img src="https://img.shields.io/badge/Java-17+-orange?style=flat-square" alt="Java Version">&nbsp;&nbsp;<img src="https://img.shields.io/badge/Minecraft-1.19+-green?style=flat-square" alt="Minecraft Version">&nbsp;&nbsp;<img src="https://img.shields.io/badge/Platform-Spigot%2FPaper-yellow?style=flat-square" alt="Platform">&nbsp;&nbsp;<img src="https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square" alt="Status">&nbsp;&nbsp;<a href="https://github.com/Cobbleworks/Area-Rewind-Plugin/issues"><img src="https://img.shields.io/github/issues/Cobbleworks/Area-Rewind-Plugin?style=flat-square&color=orange" alt="Open Issues"></a>
 </p>
 
-Area Rewind is an open-source Minecraft plugin that gives server administrators and players a complete area protection and backup system. Define protected regions using a wooden hoe or coordinate commands, take named backups at any point, and restore any backup at any later time -- including from the past with time-based rollback. Every restoration runs in a batched, lag-aware manner so large areas (up to 1,000,000 blocks) can be rebuilt without freezing the server. The plugin stores each backup as individual block states, including full container inventories, sign text, and banner patterns, so nothing is lost on restore.
+Area Rewind is an open-source Minecraft plugin that gives server administrators and players a complete area protection and backup system. Define protected regions using a wooden hoe or coordinate commands, take named backups at any point, and restore any backup at any later time - including from the past with time-based rollback. Every restoration runs in a batched, lag-aware manner so large areas (up to 1,000,000 blocks) can be rebuilt without freezing the server. The plugin stores each backup as individual block states, including full container inventories, sign text, and banner patterns, so nothing is lost on restore.
 
 A built-in inventory GUI makes managing areas and backups accessible to any player without needing to memorize commands. Automatic backup intervals, backup comparison (diff), particle preview of what will change, WorldEdit `.schem` export, and a comprehensive trust and permission system round out the feature set.
 
 ### **Core Features**
 
 - **Area Selection:** Select two corner positions with a wooden hoe (left-click = pos1, right-click = pos2) or using `/rewind pos1` and `/rewind pos2` commands; WorldEdit selections are also accepted if WorldEdit is installed
-- **Protected Areas:** Named, owner-bound regions stored persistently in YAML files -- creation, deletion, rename, expand, and contract all supported
+- **Protected Areas:** Named, owner-bound regions stored persistently in YAML files - creation, deletion, rename, expand, and contract all supported
 - **Manual & Automatic Backups:** Create on-demand backups at any moment, or configure per-area automatic backup intervals (in minutes) that run indefinitely without admin attention
 - **Full Restoration:** Restore any saved backup by ID, by `latest` or `oldest` shorthand, or by time expression (e.g., `2h`, `30m`, `1d`) - all block states, inventories, signs, and banners are restored exactly
 - **Undo/Redo:** Instantly revert or re-apply the most recent restore or change to an area without specifying a backup ID
 - **Diff & Scan:** Compare any two backups side by side to see exactly which blocks changed (`/rewind diff`), or scan an area for changes since the last backup (`/rewind scan`)
-- **Particle Preview:** Preview what a restoration will change before committing -- affected blocks are highlighted with configurable particle effects
+- **Particle Preview:** Preview what a restoration will change before committing - affected blocks are highlighted with configurable particle effects
 - **Boundary Visualization:** Display particle-based area boundaries in real time to confirm region extents and avoid mistakes
 - **WorldEdit Export:** Export an area's latest backup directly to a `.schem` file for use in WorldEdit, VoxelSniper, or external map editors
 - **Trust System:** Grant specific players trust on individual areas, allowing them to create backups and restore without being the area owner
 - **Granular Permissions:** 9 independent permission nodes (`arearewind.create`, `arearewind.backup`, `arearewind.restore`, etc.) for fine-grained access control via any permission manager
 - **Full Block State Support:** Containers with inventories (chests, barrels, shulker boxes), signs with text, banners with patterns, and all other complex block states are fully serialized and restored
-- **GUI Management:** Complete inventory-based GUI with area overview, backup timeline, trust management, visualization controls, icon customization, and admin tools -- all without entering commands
+- **GUI Management:** Complete inventory-based GUI with area overview, backup timeline, trust management, visualization controls, icon customization, and admin tools - all without entering commands
 - **Performance Tuning:** Configurable restoration batch sizes (min/max blocks per tick), max area size cap, and rate-limit cooldown to balance restoration speed against server performance
 
 ### **Supported Platforms**
@@ -82,7 +82,7 @@ Before installing Area Rewind, confirm the following requirements are met:
 2. (Optional) Download and install [WorldEdit](https://enginehub.org/worldedit) if you want schematic export support
 3. **Stop your server completely** before placing any files
 4. Copy the `.jar` into your server's `plugins/` directory
-5. Start the server -- Area Rewind generates its configuration folder automatically on first boot
+5. Start the server - Area Rewind generates its configuration folder automatically on first boot
 
 ### **First Launch & Configuration**
 
@@ -102,9 +102,9 @@ plugins/
 
 ### **Verifying Installation**
 
-- Run `/plugins` in-game -- `AreaRewind` should appear green in the list
+- Run `/plugins` in-game - `AreaRewind` should appear green in the list
 - Run `/version AreaRewind` to confirm the installed version
-- Run `/rewind` in-game to open the management GUI -- a chest inventory should open
+- Run `/rewind` in-game to open the management GUI - a chest inventory should open
 - Left-click a block with a wooden hoe to confirm pos1 selection is working
 - If the plugin fails to load, check the server console for `AreaRewind` error messages
 
@@ -165,11 +165,11 @@ Each backup captures the block type, block data (facing direction, open/closed s
 Restoration runs in batches across multiple server ticks to avoid TPS drops. The batch size scales with the area size between `min-batch-size` and `max-batch-size`. Players receive real-time progress feedback via chat messages during restoration.
 
 Restores can be triggered by:
-- **Backup ID**: `/rewind restore <area> <id>` -- use `/rewind history <area>` to see available IDs
+- **Backup ID**: `/rewind restore <area> <id>` - use `/rewind history <area>` to see available IDs
 - **Shorthand**: `/rewind restore <area> latest` or `/rewind restore <area> oldest`
-- **Time expression**: `/rewind rollback <area> 2h` -- restores to the state closest to 2 hours ago
+- **Time expression**: `/rewind rollback <area> 2h` - restores to the state closest to 2 hours ago
 - **GUI**: select the area, browse the backup timeline, and click to restore
-- **Command block / console**: `/rewind restoreblock <area> <id> [world]` -- safe for automation
+- **Command block / console**: `/rewind restoreblock <area> <id> [world]` - safe for automation
 
 ### **Interval Backups**
 
@@ -250,7 +250,7 @@ These commands require `arearewind.admin` (operator by default) and are intended
 | `/rewind restoreblock <area> <id/latest/oldest> [world]` | Restore from a command block or console (safe for automation) |
 | `/rewind status` | Show plugin status: loaded areas, backup count, running intervals, queue status |
 
-**Aliases:** `/ar`, `/arearewind`, `/protect` -- all subcommands work with all aliases  
+**Aliases:** `/ar`, `/arearewind`, `/protect` - all subcommands work with all aliases  
 **Command aliases:** `perm` = `permission`, `tp` = `teleport`, `compare` = `diff`
 
 ## **Permissions**
@@ -282,7 +282,7 @@ Example using LuckPerms to restrict area creation to a specific rank:
 
 ## **Building from Source**
 
-Area Rewind uses **Apache Maven** as its build system. WorldEdit is a soft dependency -- the plugin compiles and runs without it, but including it enables additional features.
+Area Rewind uses **Apache Maven** as its build system. WorldEdit is a soft dependency - the plugin compiles and runs without it, but including it enables additional features.
 
 **Requirements:**
 - Java 17 or newer
