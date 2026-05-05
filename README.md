@@ -61,7 +61,8 @@ A built-in inventory GUI makes managing areas and backups accessible to any play
 6. [Permissions](#permissions)
 7. [Building from Source](#building-from-source)
 8. [License](#license)
-9. [Screenshots](#screenshots)
+9. [Third-Party Libraries](#third-party-libraries)
+10. [Screenshots](#screenshots)
 
 ## **Getting Started**
 
@@ -339,6 +340,26 @@ src/main/
 ## **License**
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+## **Third-Party Libraries**
+
+Area Rewind optionally integrates with **WorldEdit** to enhance area selection and enable schematic export. WorldEdit is a soft dependency — the plugin functions fully without it, but wand-based selection and `.schem` export require WorldEdit to be installed alongside it.
+
+### WorldEdit
+
+**WorldEdit** is a widely used in-game map editor and world manipulation library for Bukkit-based Minecraft servers. Area Rewind uses the WorldEdit API to support its wand-based area selection tool and to export saved backups as WorldEdit `.schem` schematic files compatible with standard tools like Structure Blocks and Litematica. All core backup and restore functionality operates independently of WorldEdit.
+
+- **Website:** [WorldEdit SpigotMC Resource](https://www.spigotmc.org/resources/worldedit.13932/)
+- **GitHub:** [EngineHub/WorldEdit](https://github.com/EngineHub/WorldEdit)
+- **License:** WorldEdit is licensed under the GNU Lesser General Public License v3.0.
+
+### Additional Information
+
+For more details about WorldEdit, including its selection and schematic APIs, check the official documentation:
+
+- **WorldEdit Documentation:** [WorldEdit Docs](https://worldedit.enginehub.org/en/latest/)
+
+If you have questions or issues related to WorldEdit integration, please [open an issue](https://github.com/Cobbleworks/Area-Rewind-Plugin/issues) on GitHub.
 
 ## **Screenshots**
 
