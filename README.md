@@ -47,6 +47,7 @@ A built-in inventory GUI makes managing areas and backups accessible to any play
     - [Verifying Installation](#verifying-installation)
 2. [Third-Party Libraries](#third-party-libraries)
     - [WorldEdit](#worldedit)
+    - [Additional Information](#additional-information)
 3. [Configuration](#configuration)
     - [config.yml Reference](#configyml-reference)
 4. [How It Works](#how-it-works)
