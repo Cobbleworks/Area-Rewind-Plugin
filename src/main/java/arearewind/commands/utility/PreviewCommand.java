@@ -119,11 +119,6 @@ public class PreviewCommand extends BaseCommand {
     }
 
     @Override
-    public List<String> getAliases() {
-        return Arrays.asList("particle");
-    }
-
-    @Override
     public String getDescription() {
         return "Show a visual preview of a backup with particles";
     }

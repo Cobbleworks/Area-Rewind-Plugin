@@ -7,7 +7,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -61,11 +60,6 @@ public class ShowCommand extends BaseCommand {
     @Override
     public String getName() {
         return "show";
-    }
-
-    @Override
-    public List<String> getAliases() {
-        return Arrays.asList("display", "visualize");
     }
 
     @Override

@@ -137,11 +137,6 @@ public class PermissionCommand extends BaseCommand {
     }
 
     @Override
-    public List<String> getAliases() {
-        return Arrays.asList("perm", "permissions");
-    }
-
-    @Override
     public String getDescription() {
         return "Manage area permissions";
     }

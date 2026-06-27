@@ -187,11 +187,6 @@ public class ConfigCommand extends BaseCommand {
     }
 
     @Override
-    public List<String> getAliases() {
-        return Arrays.asList("settings", "configure", "set");
-    }
-
-    @Override
     public String getDescription() {
         return "Configure your personal settings";
     }

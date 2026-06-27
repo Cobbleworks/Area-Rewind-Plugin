@@ -45,14 +45,6 @@ public class ExportCommand extends BaseCommand {
     }
 
     @Override
-    public List<String> getAliases() {
-        List<String> aliases = new ArrayList<>();
-        aliases.add("exp");
-        aliases.add("schematic");
-        return aliases;
-    }
-
-    @Override
     public String getDescription() {
         return "Export an area's latest backup to a WorldEdit .schem file";
     }

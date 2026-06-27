@@ -192,7 +192,7 @@ Restores can be triggered by:
 - **Shorthand**: `/rewind restore <area> latest` or `/rewind restore <area> oldest`
 - **Time expression**: `/rewind rollback <area> 2h` - restores to the state closest to 2 hours ago
 - **GUI**: select the area, browse the backup timeline, and click to restore
-- **Command block / console**: `/rewind restoreblock <area> <id> [world]` - safe for automation
+- **Command block / console**: `/rewind cmdrestore <area> <id> [world]` - safe for automation
 
 ### **Interval Backups**
 
@@ -212,7 +212,7 @@ If WorldEdit is installed, Area Rewind can export any area's latest backup state
 
 ## **Player Commands**
 
-All player-facing commands use `/rewind` (aliases: `/ar`, `/arearewind`, `/protect`). Permission defaults are shown in the [Permissions](#permissions) section.
+All player-facing commands use `/rewind`. Permission defaults are shown in the [Permissions](#permissions) section.
 
 ### **Basic Area Commands**
 
@@ -270,11 +270,8 @@ These commands require `arearewind.admin` (operator by default) and are intended
 | `/rewind interval set <area> <minutes>` | Set an automatic backup interval for the area |
 | `/rewind interval remove <area>` | Remove the automatic backup interval for the area |
 | `/rewind interval check <area>` | Show the current interval setting and next scheduled backup |
-| `/rewind restoreblock <area> <id/latest/oldest> [world]` | Restore from a command block or console (safe for automation) |
+| `/rewind cmdrestore <area> <id/latest/oldest> [world]` | Restore from a command block or console (safe for automation) |
 | `/rewind status` | Show plugin status: loaded areas, backup count, running intervals, queue status |
-
-**Aliases:** `/ar`, `/arearewind`, `/protect` - all subcommands work with all aliases  
-**Command aliases:** `perm` = `permission`, `tp` = `teleport`, `compare` = `diff`
 
 ## **Permissions**
 

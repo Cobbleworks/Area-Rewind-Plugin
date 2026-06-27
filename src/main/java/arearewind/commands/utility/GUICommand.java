@@ -47,11 +47,6 @@ public class GUICommand extends BaseCommand {
     }
 
     @Override
-    public List<String> getAliases() {
-        return List.of("menu");
-    }
-
-    @Override
     public String getDescription() {
         return "Open the AreaRewind management GUI";
     }

@@ -304,11 +304,6 @@ public class SetIconCommand extends BaseCommand {
     }
 
     @Override
-    public List<String> getAliases() {
-        return Arrays.asList("icon", "setitem");
-    }
-
-    @Override
     public String getDescription() {
         return "Set custom icons for areas and backups";
     }

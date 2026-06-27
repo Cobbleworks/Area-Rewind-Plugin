@@ -349,7 +349,7 @@ public class BackupsGUIPage implements IGUIPage {
             return;
         } else if (displayName.contains("Permissions")) {
             player.closeInventory();
-            player.performCommand("rewind permissions " + areaName);
+            player.performCommand("rewind permission list " + areaName);
             return;
         } else if (displayName.contains("Area Management")) {
             player.closeInventory();

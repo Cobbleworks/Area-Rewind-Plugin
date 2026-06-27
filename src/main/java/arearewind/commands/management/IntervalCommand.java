@@ -134,11 +134,6 @@ public class IntervalCommand extends BaseCommand {
     }
 
     @Override
-    public List<String> getAliases() {
-        return Arrays.asList("timer", "schedule");
-    }
-
-    @Override
     public String getDescription() {
         return "Manage automatic backup intervals";
     }
