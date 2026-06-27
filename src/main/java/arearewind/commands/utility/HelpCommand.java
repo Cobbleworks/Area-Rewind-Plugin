@@ -35,12 +35,14 @@ public class HelpCommand extends BaseCommand {
         player.sendMessage(ChatColor.GRAY + "  /rewind save <name> - Create new area");
         player.sendMessage(ChatColor.GRAY + "  /rewind delete <area> - Delete area");
         player.sendMessage(ChatColor.GRAY + "  /rewind contract <area> <dir> <amount> - Contract area");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> info - Area information");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> name <new_name> - Rename area");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> icon <material|hand> - Set area icon");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> speed <speed|dynamic> - Set restore speed");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> trust <add|remove|list> [player] - Manage trust");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> scan - Scan for current changes");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> diff <id|current> <id|current> - Compare states");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> cleanup [days] - Delete old backups");
 
         player.sendMessage(ChatColor.YELLOW + "Backup Operations:");
         player.sendMessage(ChatColor.GRAY + "  /rewind backup <area> - Create backup");
@@ -51,7 +53,6 @@ public class HelpCommand extends BaseCommand {
 
         player.sendMessage(ChatColor.YELLOW + "Information & Management:");
         player.sendMessage(ChatColor.GRAY + "  /rewind list [owned|trusted] - List areas");
-        player.sendMessage(ChatColor.GRAY + "  /rewind info <area> - Area information");
         player.sendMessage(ChatColor.GRAY + "  /rewind gui - Open management GUI");
         player.sendMessage(ChatColor.GRAY + "  /rewind config <setting> [value] - Configure personal settings");
         player.sendMessage(ChatColor.GRAY + "  /rewind status - System status");

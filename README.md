@@ -224,8 +224,8 @@ All player-facing commands use `/rewind`. Permission defaults are shown in the [
 | `/rewind pos2` | `arearewind.use` | Set pos2 to the block you are looking at |
 | `/rewind save <name>` | `arearewind.create` | Create a protected area from the current selection |
 | `/rewind list [owned/trusted/all]` | `arearewind.use` | List areas you own, are trusted on, or all visible areas |
-| `/rewind info <area>` | `arearewind.use` | Show detailed info: owner, size, backup count, trust list |
 | `/rewind teleport <area>` | `arearewind.use` | Teleport to the center of an area |
+| `/rewind area <area> info` | `arearewind.use` | Show detailed info: owner, size, backup count, trust list |
 | `/rewind area <area> name <new_name>` | `arearewind.use` | Rename an area you own or administer |
 | `/rewind area <area> icon <material/hand>` | `arearewind.use` | Set the material used as the icon in the GUI for this area |
 | `/rewind area <area> speed <speed/dynamic>` | `arearewind.use` | Set custom restore speed or return to dynamic restore speed |
@@ -234,6 +234,7 @@ All player-facing commands use `/rewind`. Permission defaults are shown in the [
 | `/rewind area <area> trust list` | `arearewind.use` | List trusted players for an area |
 | `/rewind area <area> scan` | `arearewind.use` | Scan the current world state against the area's latest backup and report changes |
 | `/rewind area <area> diff <id1/current> <id2/current>` | `arearewind.use` | Compare two backups or compare a backup with the current world state |
+| `/rewind area <area> cleanup [days]` | `arearewind.use` | Delete backups older than the specified number of days |
 
 ### **Backup & Restore Commands**
 
@@ -265,13 +266,14 @@ These commands require `arearewind.admin` (operator by default) and are intended
 |---------|-------------|
 | `/rewind reload` | Reload `config.yml` and restart all plugin tasks |
 | `/rewind delete <area>` | Permanently delete an area and all its backups |
+| `/rewind info <area>` | Legacy alias for `/rewind area <area> info` |
 | `/rewind rename <old_name> <new_name>` | Legacy alias for `/rewind area <area> name <new_name>` |
 | `/rewind expand <area> <direction> <amount>` | Expand the area boundary in a direction (north/south/east/west/up/down) |
 | `/rewind contract <area> <direction> <amount>` | Shrink the area boundary in a direction |
 | `/rewind permission <add/remove/list> <area> [player]` | Manage granular area permissions for specific players |
 | `/rewind seticon <area> <material>` | Legacy alias for `/rewind area <area> icon <material>` |
 | `/rewind seticon backup <area> <id> <material>` | Legacy alias for `/rewind area <area> backup-icon <id> <material>` |
-| `/rewind cleanup <area> [days]` | Delete all backups older than the specified number of days (default: 7) |
+| `/rewind cleanup <area> [days]` | Legacy alias for `/rewind area <area> cleanup [days]` |
 | `/rewind scan <area>` | Legacy alias for `/rewind area <area> scan` |
 | `/rewind diff <area> <id1> <id2>` | Legacy alias for `/rewind area <area> diff <id1> <id2>` |
 | `/rewind interval set <area> <minutes> <backup_id>` | Legacy alias for `/rewind area <area> interval set <minutes> <backup_id>` |

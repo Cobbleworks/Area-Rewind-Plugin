@@ -3,6 +3,8 @@ package arearewind.commands.area;
 import arearewind.commands.base.BaseCommand;
 import arearewind.commands.analysis.DiffCommand;
 import arearewind.commands.analysis.ScanCommand;
+import arearewind.commands.info.InfoCommand;
+import arearewind.commands.maintenance.CleanupCommand;
 import arearewind.commands.management.IntervalCommand;
 import arearewind.commands.management.SetIconCommand;
 import arearewind.commands.management.TrustCommand;
@@ -28,7 +30,7 @@ import java.util.stream.Collectors;
 public class AreaCommand extends BaseCommand {
 
     private static final List<String> SETTINGS = Arrays.asList(
-            "name", "icon", "backup-icon", "speed", "trust", "interval", "scan", "diff");
+            "info", "name", "icon", "backup-icon", "speed", "trust", "interval", "scan", "diff", "cleanup");
 
     private final RenameCommand renameCommand;
     private final SetIconCommand setIconCommand;
@@ -38,6 +40,8 @@ public class AreaCommand extends BaseCommand {
     private final IntervalCommand intervalCommand;
     private final ScanCommand scanCommand;
     private final DiffCommand diffCommand;
+    private final InfoCommand infoCommand;
+    private final CleanupCommand cleanupCommand;
 
     public AreaCommand(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
             GUIManager guiManager, VisualizationManager visualizationManager,
@@ -61,6 +65,10 @@ public class AreaCommand extends BaseCommand {
                 visualizationManager, permissionManager, configManager, fileManager, intervalManager);
         this.diffCommand = new DiffCommand(plugin, areaManager, backupManager, guiManager,
                 visualizationManager, permissionManager, configManager, fileManager, intervalManager);
+        this.infoCommand = new InfoCommand(plugin, areaManager, backupManager, guiManager,
+                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
+        this.cleanupCommand = new CleanupCommand(plugin, areaManager, backupManager, guiManager,
+                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
     }
 
     @Override
@@ -79,6 +87,14 @@ public class AreaCommand extends BaseCommand {
         String setting = args[1].toLowerCase();
 
         switch (setting) {
+            case "info":
+            case "view":
+                if (args.length != 2) {
+                    player.sendMessage(ChatColor.RED + "Usage: /rewind area <area> info");
+                    return true;
+                }
+                return infoCommand.execute(player, new String[] { areaName });
+
             case "name":
             case "rename":
                 if (args.length < 3) {
@@ -133,6 +149,17 @@ public class AreaCommand extends BaseCommand {
                     return true;
                 }
                 return diffCommand.execute(player, new String[] { areaName, args[2], args[3] });
+
+            case "cleanup":
+            case "clean":
+                if (args.length > 3) {
+                    player.sendMessage(ChatColor.RED + "Usage: /rewind area <area> cleanup [days]");
+                    return true;
+                }
+                if (args.length == 3) {
+                    return cleanupCommand.execute(player, new String[] { areaName, args[2] });
+                }
+                return cleanupCommand.execute(player, new String[] { areaName });
 
             default:
                 player.sendMessage(ChatColor.RED + "Unknown area setting: " + setting);
@@ -220,6 +247,7 @@ public class AreaCommand extends BaseCommand {
 
     private void sendUsage(Player player) {
         player.sendMessage(ChatColor.GOLD + "=== Area Commands ===");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> info");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> name <new_name>");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> icon <material|hand>");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> backup-icon <backup_id> <material|hand>");
@@ -228,6 +256,7 @@ public class AreaCommand extends BaseCommand {
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> interval <set|remove|check> [minutes] [backup_id]");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> scan");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> diff <id1|current> <id2|current>");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> cleanup [days]");
     }
 
     @Override
@@ -246,6 +275,8 @@ public class AreaCommand extends BaseCommand {
         String setting = args[1].toLowerCase();
 
         switch (setting) {
+            case "info":
+            case "view":
             case "name":
             case "rename":
                 return List.of();
@@ -267,6 +298,9 @@ public class AreaCommand extends BaseCommand {
                 return List.of();
             case "diff":
                 return getDiffCompletions(player, areaName, args);
+            case "cleanup":
+            case "clean":
+                return getCleanupCompletions(player, areaName, args);
             default:
                 return List.of();
         }
@@ -342,6 +376,14 @@ public class AreaCommand extends BaseCommand {
         return List.of();
     }
 
+    private List<String> getCleanupCompletions(Player player, String areaName, String[] args) {
+        if (args.length == 3) {
+            return cleanupCommand.getTabCompletions(player, new String[] { areaName, args[2] });
+        }
+
+        return List.of();
+    }
+
     private List<String> filterCompletions(List<String> values, String partial) {
         String lowerPartial = partial.toLowerCase();
         return values.stream()
@@ -361,7 +403,7 @@ public class AreaCommand extends BaseCommand {
 
     @Override
     public String getUsage() {
-        return "/rewind area <area> <name|icon|backup-icon|speed|trust|interval|scan|diff> ...";
+        return "/rewind area <area> <info|name|icon|backup-icon|speed|trust|interval|scan|diff|cleanup> ...";
     }
 
     @Override
