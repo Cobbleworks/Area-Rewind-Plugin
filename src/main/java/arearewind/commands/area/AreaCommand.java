@@ -1,6 +1,8 @@
 package arearewind.commands.area;
 
 import arearewind.commands.base.BaseCommand;
+import arearewind.commands.analysis.DiffCommand;
+import arearewind.commands.analysis.ScanCommand;
 import arearewind.commands.management.IntervalCommand;
 import arearewind.commands.management.SetIconCommand;
 import arearewind.commands.management.TrustCommand;
@@ -26,7 +28,7 @@ import java.util.stream.Collectors;
 public class AreaCommand extends BaseCommand {
 
     private static final List<String> SETTINGS = Arrays.asList(
-            "name", "icon", "backup-icon", "speed", "trust", "interval");
+            "name", "icon", "backup-icon", "speed", "trust", "interval", "scan", "diff");
 
     private final RenameCommand renameCommand;
     private final SetIconCommand setIconCommand;
@@ -34,6 +36,8 @@ public class AreaCommand extends BaseCommand {
     private final UntrustCommand untrustCommand;
     private final SpeedCommand speedCommand;
     private final IntervalCommand intervalCommand;
+    private final ScanCommand scanCommand;
+    private final DiffCommand diffCommand;
 
     public AreaCommand(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
             GUIManager guiManager, VisualizationManager visualizationManager,
@@ -52,6 +56,10 @@ public class AreaCommand extends BaseCommand {
         this.speedCommand = new SpeedCommand(plugin, areaManager, backupManager, guiManager,
                 visualizationManager, permissionManager, configManager, fileManager, intervalManager);
         this.intervalCommand = new IntervalCommand(plugin, areaManager, backupManager, guiManager,
+                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
+        this.scanCommand = new ScanCommand(plugin, areaManager, backupManager, guiManager,
+                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
+        this.diffCommand = new DiffCommand(plugin, areaManager, backupManager, guiManager,
                 visualizationManager, permissionManager, configManager, fileManager, intervalManager);
     }
 
@@ -110,6 +118,21 @@ public class AreaCommand extends BaseCommand {
 
             case "interval":
                 return handleInterval(player, areaName, args);
+
+            case "scan":
+                if (args.length != 2) {
+                    player.sendMessage(ChatColor.RED + "Usage: /rewind area <area> scan");
+                    return true;
+                }
+                return scanCommand.execute(player, new String[] { areaName });
+
+            case "diff":
+                if (args.length < 4) {
+                    player.sendMessage(ChatColor.RED
+                            + "Usage: /rewind area <area> diff <id1|current> <id2|current>");
+                    return true;
+                }
+                return diffCommand.execute(player, new String[] { areaName, args[2], args[3] });
 
             default:
                 player.sendMessage(ChatColor.RED + "Unknown area setting: " + setting);
@@ -196,13 +219,15 @@ public class AreaCommand extends BaseCommand {
     }
 
     private void sendUsage(Player player) {
-        player.sendMessage(ChatColor.GOLD + "=== Area Settings ===");
+        player.sendMessage(ChatColor.GOLD + "=== Area Commands ===");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> name <new_name>");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> icon <material|hand>");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> backup-icon <backup_id> <material|hand>");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> speed <speed|dynamic>");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> trust <add|remove|list> [player]");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> interval <set|remove|check> [minutes] [backup_id]");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> scan");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> diff <id1|current> <id2|current>");
     }
 
     @Override
@@ -238,6 +263,10 @@ public class AreaCommand extends BaseCommand {
                 return getTrustCompletions(player, areaName, args);
             case "interval":
                 return getIntervalCompletions(player, areaName, args);
+            case "scan":
+                return List.of();
+            case "diff":
+                return getDiffCompletions(player, areaName, args);
             default:
                 return List.of();
         }
@@ -296,6 +325,23 @@ public class AreaCommand extends BaseCommand {
         return intervalCommand.getTabCompletions(player, intervalArgs);
     }
 
+    private List<String> getDiffCompletions(Player player, String areaName, String[] args) {
+        if (args.length == 3 || args.length == 4) {
+            String partial = args[args.length - 1].toLowerCase();
+            List<String> completions = getBackupIdCompletions(areaName).stream()
+                    .filter(id -> id.startsWith(partial))
+                    .collect(Collectors.toList());
+
+            if ("current".startsWith(partial)) {
+                completions.add("current");
+            }
+
+            return completions;
+        }
+
+        return List.of();
+    }
+
     private List<String> filterCompletions(List<String> values, String partial) {
         String lowerPartial = partial.toLowerCase();
         return values.stream()
@@ -310,12 +356,12 @@ public class AreaCommand extends BaseCommand {
 
     @Override
     public String getDescription() {
-        return "Manage area settings";
+        return "Manage and inspect area-specific options";
     }
 
     @Override
     public String getUsage() {
-        return "/rewind area <area> <name|icon|backup-icon|speed|trust|interval> ...";
+        return "/rewind area <area> <name|icon|backup-icon|speed|trust|interval|scan|diff> ...";
     }
 
     @Override

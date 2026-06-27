@@ -21,7 +21,7 @@ A built-in inventory GUI makes managing areas and backups accessible to any play
 - **Manual Backups & Auto-Restore:** Create on-demand backups at any moment, or configure per-area auto-restore intervals that return an area to a selected backup on a schedule
 - **Full Restoration:** Restore any saved backup by ID, by `latest` or `oldest` shorthand, or by time expression (e.g., `2h`, `30m`, `1d`) - all block states, inventories, signs, and banners are restored exactly
 - **Undo/Redo:** Instantly revert or re-apply the most recent restore or change to an area without specifying a backup ID
-- **Diff & Scan:** Compare any two backups side by side to see exactly which blocks changed (`/rewind diff`), or scan an area for changes since the last backup (`/rewind scan`)
+- **Diff & Scan:** Compare any two backups side by side to see exactly which blocks changed (`/rewind area <area> diff`), or scan an area for changes since the last backup (`/rewind area <area> scan`)
 - **Particle Preview:** Preview what a restoration will change before committing - affected blocks are highlighted with configurable particle effects
 - **Boundary Visualization:** Display particle-based area boundaries in real time to confirm region extents and avoid mistakes
 - **WorldEdit Export:** Export an area's latest backup directly to a `.schem` file for use in WorldEdit, VoxelSniper, or external map editors
@@ -202,9 +202,9 @@ Use `/rewind area <area> interval check` to see the current interval, and `/rewi
 
 ### **Diff and Scan**
 
-**Scan** (`/rewind scan <area>`) compares the current world state against the area's latest backup and reports all blocks that have changed since the backup was created. Useful for spotting unauthorized modifications or grief after the fact.
+**Scan** (`/rewind area <area> scan`) compares the current world state against the area's latest backup and reports all blocks that have changed since the backup was created. Useful for spotting unauthorized modifications or grief after the fact.
 
-**Diff** (`/rewind diff <area> <id1> <id2>`) compares two stored backups against each other and shows which blocks differ between the two snapshots. Use this to understand the exact changes between two points in time before deciding which backup to restore.
+**Diff** (`/rewind area <area> diff <id1|current> <id2|current>`) compares two stored backups, or a stored backup and the current world state, and shows which blocks differ. Use this to understand the exact changes between two points in time before deciding which backup to restore.
 
 ### **WorldEdit Export**
 
@@ -232,6 +232,8 @@ All player-facing commands use `/rewind`. Permission defaults are shown in the [
 | `/rewind area <area> trust add <player>` | `arearewind.use` | Grant a player trust access to your area |
 | `/rewind area <area> trust remove <player>` | `arearewind.use` | Revoke a player's trust access to your area |
 | `/rewind area <area> trust list` | `arearewind.use` | List trusted players for an area |
+| `/rewind area <area> scan` | `arearewind.use` | Scan the current world state against the area's latest backup and report changes |
+| `/rewind area <area> diff <id1/current> <id2/current>` | `arearewind.use` | Compare two backups or compare a backup with the current world state |
 
 ### **Backup & Restore Commands**
 
@@ -270,8 +272,8 @@ These commands require `arearewind.admin` (operator by default) and are intended
 | `/rewind seticon <area> <material>` | Legacy alias for `/rewind area <area> icon <material>` |
 | `/rewind seticon backup <area> <id> <material>` | Legacy alias for `/rewind area <area> backup-icon <id> <material>` |
 | `/rewind cleanup <area> [days]` | Delete all backups older than the specified number of days (default: 7) |
-| `/rewind scan <area>` | Scan the current world state against the area's latest backup and report changes |
-| `/rewind diff <area> <id1> <id2>` | Compare two backups and show which blocks differ |
+| `/rewind scan <area>` | Legacy alias for `/rewind area <area> scan` |
+| `/rewind diff <area> <id1> <id2>` | Legacy alias for `/rewind area <area> diff <id1> <id2>` |
 | `/rewind interval set <area> <minutes> <backup_id>` | Legacy alias for `/rewind area <area> interval set <minutes> <backup_id>` |
 | `/rewind interval remove <area>` | Legacy alias for `/rewind area <area> interval remove` |
 | `/rewind interval check <area>` | Legacy alias for `/rewind area <area> interval check` |

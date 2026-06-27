@@ -39,6 +39,8 @@ public class HelpCommand extends BaseCommand {
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> icon <material|hand> - Set area icon");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> speed <speed|dynamic> - Set restore speed");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> trust <add|remove|list> [player] - Manage trust");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> scan - Scan for current changes");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> diff <id|current> <id|current> - Compare states");
 
         player.sendMessage(ChatColor.YELLOW + "Backup Operations:");
         player.sendMessage(ChatColor.GRAY + "  /rewind backup <area> - Create backup");
