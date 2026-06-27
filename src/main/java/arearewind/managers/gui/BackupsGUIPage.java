@@ -96,13 +96,12 @@ public class BackupsGUIPage implements IGUIPage {
         for (int i = paginationInfo.getStartIndex(); i < paginationInfo.getEndIndex(); i++) {
             AreaBackup backup = backups.get(i);
 
-            // Use custom icon if set, otherwise default to CHEST
-            ItemStack item = backup.getIconItem() != null ? backup.getIconItem().clone()
-                    : new ItemStack(Material.CHEST);
-            ItemMeta meta = item.getItemMeta();
-            
             // Highlight current state backup
             boolean isCurrent = (currentPointer == i);
+            ItemStack item = isCurrent ? new ItemStack(Material.ENDER_CHEST)
+                    : (backup.getIconItem() != null ? backup.getIconItem().clone() : new ItemStack(Material.CHEST));
+            ItemMeta meta = item.getItemMeta();
+
             String prefix = isCurrent ? ChatColor.GREEN + "▶ " : ChatColor.AQUA + "";
             meta.setDisplayName(prefix + "Backup #" + i);
 
