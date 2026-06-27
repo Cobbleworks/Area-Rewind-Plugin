@@ -1,6 +1,7 @@
 package arearewind.commands.utility;
 
 import arearewind.commands.base.BaseCommand;
+import arearewind.data.ProtectedArea;
 import arearewind.managers.*;
 import arearewind.util.ConfigurationManager;
 import org.bukkit.ChatColor;
@@ -33,8 +34,13 @@ public class PreviewCommand extends BaseCommand {
 
         String areaName = args[0];
 
-        if (!areaManager.areaExists(areaName)) {
-            player.sendMessage(ChatColor.RED + "Area '" + areaName + "' not found!");
+        ProtectedArea area = validateAndGetArea(player, areaName);
+        if (area == null) {
+            return true;
+        }
+
+        if (!permissionManager.canVisualize(player, area)) {
+            player.sendMessage(ChatColor.RED + "You don't have permission to preview this area!");
             return true;
         }
 
@@ -53,12 +59,7 @@ public class PreviewCommand extends BaseCommand {
         }
 
         try {
-            // Get area and backup
-            arearewind.data.ProtectedArea area = areaManager.getArea(areaName);
-            if (area == null) {
-                player.sendMessage(ChatColor.RED + "Area not found!");
-                return true;
-            }
+            // Get backup
             arearewind.data.AreaBackup backup = backupManager.getBackup(areaName, backupId);
             if (backup == null) {
                 player.sendMessage(ChatColor.RED + "Backup not found!");
@@ -125,6 +126,6 @@ public class PreviewCommand extends BaseCommand {
 
     @Override
     public String getUsage() {
-        return "/rewind preview <area> [backup_id] [particle_type]";
+        return "/rewind area <area> preview [backup_id] [particle_type]";
     }
 }

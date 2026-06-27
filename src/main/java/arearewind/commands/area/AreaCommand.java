@@ -3,12 +3,16 @@ package arearewind.commands.area;
 import arearewind.commands.base.BaseCommand;
 import arearewind.commands.analysis.DiffCommand;
 import arearewind.commands.analysis.ScanCommand;
+import arearewind.commands.info.HistoryCommand;
 import arearewind.commands.info.InfoCommand;
 import arearewind.commands.maintenance.CleanupCommand;
 import arearewind.commands.management.IntervalCommand;
 import arearewind.commands.management.SetIconCommand;
 import arearewind.commands.management.TrustCommand;
 import arearewind.commands.management.UntrustCommand;
+import arearewind.commands.utility.HideCommand;
+import arearewind.commands.utility.PreviewCommand;
+import arearewind.commands.utility.ShowCommand;
 import arearewind.data.AreaBackup;
 import arearewind.data.ProtectedArea;
 import arearewind.managers.*;
@@ -30,7 +34,8 @@ import java.util.stream.Collectors;
 public class AreaCommand extends BaseCommand {
 
     private static final List<String> SETTINGS = Arrays.asList(
-            "info", "name", "icon", "backup-icon", "speed", "trust", "interval", "scan", "diff", "cleanup");
+            "info", "history", "name", "icon", "backup-icon", "speed", "trust", "interval",
+            "expand", "contract", "scan", "diff", "preview", "show", "hide", "cleanup");
 
     private final RenameCommand renameCommand;
     private final SetIconCommand setIconCommand;
@@ -41,7 +46,13 @@ public class AreaCommand extends BaseCommand {
     private final ScanCommand scanCommand;
     private final DiffCommand diffCommand;
     private final InfoCommand infoCommand;
+    private final HistoryCommand historyCommand;
     private final CleanupCommand cleanupCommand;
+    private final ExpandCommand expandCommand;
+    private final ContractCommand contractCommand;
+    private final PreviewCommand previewCommand;
+    private final ShowCommand showCommand;
+    private final HideCommand hideCommand;
 
     public AreaCommand(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
             GUIManager guiManager, VisualizationManager visualizationManager,
@@ -67,7 +78,19 @@ public class AreaCommand extends BaseCommand {
                 visualizationManager, permissionManager, configManager, fileManager, intervalManager);
         this.infoCommand = new InfoCommand(plugin, areaManager, backupManager, guiManager,
                 visualizationManager, permissionManager, configManager, fileManager, intervalManager);
+        this.historyCommand = new HistoryCommand(plugin, areaManager, backupManager, guiManager,
+                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
         this.cleanupCommand = new CleanupCommand(plugin, areaManager, backupManager, guiManager,
+                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
+        this.expandCommand = new ExpandCommand(plugin, areaManager, backupManager, guiManager,
+                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
+        this.contractCommand = new ContractCommand(plugin, areaManager, backupManager, guiManager,
+                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
+        this.previewCommand = new PreviewCommand(plugin, areaManager, backupManager, guiManager,
+                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
+        this.showCommand = new ShowCommand(plugin, areaManager, backupManager, guiManager,
+                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
+        this.hideCommand = new HideCommand(plugin, areaManager, backupManager, guiManager,
                 visualizationManager, permissionManager, configManager, fileManager, intervalManager);
     }
 
@@ -94,6 +117,17 @@ public class AreaCommand extends BaseCommand {
                     return true;
                 }
                 return infoCommand.execute(player, new String[] { areaName });
+
+            case "history":
+            case "backups":
+                if (args.length > 3) {
+                    player.sendMessage(ChatColor.RED + "Usage: /rewind area <area> history [page]");
+                    return true;
+                }
+                if (args.length == 3) {
+                    return historyCommand.execute(player, new String[] { areaName, args[2] });
+                }
+                return historyCommand.execute(player, new String[] { areaName });
 
             case "name":
             case "rename":
@@ -135,6 +169,20 @@ public class AreaCommand extends BaseCommand {
             case "interval":
                 return handleInterval(player, areaName, args);
 
+            case "expand":
+                if (args.length < 4) {
+                    player.sendMessage(ChatColor.RED + "Usage: /rewind area <area> expand <direction> <amount>");
+                    return true;
+                }
+                return expandCommand.execute(player, new String[] { areaName, args[2], args[3] });
+
+            case "contract":
+                if (args.length < 4) {
+                    player.sendMessage(ChatColor.RED + "Usage: /rewind area <area> contract <direction> <amount>");
+                    return true;
+                }
+                return contractCommand.execute(player, new String[] { areaName, args[2], args[3] });
+
             case "scan":
                 if (args.length != 2) {
                     player.sendMessage(ChatColor.RED + "Usage: /rewind area <area> scan");
@@ -149,6 +197,23 @@ public class AreaCommand extends BaseCommand {
                     return true;
                 }
                 return diffCommand.execute(player, new String[] { areaName, args[2], args[3] });
+
+            case "preview":
+                return handlePreview(player, areaName, args);
+
+            case "show":
+                if (args.length != 2) {
+                    player.sendMessage(ChatColor.RED + "Usage: /rewind area <area> show");
+                    return true;
+                }
+                return showCommand.execute(player, new String[] { areaName });
+
+            case "hide":
+                if (args.length != 2) {
+                    player.sendMessage(ChatColor.RED + "Usage: /rewind area <area> hide");
+                    return true;
+                }
+                return hideCommand.execute(player, new String[] { areaName });
 
             case "cleanup":
             case "clean":
@@ -220,6 +285,23 @@ public class AreaCommand extends BaseCommand {
         return intervalCommand.execute(player, intervalArgs);
     }
 
+    private boolean handlePreview(Player player, String areaName, String[] args) {
+        if (args.length > 4) {
+            player.sendMessage(ChatColor.RED + "Usage: /rewind area <area> preview [backup_id] [particle]");
+            return true;
+        }
+
+        if (args.length == 4) {
+            return previewCommand.execute(player, new String[] { areaName, args[2], args[3] });
+        }
+
+        if (args.length == 3) {
+            return previewCommand.execute(player, new String[] { areaName, args[2] });
+        }
+
+        return previewCommand.execute(player, new String[] { areaName });
+    }
+
     private boolean listTrustedPlayers(Player player, String areaName) {
         ProtectedArea area = validateAndGetArea(player, areaName);
         if (area == null) {
@@ -248,14 +330,20 @@ public class AreaCommand extends BaseCommand {
     private void sendUsage(Player player) {
         player.sendMessage(ChatColor.GOLD + "=== Area Commands ===");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> info");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> history [page]");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> name <new_name>");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> icon <material|hand>");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> backup-icon <backup_id> <material|hand>");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> speed <speed|dynamic>");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> trust <add|remove|list> [player]");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> interval <set|remove|check> [minutes] [backup_id]");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> expand <direction> <amount>");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> contract <direction> <amount>");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> scan");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> diff <id1|current> <id2|current>");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> preview [backup_id] [particle]");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> show");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> hide");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> cleanup [days]");
     }
 
@@ -279,7 +367,13 @@ public class AreaCommand extends BaseCommand {
             case "view":
             case "name":
             case "rename":
+            case "show":
+            case "hide":
+            case "scan":
                 return List.of();
+            case "history":
+            case "backups":
+                return getHistoryCompletions(player, areaName, args);
             case "icon":
             case "seticon":
                 return setIconCommand.getTabCompletions(player, new String[] { areaName, args[2] });
@@ -294,10 +388,14 @@ public class AreaCommand extends BaseCommand {
                 return getTrustCompletions(player, areaName, args);
             case "interval":
                 return getIntervalCompletions(player, areaName, args);
-            case "scan":
-                return List.of();
+            case "expand":
+                return getBoundaryCompletions(expandCommand, player, areaName, args);
+            case "contract":
+                return getBoundaryCompletions(contractCommand, player, areaName, args);
             case "diff":
                 return getDiffCompletions(player, areaName, args);
+            case "preview":
+                return getPreviewCompletions(player, areaName, args);
             case "cleanup":
             case "clean":
                 return getCleanupCompletions(player, areaName, args);
@@ -359,6 +457,26 @@ public class AreaCommand extends BaseCommand {
         return intervalCommand.getTabCompletions(player, intervalArgs);
     }
 
+    private List<String> getHistoryCompletions(Player player, String areaName, String[] args) {
+        if (args.length == 3) {
+            return historyCommand.getTabCompletions(player, new String[] { areaName, args[2] });
+        }
+
+        return List.of();
+    }
+
+    private List<String> getBoundaryCompletions(BaseCommand command, Player player, String areaName, String[] args) {
+        if (args.length == 3) {
+            return command.getTabCompletions(player, new String[] { areaName, args[2] });
+        }
+
+        if (args.length == 4) {
+            return command.getTabCompletions(player, new String[] { areaName, args[2], args[3] });
+        }
+
+        return List.of();
+    }
+
     private List<String> getDiffCompletions(Player player, String areaName, String[] args) {
         if (args.length == 3 || args.length == 4) {
             String partial = args[args.length - 1].toLowerCase();
@@ -371,6 +489,18 @@ public class AreaCommand extends BaseCommand {
             }
 
             return completions;
+        }
+
+        return List.of();
+    }
+
+    private List<String> getPreviewCompletions(Player player, String areaName, String[] args) {
+        if (args.length == 3) {
+            return previewCommand.getTabCompletions(player, new String[] { areaName, args[2] });
+        }
+
+        if (args.length == 4) {
+            return previewCommand.getTabCompletions(player, new String[] { areaName, args[2], args[3] });
         }
 
         return List.of();
@@ -403,7 +533,7 @@ public class AreaCommand extends BaseCommand {
 
     @Override
     public String getUsage() {
-        return "/rewind area <area> <info|name|icon|backup-icon|speed|trust|interval|scan|diff|cleanup> ...";
+        return "/rewind area <area> <info|history|name|icon|backup-icon|speed|trust|interval|expand|contract|scan|diff|preview|show|hide|cleanup> ...";
     }
 
     @Override

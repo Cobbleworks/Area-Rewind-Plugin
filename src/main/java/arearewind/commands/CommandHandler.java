@@ -74,15 +74,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 commandRegistry.registerCommand(saveCommand);
                 commandRegistry.registerCommand(new AreaCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-                commandRegistry.registerCommand(new ContractCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-                commandRegistry.registerCommand(new ExpandCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new DeleteCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-                commandRegistry.registerCommand(new RenameCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-                commandRegistry.registerCommand(new SpeedCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
 
                 // Backup commands
@@ -101,29 +93,13 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 // Info commands
                 commandRegistry.registerCommand(new ListCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-                commandRegistry.registerCommand(new InfoCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-                commandRegistry.registerCommand(new HistoryCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
 
                 // Navigation commands
                 commandRegistry.registerCommand(new TeleportCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
 
                 // Management commands
-                commandRegistry.registerCommand(new TrustCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-                commandRegistry.registerCommand(new UntrustCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new PermissionCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-                commandRegistry.registerCommand(new IntervalCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-                commandRegistry.registerCommand(new SetIconCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-
-                // Maintenance commands
-                commandRegistry.registerCommand(new CleanupCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
 
                 // Utility commands
@@ -137,19 +113,9 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 commandRegistry.registerCommand(new ToolCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(configCommand);
-                commandRegistry.registerCommand(new PreviewCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-                commandRegistry.registerCommand(new HideCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
 
                 // Admin commands
                 commandRegistry.registerCommand(new ReloadCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-
-                // Analysis commands
-                commandRegistry.registerCommand(new ScanCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-                commandRegistry.registerCommand(new DiffCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
 
                 // Export commands

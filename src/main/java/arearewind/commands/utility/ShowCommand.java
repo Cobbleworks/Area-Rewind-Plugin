@@ -1,6 +1,7 @@
 package arearewind.commands.utility;
 
 import arearewind.commands.base.BaseCommand;
+import arearewind.data.ProtectedArea;
 import arearewind.managers.*;
 import arearewind.util.ConfigurationManager;
 import org.bukkit.ChatColor;
@@ -31,19 +32,18 @@ public class ShowCommand extends BaseCommand {
 
         String areaName = args[0];
 
-        if (!areaManager.areaExists(areaName)) {
-            player.sendMessage(ChatColor.RED + "Area '" + areaName + "' not found!");
+        ProtectedArea area = validateAndGetArea(player, areaName);
+        if (area == null) {
             return true;
         }
 
-        try {
-            // Placeholder for show functionality
-            player.sendMessage(ChatColor.YELLOW + "Area bounds visualization not yet implemented");
-            player.sendMessage(ChatColor.GRAY + "Would show area bounds for: " + areaName);
-        } catch (Exception e) {
-            player.sendMessage(ChatColor.RED + "Error showing area: " + e.getMessage());
+        if (!permissionManager.canVisualize(player, area)) {
+            player.sendMessage(ChatColor.RED + "You don't have permission to visualize this area!");
+            return true;
         }
 
+        visualizationManager.showVisualization(player, areaName);
+        player.sendMessage(ChatColor.GREEN + "Showing area bounds for '" + areaName + "'.");
         return true;
     }
 
@@ -69,6 +69,6 @@ public class ShowCommand extends BaseCommand {
 
     @Override
     public String getUsage() {
-        return "/rewind show <area>";
+        return "/rewind area <area> show";
     }
 }

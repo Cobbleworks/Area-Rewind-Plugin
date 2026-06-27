@@ -301,7 +301,7 @@ public class BackupsGUIPage implements IGUIPage {
             return;
         } else if (displayName.contains("Preview Area")) {
             player.closeInventory();
-            player.performCommand("rewind preview " + areaName);
+            player.performCommand("rewind area " + areaName + " preview");
             return;
         } else if (displayName.contains("Auto-Restore Settings")) {
             player.closeInventory();
@@ -356,8 +356,8 @@ public class BackupsGUIPage implements IGUIPage {
         } else if (displayName.contains("Area Management")) {
             player.closeInventory();
             player.sendMessage(ChatColor.YELLOW + "Area Management Commands:");
-            player.sendMessage(ChatColor.GREEN + "/rewind expand " + areaName + " <direction> <amount>");
-            player.sendMessage(ChatColor.GREEN + "/rewind contract " + areaName + " <direction> <amount>");
+            player.sendMessage(ChatColor.GREEN + "/rewind area " + areaName + " expand <direction> <amount>");
+            player.sendMessage(ChatColor.GREEN + "/rewind area " + areaName + " contract <direction> <amount>");
             player.sendMessage(ChatColor.GREEN + "/rewind delete " + areaName);
             player.sendMessage(ChatColor.GREEN + "/rewind area " + areaName + " name <new_name>");
             return;
@@ -397,10 +397,10 @@ public class BackupsGUIPage implements IGUIPage {
 
                 if (currentBackupId != -1) {
                     // Compare the selected backup with the current backup
-                    player.performCommand("rewind diff " + areaName + " " + backupId + " " + currentBackupId);
+                    player.performCommand("rewind area " + areaName + " diff " + backupId + " " + currentBackupId);
                 } else {
                     // If no current backup state, compare with live area state
-                    player.performCommand("rewind diff " + areaName + " " + backupId + " current");
+                    player.performCommand("rewind area " + areaName + " diff " + backupId + " current");
                 }
             } else if (event.isLeftClick()) {
                 player.closeInventory();

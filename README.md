@@ -188,7 +188,7 @@ Each backup captures the block type, block data (facing direction, open/closed s
 Restoration runs in batches across multiple server ticks to avoid TPS drops. The batch size scales with the area size between `min-batch-size` and `max-batch-size`. Players receive real-time progress feedback via chat messages during restoration.
 
 Restores can be triggered by:
-- **Backup ID**: `/rewind restore <area> <id>` - use `/rewind history <area>` to see available IDs
+- **Backup ID**: `/rewind restore <area> <id>` - use `/rewind area <area> history` to see available IDs
 - **Shorthand**: `/rewind restore <area> latest` or `/rewind restore <area> oldest`
 - **Time expression**: `/rewind rollback <area> 2h` - restores to the state closest to 2 hours ago
 - **GUI**: select the area, browse the backup timeline, and click to restore
@@ -226,14 +226,21 @@ All player-facing commands use `/rewind`. Permission defaults are shown in the [
 | `/rewind list [owned/trusted/all]` | `arearewind.use` | List areas you own, are trusted on, or all visible areas |
 | `/rewind teleport <area>` | `arearewind.use` | Teleport to the center of an area |
 | `/rewind area <area> info` | `arearewind.use` | Show detailed info: owner, size, backup count, trust list |
+| `/rewind area <area> history [page]` | `arearewind.use` | View all backups for the area with timestamps, IDs, and block counts |
 | `/rewind area <area> name <new_name>` | `arearewind.use` | Rename an area you own or administer |
 | `/rewind area <area> icon <material/hand>` | `arearewind.use` | Set the material used as the icon in the GUI for this area |
 | `/rewind area <area> speed <speed/dynamic>` | `arearewind.use` | Set custom restore speed or return to dynamic restore speed |
 | `/rewind area <area> trust add <player>` | `arearewind.use` | Grant a player trust access to your area |
 | `/rewind area <area> trust remove <player>` | `arearewind.use` | Revoke a player's trust access to your area |
 | `/rewind area <area> trust list` | `arearewind.use` | List trusted players for an area |
+| `/rewind area <area> interval <set/remove/check> ...` | `arearewind.use` | Manage scheduled auto-restore for an area |
+| `/rewind area <area> expand <direction> <amount>` | `arearewind.use` | Expand the area boundary in a direction |
+| `/rewind area <area> contract <direction> <amount>` | `arearewind.use` | Shrink the area boundary in a direction |
 | `/rewind area <area> scan` | `arearewind.use` | Scan the current world state against the area's latest backup and report changes |
 | `/rewind area <area> diff <id1/current> <id2/current>` | `arearewind.use` | Compare two backups or compare a backup with the current world state |
+| `/rewind area <area> preview [id] [particle]` | `arearewind.visualize` | Show a particle preview of what will change if the backup is restored |
+| `/rewind area <area> show` | `arearewind.visualize` | Start displaying particle-based area boundary visualization |
+| `/rewind area <area> hide` | `arearewind.visualize` | Stop displaying area visualization or backup preview |
 | `/rewind area <area> cleanup [days]` | `arearewind.use` | Delete backups older than the specified number of days |
 
 ### **Backup & Restore Commands**
@@ -241,12 +248,10 @@ All player-facing commands use `/rewind`. Permission defaults are shown in the [
 | Command | Permission | Description |
 |---------|------------|-------------|
 | `/rewind backup <area>` | `arearewind.backup` | Create a manual backup of the area right now |
-| `/rewind history <area> [page]` | `arearewind.use` | View all backups for the area with timestamps, IDs, and block counts |
 | `/rewind restore <area> <id/latest/oldest>` | `arearewind.restore` | Restore the area to a specific backup |
 | `/rewind rollback <area> <time>` | `arearewind.restore` | Roll the area back to the nearest backup before the given time offset (e.g., `2h`, `30m`, `1d`) |
 | `/rewind undo <area>` | `arearewind.restore` | Undo the most recent restore (reverts to the state before the last restore ran) |
 | `/rewind redo <area>` | `arearewind.restore` | Redo a previously undone restore |
-| `/rewind preview <area> [id] [particle]` | `arearewind.visualize` | Show a particle preview of what will change if the backup is restored |
 | `/rewind export` | `arearewind.export` | Export the nearest area's latest backup to a WorldEdit `.schem` file |
 | `/rewind area <area> backup-icon <id> <material/hand>` | `arearewind.use` | Set a custom icon for a specific backup in the GUI |
 
@@ -254,8 +259,6 @@ All player-facing commands use `/rewind`. Permission defaults are shown in the [
 
 | Command | Permission | Description |
 |---------|------------|-------------|
-| `/rewind show <area>` | `arearewind.visualize` | Start displaying particle-based area boundary visualization |
-| `/rewind hide [area]` | `arearewind.visualize` | Stop displaying visualization (for a specific area or all areas) |
 | `/rewind help` | `arearewind.use` | Show the in-game command reference |
 
 ## **Administrative Commands**
@@ -266,19 +269,7 @@ These commands require `arearewind.admin` (operator by default) and are intended
 |---------|-------------|
 | `/rewind reload` | Reload `config.yml` and restart all plugin tasks |
 | `/rewind delete <area>` | Permanently delete an area and all its backups |
-| `/rewind info <area>` | Legacy alias for `/rewind area <area> info` |
-| `/rewind rename <old_name> <new_name>` | Legacy alias for `/rewind area <area> name <new_name>` |
-| `/rewind expand <area> <direction> <amount>` | Expand the area boundary in a direction (north/south/east/west/up/down) |
-| `/rewind contract <area> <direction> <amount>` | Shrink the area boundary in a direction |
 | `/rewind permission <add/remove/list> <area> [player]` | Manage granular area permissions for specific players |
-| `/rewind seticon <area> <material>` | Legacy alias for `/rewind area <area> icon <material>` |
-| `/rewind seticon backup <area> <id> <material>` | Legacy alias for `/rewind area <area> backup-icon <id> <material>` |
-| `/rewind cleanup <area> [days]` | Legacy alias for `/rewind area <area> cleanup [days]` |
-| `/rewind scan <area>` | Legacy alias for `/rewind area <area> scan` |
-| `/rewind diff <area> <id1> <id2>` | Legacy alias for `/rewind area <area> diff <id1> <id2>` |
-| `/rewind interval set <area> <minutes> <backup_id>` | Legacy alias for `/rewind area <area> interval set <minutes> <backup_id>` |
-| `/rewind interval remove <area>` | Legacy alias for `/rewind area <area> interval remove` |
-| `/rewind interval check <area>` | Legacy alias for `/rewind area <area> interval check` |
 | `/rewind cmdrestore <area> <id/latest/oldest> [world]` | Restore from a command block or console (safe for automation) |
 | `/rewind status` | Show plugin status: loaded areas, backup count, running intervals, queue status |
 

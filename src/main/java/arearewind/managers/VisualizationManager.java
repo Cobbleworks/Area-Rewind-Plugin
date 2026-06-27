@@ -236,6 +236,30 @@ public class VisualizationManager {
         return new HashSet<>(activeVisualizations.keySet());
     }
 
+    public void showVisualization(Player player, String areaName) {
+        activeVisualizations.put(player.getUniqueId(), areaName);
+    }
+
+    public boolean hideVisualization(Player player, String areaName) {
+        UUID playerId = player.getUniqueId();
+        String activeArea = activeVisualizations.get(playerId);
+        if (activeArea != null && activeArea.equals(areaName)) {
+            activeVisualizations.remove(playerId);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean hideBackupPreview(Player player, String areaName) {
+        UUID playerId = player.getUniqueId();
+        BackupPreview preview = activeBackupPreviews.get(playerId);
+        if (preview != null && preview.getArea().getName().equals(areaName)) {
+            activeBackupPreviews.remove(playerId);
+            return true;
+        }
+        return false;
+    }
+
     public void stopVisualizationsForArea(String areaName) {
         activeVisualizations.entrySet().removeIf(entry -> entry.getValue().equals(areaName));
     }
@@ -261,7 +285,8 @@ public class VisualizationManager {
 
             BackupPreview preview = new BackupPreview(backup, area);
             activeBackupPreviews.put(playerId, preview);
-            player.sendMessage(ChatColor.GREEN + "Backup preview enabled! Use /rewind preview to disable.");
+            player.sendMessage(ChatColor.GREEN + "Backup preview enabled! Use /rewind area "
+                    + area.getName() + " hide to disable.");
             return true;
         }
     }
@@ -275,7 +300,7 @@ public class VisualizationManager {
             return false;
         } else {
             player.sendMessage(ChatColor.YELLOW + "No active backup preview found!");
-            player.sendMessage(ChatColor.GRAY + "Usage: /rewind preview <area> <backup_id>");
+            player.sendMessage(ChatColor.GRAY + "Usage: /rewind area <area> preview [backup_id]");
             return false;
         }
     }

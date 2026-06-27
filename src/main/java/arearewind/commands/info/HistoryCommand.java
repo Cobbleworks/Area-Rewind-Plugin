@@ -75,8 +75,8 @@ public class HistoryCommand extends BaseCommand {
         }
 
         if (maxPage > 1) {
-            player.sendMessage(ChatColor.YELLOW + "Use /rewind history " + areaName +
-                    " <page> to view other pages");
+            player.sendMessage(ChatColor.YELLOW + "Use /rewind area " + areaName +
+                    " history <page> to view other pages");
         }
 
         return true;
@@ -113,6 +113,6 @@ public class HistoryCommand extends BaseCommand {
 
     @Override
     public String getUsage() {
-        return "/rewind history <area> [page]";
+        return "/rewind area <area> history [page]";
     }
 }

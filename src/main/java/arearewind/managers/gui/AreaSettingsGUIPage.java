@@ -150,8 +150,8 @@ public class AreaSettingsGUIPage implements IGUIPage {
         } else if (displayName.contains("Modify Boundaries")) {
             player.closeInventory();
             player.sendMessage(ChatColor.YELLOW + "Area Boundary Management:");
-            player.sendMessage(ChatColor.GREEN + "/rewind expand " + areaName + " <direction> <amount>");
-            player.sendMessage(ChatColor.GREEN + "/rewind contract " + areaName + " <direction> <amount>");
+            player.sendMessage(ChatColor.GREEN + "/rewind area " + areaName + " expand <direction> <amount>");
+            player.sendMessage(ChatColor.GREEN + "/rewind area " + areaName + " contract <direction> <amount>");
             player.sendMessage(ChatColor.GREEN + "Or use /rewind pos1 and /rewind pos2 to redefine boundaries");
             return;
         } else if (displayName.contains("Manage Trust")) {
