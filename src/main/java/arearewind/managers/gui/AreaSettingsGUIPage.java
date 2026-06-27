@@ -144,8 +144,8 @@ public class AreaSettingsGUIPage implements IGUIPage {
         // Handle management actions
         if (displayName.contains("Rename Area")) {
             player.closeInventory();
-            player.sendMessage(ChatColor.YELLOW + "To rename this area, use: " + ChatColor.GREEN + "/rewind rename "
-                    + areaName + " <new-name>");
+            player.sendMessage(ChatColor.YELLOW + "To rename this area, use: " + ChatColor.GREEN + "/rewind area "
+                    + areaName + " name <new-name>");
             return;
         } else if (displayName.contains("Modify Boundaries")) {
             player.closeInventory();
@@ -157,9 +157,9 @@ public class AreaSettingsGUIPage implements IGUIPage {
         } else if (displayName.contains("Manage Trust")) {
             player.closeInventory();
             player.sendMessage(ChatColor.YELLOW + "Trust Management:");
-            player.sendMessage(ChatColor.GREEN + "/rewind trust " + areaName + " <player>");
-            player.sendMessage(ChatColor.GREEN + "/rewind untrust " + areaName + " <player>");
-            player.sendMessage(ChatColor.GREEN + "/rewind trustlist " + areaName);
+            player.sendMessage(ChatColor.GREEN + "/rewind area " + areaName + " trust add <player>");
+            player.sendMessage(ChatColor.GREEN + "/rewind area " + areaName + " trust remove <player>");
+            player.sendMessage(ChatColor.GREEN + "/rewind area " + areaName + " trust list");
             return;
         } else if (displayName.contains("Transfer Ownership")) {
             player.closeInventory();
@@ -195,10 +195,10 @@ public class AreaSettingsGUIPage implements IGUIPage {
                         (area.hasCustomRestoreSpeed() ? area.getCustomRestoreSpeed() + " blocks/tick (custom)"
                                 : "Dynamic (auto-calculated)"));
                 player.sendMessage("");
-                player.sendMessage(ChatColor.GREEN + "To set custom speed: " + ChatColor.WHITE + "/rewind speed "
-                        + areaName + " <1-10000>");
-                player.sendMessage(ChatColor.GREEN + "To reset to dynamic: " + ChatColor.WHITE + "/rewind speed "
-                        + areaName + " dynamic");
+                player.sendMessage(ChatColor.GREEN + "To set custom speed: " + ChatColor.WHITE + "/rewind area "
+                        + areaName + " speed <1-10000>");
+                player.sendMessage(ChatColor.GREEN + "To reset to dynamic: " + ChatColor.WHITE + "/rewind area "
+                        + areaName + " speed dynamic");
                 player.sendMessage("");
                 player.sendMessage(ChatColor.GRAY + "Lower values = slower but less server impact");
                 player.sendMessage(ChatColor.GRAY + "Higher values = faster but more server impact");

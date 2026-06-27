@@ -315,6 +315,6 @@ public class SetIconCommand extends BaseCommand {
 
     @Override
     public String getRequiredPermission() {
-        return "arearewind.manage";
+        return PermissionManager.PERMISSION_USE;
     }
 }

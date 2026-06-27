@@ -317,9 +317,10 @@ public class BackupsGUIPage implements IGUIPage {
                     player.sendMessage(ChatColor.AQUA + "Current auto-restore settings for " + areaName + ":");
                     player.sendMessage(ChatColor.GRAY + "Interval: " + intervalConfig.minutes + " minutes");
                     player.sendMessage(ChatColor.GRAY + "Backup: #" + intervalConfig.backupId);
-                    player.sendMessage(ChatColor.YELLOW + "To change settings: /rewind interval set " + areaName
-                            + " <minutes> <backup_id>");
-                    player.sendMessage(ChatColor.YELLOW + "To disable: /rewind interval remove " + areaName);
+                    player.sendMessage(ChatColor.YELLOW + "To change settings: /rewind area " + areaName
+                            + " interval set <minutes> <backup_id>");
+                    player.sendMessage(ChatColor.YELLOW + "To disable: /rewind area " + areaName
+                            + " interval remove");
                 }
             } else {
                 // No interval set, show help
@@ -329,9 +330,10 @@ public class BackupsGUIPage implements IGUIPage {
                 } else {
                     player.sendMessage(ChatColor.YELLOW + "Set up auto-restore for " + areaName + ":");
                     player.sendMessage(
-                            ChatColor.GRAY + "Usage: /rewind interval set " + areaName + " <minutes> <backup_id>");
+                            ChatColor.GRAY + "Usage: /rewind area " + areaName
+                                    + " interval set <minutes> <backup_id>");
                     player.sendMessage(ChatColor.GRAY + "Available backups: 0-" + (backups.size() - 1));
-                    player.sendMessage(ChatColor.GRAY + "Example: /rewind interval set " + areaName + " 30 0");
+                    player.sendMessage(ChatColor.GRAY + "Example: /rewind area " + areaName + " interval set 30 0");
                 }
             }
             return;
@@ -357,7 +359,7 @@ public class BackupsGUIPage implements IGUIPage {
             player.sendMessage(ChatColor.GREEN + "/rewind expand " + areaName + " <direction> <amount>");
             player.sendMessage(ChatColor.GREEN + "/rewind contract " + areaName + " <direction> <amount>");
             player.sendMessage(ChatColor.GREEN + "/rewind delete " + areaName);
-            player.sendMessage(ChatColor.GREEN + "/rewind rename " + areaName + " <new_name>");
+            player.sendMessage(ChatColor.GREEN + "/rewind area " + areaName + " name <new_name>");
             return;
         }
 

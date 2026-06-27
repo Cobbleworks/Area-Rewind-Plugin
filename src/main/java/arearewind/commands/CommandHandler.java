@@ -72,6 +72,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 commandRegistry.registerCommand(new Pos2Command(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(saveCommand);
+                commandRegistry.registerCommand(new AreaCommand(plugin, areaManager, backupManager, guiManager,
+                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new ContractCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
                 commandRegistry.registerCommand(new ExpandCommand(plugin, areaManager, backupManager, guiManager,
