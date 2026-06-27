@@ -288,11 +288,11 @@ public class BackupsGUIPage implements IGUIPage {
             return;
         } else if (displayName.contains("Undo")) {
             player.closeInventory();
-            player.performCommand("rewind undo " + areaName);
+            player.performCommand("rewind area " + areaName + " undo");
             return;
         } else if (displayName.contains("Redo")) {
             player.closeInventory();
-            player.performCommand("rewind redo " + areaName);
+            player.performCommand("rewind area " + areaName + " redo");
             return;
         } else if (displayName.contains("Teleport to Area")) {
             player.closeInventory();
@@ -350,7 +350,7 @@ public class BackupsGUIPage implements IGUIPage {
             return;
         } else if (displayName.contains("Permissions")) {
             player.closeInventory();
-            player.performCommand("rewind permission list " + areaName);
+            player.performCommand("rewind area " + areaName + " trust list");
             return;
         } else if (displayName.contains("Area Management")) {
             player.closeInventory();

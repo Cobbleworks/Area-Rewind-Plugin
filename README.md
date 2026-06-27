@@ -250,8 +250,8 @@ All player-facing commands use `/rewind`. Permission defaults are shown in the [
 | `/rewind backup <area>` | `arearewind.backup` | Create a manual backup of the area right now |
 | `/rewind restore <area> <id/latest/oldest>` | `arearewind.restore` | Restore the area to a specific backup |
 | `/rewind rollback <area> <time>` | `arearewind.restore` | Roll the area back to the nearest backup before the given time offset (e.g., `2h`, `30m`, `1d`) |
-| `/rewind undo <area>` | `arearewind.restore` | Undo the most recent restore (reverts to the state before the last restore ran) |
-| `/rewind redo <area>` | `arearewind.restore` | Redo a previously undone restore |
+| `/rewind area <area> undo` | `arearewind.restore` | Undo the most recent restore (reverts to the state before the last restore ran) |
+| `/rewind area <area> redo` | `arearewind.restore` | Redo a previously undone restore |
 | `/rewind export` | `arearewind.export` | Export the nearest area's latest backup to a WorldEdit `.schem` file |
 | `/rewind area <area> backup-icon <id> <material/hand>` | `arearewind.use` | Set a custom icon for a specific backup in the GUI |
 
@@ -269,7 +269,6 @@ These commands require `arearewind.admin` (operator by default) and are intended
 |---------|-------------|
 | `/rewind reload` | Reload `config.yml` and restart all plugin tasks |
 | `/rewind delete <area>` | Permanently delete an area and all its backups |
-| `/rewind permission <add/remove/list> <area> [player]` | Manage granular area permissions for specific players |
 | `/rewind cmdrestore <area> <id/latest/oldest> [world]` | Restore from a command block or console (safe for automation) |
 | `/rewind status` | Show plugin status: loaded areas, backup count, running intervals, queue status |
 

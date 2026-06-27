@@ -85,10 +85,6 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                 commandRegistry.registerCommand(cmdRestoreCommand);
                 commandRegistry.registerCommand(new RollbackCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-                commandRegistry.registerCommand(new UndoCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-                commandRegistry.registerCommand(new RedoCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
 
                 // Info commands
                 commandRegistry.registerCommand(new ListCommand(plugin, areaManager, backupManager, guiManager,
@@ -96,10 +92,6 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
 
                 // Navigation commands
                 commandRegistry.registerCommand(new TeleportCommand(plugin, areaManager, backupManager, guiManager,
-                                visualizationManager, permissionManager, configManager, fileManager, intervalManager));
-
-                // Management commands
-                commandRegistry.registerCommand(new PermissionCommand(plugin, areaManager, backupManager, guiManager,
                                 visualizationManager, permissionManager, configManager, fileManager, intervalManager));
 
                 // Utility commands

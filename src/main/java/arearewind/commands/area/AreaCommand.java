@@ -3,6 +3,8 @@ package arearewind.commands.area;
 import arearewind.commands.base.BaseCommand;
 import arearewind.commands.analysis.DiffCommand;
 import arearewind.commands.analysis.ScanCommand;
+import arearewind.commands.backup.RedoCommand;
+import arearewind.commands.backup.UndoCommand;
 import arearewind.commands.info.HistoryCommand;
 import arearewind.commands.info.InfoCommand;
 import arearewind.commands.maintenance.CleanupCommand;
@@ -35,7 +37,7 @@ public class AreaCommand extends BaseCommand {
 
     private static final List<String> SETTINGS = Arrays.asList(
             "info", "history", "name", "icon", "backup-icon", "speed", "trust", "interval",
-            "expand", "contract", "scan", "diff", "preview", "show", "hide", "cleanup");
+            "expand", "contract", "scan", "diff", "preview", "show", "hide", "cleanup", "undo", "redo");
 
     private final RenameCommand renameCommand;
     private final SetIconCommand setIconCommand;
@@ -53,6 +55,8 @@ public class AreaCommand extends BaseCommand {
     private final PreviewCommand previewCommand;
     private final ShowCommand showCommand;
     private final HideCommand hideCommand;
+    private final UndoCommand undoCommand;
+    private final RedoCommand redoCommand;
 
     public AreaCommand(JavaPlugin plugin, AreaManager areaManager, BackupManager backupManager,
             GUIManager guiManager, VisualizationManager visualizationManager,
@@ -91,6 +95,10 @@ public class AreaCommand extends BaseCommand {
         this.showCommand = new ShowCommand(plugin, areaManager, backupManager, guiManager,
                 visualizationManager, permissionManager, configManager, fileManager, intervalManager);
         this.hideCommand = new HideCommand(plugin, areaManager, backupManager, guiManager,
+                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
+        this.undoCommand = new UndoCommand(plugin, areaManager, backupManager, guiManager,
+                visualizationManager, permissionManager, configManager, fileManager, intervalManager);
+        this.redoCommand = new RedoCommand(plugin, areaManager, backupManager, guiManager,
                 visualizationManager, permissionManager, configManager, fileManager, intervalManager);
     }
 
@@ -226,6 +234,20 @@ public class AreaCommand extends BaseCommand {
                 }
                 return cleanupCommand.execute(player, new String[] { areaName });
 
+            case "undo":
+                if (args.length != 2) {
+                    player.sendMessage(ChatColor.RED + "Usage: /rewind area <area> undo");
+                    return true;
+                }
+                return undoCommand.execute(player, new String[] { areaName });
+
+            case "redo":
+                if (args.length != 2) {
+                    player.sendMessage(ChatColor.RED + "Usage: /rewind area <area> redo");
+                    return true;
+                }
+                return redoCommand.execute(player, new String[] { areaName });
+
             default:
                 player.sendMessage(ChatColor.RED + "Unknown area setting: " + setting);
                 player.sendMessage(ChatColor.GRAY + "Use " + ChatColor.GREEN + "/rewind area help"
@@ -345,6 +367,8 @@ public class AreaCommand extends BaseCommand {
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> show");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> hide");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> cleanup [days]");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> undo");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> redo");
     }
 
     @Override
@@ -370,6 +394,8 @@ public class AreaCommand extends BaseCommand {
             case "show":
             case "hide":
             case "scan":
+            case "undo":
+            case "redo":
                 return List.of();
             case "history":
             case "backups":
@@ -533,7 +559,7 @@ public class AreaCommand extends BaseCommand {
 
     @Override
     public String getUsage() {
-        return "/rewind area <area> <info|history|name|icon|backup-icon|speed|trust|interval|expand|contract|scan|diff|preview|show|hide|cleanup> ...";
+        return "/rewind area <area> <info|history|name|icon|backup-icon|speed|trust|interval|expand|contract|scan|diff|preview|show|hide|cleanup|undo|redo> ...";
     }
 
     @Override

@@ -47,6 +47,7 @@ public class HelpCommand extends BaseCommand {
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> preview [id] [particle] - Preview backup");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> show|hide - Toggle area bounds");
         player.sendMessage(ChatColor.GRAY + "  /rewind area <area> cleanup [days] - Delete old backups");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> undo|redo - Undo or redo area restore");
 
         player.sendMessage(ChatColor.YELLOW + "Backup Operations:");
         player.sendMessage(ChatColor.GRAY + "  /rewind backup <area> - Create backup");

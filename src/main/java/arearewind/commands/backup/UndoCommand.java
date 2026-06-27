@@ -83,6 +83,6 @@ public class UndoCommand extends BaseCommand {
 
     @Override
     public String getUsage() {
-        return "/rewind undo <area>";
+        return "/rewind area <area> undo";
     }
 }
