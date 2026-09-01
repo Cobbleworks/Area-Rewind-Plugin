@@ -25,7 +25,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.*;
 
 /**
- * Refactored CommandHandler using Command Pattern for better maintainability
+ * Routes the root command to the registered Area Rewind subcommands.
  */
 public class CommandHandler implements CommandExecutor, TabCompleter {
 

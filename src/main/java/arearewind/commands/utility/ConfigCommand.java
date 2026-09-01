@@ -76,8 +76,8 @@ public class ConfigCommand extends BaseCommand {
             return true;
         }
 
-        boolean enabled = parseBooleanValue(args[1]);
-        if (enabled == Boolean.parseBoolean("null")) {
+        Boolean enabled = parseBooleanValue(args[1]);
+        if (enabled == null) {
             player.sendMessage(ChatColor.RED + "Invalid value! Use: true, false, on, or off");
             return true;
         }
@@ -100,8 +100,8 @@ public class ConfigCommand extends BaseCommand {
             return true;
         }
 
-        boolean enabled = parseBooleanValue(args[1]);
-        if (enabled == Boolean.parseBoolean("null")) {
+        Boolean enabled = parseBooleanValue(args[1]);
+        if (enabled == null) {
             player.sendMessage(ChatColor.RED + "Invalid value! Use: true, false, on, or off");
             return true;
         }
@@ -141,7 +141,7 @@ public class ConfigCommand extends BaseCommand {
         player.sendMessage(ChatColor.GRAY + "You can use: true/false or on/off");
     }
 
-    private boolean parseBooleanValue(String value) {
+    private Boolean parseBooleanValue(String value) {
         String val = value.toLowerCase();
         switch (val) {
             case "true":
@@ -157,7 +157,7 @@ public class ConfigCommand extends BaseCommand {
             case "disabled":
                 return false;
             default:
-                return Boolean.parseBoolean("null"); // Invalid value
+                return null;
         }
     }
 

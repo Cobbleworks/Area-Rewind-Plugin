@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Allow `false`, `off`, `no`, `disable`, and `disabled` in the per-player wooden-hoe and progress-log settings. These valid values were previously mistaken for invalid input.
+
 ## [1.0.10] - 2026-04-28
 
 Area Rewind v1.0.10 delivers stability improvements and maintenance fixes for restore-heavy server environments.
