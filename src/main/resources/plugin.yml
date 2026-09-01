@@ -1,8 +1,8 @@
 name: AreaRewind
-version: 1.0.2
+version: ${project.version}
 description: Advanced area protection and backup system for Minecraft servers
 author: Bernd Julian Hagen, Andreas Hagen
-website: https://github.com/BerndHagen/Minecraft-Server-Plugins
+website: https://github.com/Cobbleworks/Area-Rewind-Plugin
 api-version: 1.19
 
 main: arearewind.AreaRewindPlugin

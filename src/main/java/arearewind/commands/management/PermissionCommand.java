@@ -26,14 +26,13 @@ public class PermissionCommand extends BaseCommand {
 
     @Override
     public boolean execute(Player player, String[] args) {
-        if (!validateMinArgs(player, args, 3)) {
+        if (!validateMinArgs(player, args, 2)) {
             player.sendMessage(ChatColor.YELLOW + "Usage: " + getUsage());
             return true;
         }
 
         String action = args[0].toLowerCase();
         String areaName = args[1];
-        String playerName = args[2];
 
         if (!areaManager.areaExists(areaName)) {
             player.sendMessage(ChatColor.RED + "Area '" + areaName + "' not found!");
@@ -42,7 +41,11 @@ public class PermissionCommand extends BaseCommand {
 
         switch (action) {
             case "add":
-                // Using trust functionality as a placeholder for permissions
+                if (args.length < 3) {
+                    player.sendMessage(ChatColor.YELLOW + "Usage: " + getUsage());
+                    return true;
+                }
+                String playerName = args[2];
                 var area = areaManager.getArea(areaName);
                 if (area == null) {
                     player.sendMessage(ChatColor.RED + "Area not found!");
@@ -64,23 +67,28 @@ public class PermissionCommand extends BaseCommand {
                 break;
 
             case "remove":
+                if (args.length < 3) {
+                    player.sendMessage(ChatColor.YELLOW + "Usage: " + getUsage());
+                    return true;
+                }
+                String playerToRemove = args[2];
                 var areaToRemove = areaManager.getArea(areaName);
                 if (areaToRemove == null) {
                     player.sendMessage(ChatColor.RED + "Area not found!");
                     return true;
                 }
 
-                var targetToRemove = plugin.getServer().getPlayer(playerName);
+                var targetToRemove = plugin.getServer().getPlayer(playerToRemove);
                 if (targetToRemove == null) {
-                    player.sendMessage(ChatColor.RED + "Player '" + playerName + "' not found!");
+                    player.sendMessage(ChatColor.RED + "Player '" + playerToRemove + "' not found!");
                     return true;
                 }
 
                 if (areaToRemove.getTrustedPlayers().contains(targetToRemove.getUniqueId())) {
                     areaToRemove.removeTrustedPlayer(targetToRemove.getUniqueId());
-                    player.sendMessage(ChatColor.GREEN + "Removed " + playerName + " from area " + areaName);
+                    player.sendMessage(ChatColor.GREEN + "Removed " + playerToRemove + " from area " + areaName);
                 } else {
-                    player.sendMessage(ChatColor.YELLOW + playerName + " is not trusted in " + areaName);
+                    player.sendMessage(ChatColor.YELLOW + playerToRemove + " is not trusted in " + areaName);
                 }
                 break;
 

@@ -84,8 +84,8 @@ public class PlayerInteractionListener implements Listener {
     }
 
     private boolean hasWorldEditFailed(Player player) {
-        // This could be enhanced to track WorldEdit failures per player
-        // For now, just check if WorldEdit is enabled
+        // No per-player failure state is recorded, so an unavailable WorldEdit instance is
+        // the only condition that can activate the automatic wooden-hoe fallback.
         return !worldEditEnabled;
     }
 
@@ -212,15 +212,11 @@ public class PlayerInteractionListener implements Listener {
         }
 
         try {
-            // Simple but effective: check if it's a wooden axe AND the player has WorldEdit
-            // permissions
-            // This covers 99% of use cases since most people use the default wand
+            // WorldEdit's default wand is a wooden axe. Custom wand materials are deliberately
+            // left to explicit wooden-hoe mode because the WorldEdit API does not expose them here.
             if (item.getType() == Material.WOODEN_AXE && player.hasPermission("worldedit.wand")) {
                 return true;
             }
-
-            // TODO: For advanced users who change their wand, we could add a config option
-            // or check WorldEdit's session data, but this adds complexity
             return false;
         } catch (Exception e) {
             return false;

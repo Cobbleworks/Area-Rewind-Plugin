@@ -36,16 +36,10 @@ public class HideCommand extends BaseCommand {
             }
         }
 
-        try {
-            if (areaName != null) {
-                player.sendMessage(ChatColor.YELLOW + "Area bounds hiding not yet implemented");
-                player.sendMessage(ChatColor.GRAY + "Would hide area bounds for: " + areaName);
-            } else {
-                player.sendMessage(ChatColor.YELLOW + "Hide all visualizations not yet implemented");
-                player.sendMessage(ChatColor.GRAY + "Would hide all visualizations");
-            }
-        } catch (Exception e) {
-            player.sendMessage(ChatColor.RED + "Error hiding visualization: " + e.getMessage());
+        if (visualizationManager.stopAreaVisualization(player, areaName)) {
+            player.sendMessage(ChatColor.GREEN + "Area visualization hidden.");
+        } else {
+            player.sendMessage(ChatColor.YELLOW + "You do not have a matching area visualization active.");
         }
 
         return true;

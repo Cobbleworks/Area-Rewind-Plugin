@@ -37,13 +37,8 @@ public class ShowCommand extends BaseCommand {
             return true;
         }
 
-        try {
-            // Placeholder for show functionality
-            player.sendMessage(ChatColor.YELLOW + "Area bounds visualization not yet implemented");
-            player.sendMessage(ChatColor.GRAY + "Would show area bounds for: " + areaName);
-        } catch (Exception e) {
-            player.sendMessage(ChatColor.RED + "Error showing area: " + e.getMessage());
-        }
+        visualizationManager.startAreaVisualization(player, areaName);
+        player.sendMessage(ChatColor.GREEN + "Showing the boundary for area '" + areaName + "'.");
 
         return true;
     }

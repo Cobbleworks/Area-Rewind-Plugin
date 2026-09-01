@@ -236,8 +236,33 @@ public class VisualizationManager {
         return new HashSet<>(activeVisualizations.keySet());
     }
 
+    /**
+     * Starts showing one area's boundary to a player. Starting another visualization replaces
+     * the previous one, which keeps the scheduled particle work bounded per player.
+     */
+    public void startAreaVisualization(Player player, String areaName) {
+        activeVisualizations.put(player.getUniqueId(), areaName);
+        ProtectedArea area = areaManager.getArea(areaName);
+        if (area != null) {
+            showAreaBoundaries(player, area);
+        }
+    }
+
+    /**
+     * Stops the player's active area visualization. When an area is supplied, it is only
+     * removed if that area is the one currently being displayed.
+     */
+    public boolean stopAreaVisualization(Player player, String areaName) {
+        String activeArea = activeVisualizations.get(player.getUniqueId());
+        if (activeArea == null || (areaName != null && !activeArea.equalsIgnoreCase(areaName))) {
+            return false;
+        }
+        activeVisualizations.remove(player.getUniqueId());
+        return true;
+    }
+
     public void stopVisualizationsForArea(String areaName) {
-        activeVisualizations.entrySet().removeIf(entry -> entry.getValue().equals(areaName));
+        activeVisualizations.entrySet().removeIf(entry -> entry.getValue().equalsIgnoreCase(areaName));
     }
 
     public VisualizationSettings getDefaultSettings() {

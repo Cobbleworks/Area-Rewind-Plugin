@@ -346,8 +346,8 @@ public class MaterialSelectorGUIPage implements IGUIPage {
                 return;
             }
 
-            // For player heads or other special items, use the full ItemStack
-            // For regular materials, just use the material
+            // Player heads carry texture data in their item metadata; ordinary icons only need
+            // their material type.
             if (isCustomPlayerHead(item)) {
                 area.setIconItem(item);
                 player.sendMessage(ChatColor.GREEN + "Set custom icon for area '" + areaName + "' to " +
@@ -398,8 +398,7 @@ public class MaterialSelectorGUIPage implements IGUIPage {
                 return;
             }
 
-            // For player heads or other special items, use the full ItemStack
-            // For regular materials, just use the material
+            // Preserve the complete stack only when the icon contains custom head metadata.
             if (isCustomPlayerHead(item)) {
                 targetBackup.setIconItem(item);
                 player.sendMessage(ChatColor.GREEN + "Set custom icon for backup #" + backupId + " to " +
