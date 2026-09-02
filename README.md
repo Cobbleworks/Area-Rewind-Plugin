@@ -1,9 +1,10 @@
 <p align="center">
-  <img src="images/plugin-logo.png" alt="Area Rewind Plugin" width="200" height="200" />
+  <img src="images/plugin-logo.png" alt="Cobbleworks - Area Rewind Plugin" width="200" height="200" />
 </p>
-<h1 align="center">Area Rewind Plugin</h1>
+<h1 align="center">Cobbleworks - Area Rewind Plugin</h1>
 <p align="center">
-  <b>Protect, back up, compare, and restore named areas without rebuilding by hand.</b>
+  <b>Protect important builds with named areas and versioned block-state snapshots.</b><br>
+  <b>Preview changes, schedule backups, compare versions, and restore damage without rebuilding by hand.</b>
 </p>
 <p align="center">
   <a href="https://github.com/Cobbleworks/Area-Rewind-Plugin/releases"><img src="https://img.shields.io/github/v/release/Cobbleworks/Area-Rewind-Plugin?include_prereleases&style=flat-square&color=4CAF50" alt="Latest Release"></a>&nbsp;&nbsp;<a href="https://github.com/Cobbleworks/Area-Rewind-Plugin/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License"></a>&nbsp;&nbsp;<img src="https://img.shields.io/badge/Java-21+-orange?style=flat-square" alt="Java Version">&nbsp;&nbsp;<img src="https://img.shields.io/badge/Minecraft-1.21.8+-green?style=flat-square" alt="Minecraft Version">&nbsp;&nbsp;<img src="https://img.shields.io/badge/Platform-Spigot%2FPaper-yellow?style=flat-square" alt="Platform">
@@ -11,7 +12,7 @@
 
 Area Rewind stores named cuboid regions and their block-state snapshots. Owners and trusted players can create backups, preview changes, restore earlier versions, and manage areas through commands or an inventory GUI. Large restores are split across server ticks and can use either automatic or per-area speeds.
 
-### Core Features
+## Core Features
 
 - Built-in two-point selection with a wooden hoe or look-target commands
 - Optional WorldEdit selection support and `.schem` export
@@ -23,7 +24,7 @@ Area Rewind stores named cuboid regions and their block-state snapshots. Owners 
 - Per-area icons, restore speeds, and automatic backup intervals
 - Persistence for areas, backups, inventories, signs, and banner data
 
-### Supported Platforms
+## Supported Platforms
 
 - Minecraft 1.21.8 or newer
 - Spigot, Paper, Purpur, or a compatible Bukkit server
@@ -32,16 +33,23 @@ Area Rewind stores named cuboid regions and their block-state snapshots. Owners 
 
 ## Table of Contents
 
-1. [Installation](#installation)
-2. [Third-Party Plugins](#third-party-plugins)
-3. [First Area and Backup](#first-area-and-backup)
-4. [Configuration](#configuration)
-5. [Commands](#commands)
-6. [Permissions](#permissions)
-7. [Data and Performance](#data-and-performance)
-8. [Building From Source](#building-from-source)
-9. [License](#license)
-10. [Screenshots](#screenshots)
+1. [Core Features](#core-features)
+2. [Supported Platforms](#supported-platforms)
+3. [Installation](#installation)
+4. [Third-Party Plugins](#third-party-plugins)
+5. [First Area and Backup](#first-area-and-backup)
+   - [Access Model](#access-model)
+6. [Configuration](#configuration)
+7. [Commands](#commands)
+   - [Areas and Navigation](#areas-and-navigation)
+   - [Backups and Analysis](#backups-and-analysis)
+   - [Scheduling and Management](#scheduling-and-management)
+   - [Visualization, Export, and Administration](#visualization-export-and-administration)
+8. [Permissions](#permissions)
+9. [Data and Performance](#data-and-performance)
+10. [Building From Source](#building-from-source)
+11. [License](#license)
+12. [Screenshots](#screenshots)
 
 ## Installation
 
