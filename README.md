@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/plugin-logo.png" alt="Cobbleworks - Area Rewind Plugin" width="200" height="200" />
+  <img src="images/plugin-banner.png" alt="Cobbleworks - Area Rewind Plugin banner" width="818" />
 </p>
 <h1 align="center">Cobbleworks - Area Rewind Plugin</h1>
 <p align="center">
