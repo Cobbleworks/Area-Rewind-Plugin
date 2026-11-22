@@ -200,7 +200,7 @@ The defaults above follow `plugin.yml`. Server owners may want to restrict creat
 
 ## Building From Source
 
-Requirements: Java 21 or newer and Maven 3.6 or newer.
+Build with JDK 21 or newer and Maven 3.6 or newer.
 
 ```bash
 git clone https://github.com/Cobbleworks/Area-Rewind-Plugin.git
