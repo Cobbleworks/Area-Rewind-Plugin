@@ -245,6 +245,9 @@ public class FileManager {
                         palette.put(paletteKey, blockSection.getValues(false));
                     }
                 }
+                // Each palette entry becomes one BlockInfo that all its positions share,
+                // instead of one per position.
+                Map<String, BlockInfo> decoded = new HashMap<>();
 
                 // Apply palette to positions - handle both new encoded format and legacy format
                 for (String encodedPosition : positionsSection.getKeys(false)) {
@@ -255,7 +258,13 @@ public class FileManager {
                     
                     if (paletteKey != null && palette.containsKey(paletteKey)) {
                         try {
-                            BlockInfo info = BlockInfo.deserialize(palette.get(paletteKey));
+                            BlockInfo info = decoded.get(paletteKey);
+                            if (info == null) {
+                                info = BlockInfo.deserialize(palette.get(paletteKey));
+                                if (info != null) {
+                                    decoded.put(paletteKey, info);
+                                }
+                            }
                             if (info != null) {
                                 blocks.put(position, info);
                             }

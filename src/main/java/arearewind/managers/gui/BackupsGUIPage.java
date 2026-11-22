@@ -109,7 +109,7 @@ public class BackupsGUIPage implements IGUIPage {
             lore.add("");
             lore.add(ChatColor.WHITE + "Created: " + ChatColor.YELLOW + backup.getTimestamp().format(
                     DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss")));
-            lore.add(ChatColor.WHITE + "Blocks: " + ChatColor.AQUA + String.format("%,d", backup.getBlocksNonAirOnly().size()));
+            lore.add(ChatColor.WHITE + "Blocks: " + ChatColor.AQUA + String.format("%,d", backup.getNonAirBlockCount()));
 
             // Check if this backup is used for auto-restore
             var intervalConfig = intervalManager.getIntervalConfig(areaName);

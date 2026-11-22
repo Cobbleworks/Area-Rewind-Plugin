@@ -20,6 +20,7 @@ public class AreaBackup implements ConfigurationSerializable, Serializable {
     private Map<String, Object> entities;
     private ItemStack iconItem;
     private boolean hidden; // For beforeRestore backups that shouldn't appear in lists
+    private transient int nonAirBlockCount = -1;
 
     public AreaBackup(LocalDateTime timestamp, Map<String, BlockInfo> blocks) {
         this.id = generateUniqueId();
@@ -127,6 +128,21 @@ public class AreaBackup implements ConfigurationSerializable, Serializable {
 
     public int getBlockCount() {
         return blocks.size();
+    }
+
+    /** Blocks that are not air, counted once; for lists that show a count. */
+    public int getNonAirBlockCount() {
+        if (nonAirBlockCount < 0) {
+            int count = 0;
+            for (BlockInfo info : blocks.values()) {
+                Material material = info.getMaterial();
+                if (material != null && material != Material.AIR) {
+                    count++;
+                }
+            }
+            nonAirBlockCount = count;
+        }
+        return nonAirBlockCount;
     }
 
     public int getEntityCount() {

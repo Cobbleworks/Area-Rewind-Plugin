@@ -147,7 +147,7 @@ public class BackupManager {
             try {
                 fileManager.saveBackupToFile(areaName, backup);
                 plugin.getLogger().info("Successfully saved backup for area: " + areaName +
-                        " (ID: " + backup.getId() + ", Blocks: " + backup.getBlocks().size() + ")");
+                        " (ID: " + backup.getId() + ", Blocks: " + backup.getBlockCount() + ")");
             } catch (Exception e) {
                 plugin.getLogger().severe("Failed to save backup file for area: " + areaName + " - " + e.getMessage());
                 e.printStackTrace();
