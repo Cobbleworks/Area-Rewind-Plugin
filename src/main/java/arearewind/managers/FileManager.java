@@ -23,6 +23,16 @@ public class FileManager {
     private static final boolean USE_COMPRESSION = true;
     private static final String COMPRESSED_EXTENSION = ".yml.gz";
     private static final String UNCOMPRESSED_EXTENSION = ".yml";
+    /**
+     * Small file next to each backup with its metadata (id, time, icon, counts),
+     * so startup does not have to read every backup's blocks.
+     */
+    private static final String INDEX_EXTENSION = ".idx";
+    /**
+     * Where "before restore" snapshots go when they are unloaded from memory.
+     * They were never kept across restarts, so this folder is cleared at startup.
+     */
+    private File beforeRestoreFolder;
 
     public FileManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -42,14 +52,24 @@ public class FileManager {
             exportsFolder.mkdirs();
         }
         areasFile = new File(dataFolder, "areas.yml");
+        beforeRestoreFolder = new File(backupFolder, "before-restore");
         plugin.getLogger().info("File structure initialized with compression " +
                 (USE_COMPRESSION ? "enabled" : "disabled"));
     }
 
     public void saveBackupToFile(String areaName, AreaBackup backup) {
+        String extension = USE_COMPRESSION ? COMPRESSED_EXTENSION : UNCOMPRESSED_EXTENSION;
+        File backupFile = new File(backupFolder, areaName + "_" + backup.getId() + extension);
+        if (writeBackup(backupFile, backup)) {
+            // The index is written after the data, so a newer index always matches.
+            writeIndex(areaName, backup);
+            backup.markPersisted();
+        }
+    }
+
+    /** Writes a backup's blocks, entities and icon; false when that failed. */
+    private boolean writeBackup(File backupFile, AreaBackup backup) {
         try {
-            String extension = USE_COMPRESSION ? COMPRESSED_EXTENSION : UNCOMPRESSED_EXTENSION;
-            File backupFile = new File(backupFolder, areaName + "_" + backup.getId() + extension);
             backupFile.getParentFile().mkdirs();
 
             YamlConfiguration config = new YamlConfiguration();
@@ -66,23 +86,10 @@ public class FileManager {
                 config.set("backup.entities", backup.getEntities());
             }
 
-            // Save icon as ItemStack - special handling for player heads
-            ItemStack iconItem = backup.getIconItem();
-            if (iconItem != null) {
-                if (iconItem.getType() == org.bukkit.Material.PLAYER_HEAD) {
-                    String base64Data = saveItemStackAsBase64(iconItem);
-                    if (base64Data != null) {
-                        config.set("backup.iconItem-base64", base64Data);
-                    } else {
-                        config.set("backup.iconItem", iconItem.serialize());
-                    }
-                } else {
-                    config.set("backup.iconItem", iconItem.serialize());
-                }
-            }
+            writeIcon(config, backup);
 
             // Save with or without compression
-            if (USE_COMPRESSION) {
+            if (backupFile.getName().endsWith(COMPRESSED_EXTENSION)) {
                 saveCompressedYaml(config, backupFile);
             } else {
                 config.save(backupFile);
@@ -91,10 +98,29 @@ public class FileManager {
             long fileSize = backupFile.length();
             plugin.getLogger().info(String.format("Successfully saved backup file: %s (Size: %s)",
                     backupFile.getName(), formatFileSize(fileSize)));
+            return true;
 
         } catch (Exception e) {
             plugin.getLogger().severe("Failed to save backup to file: " + e.getMessage());
             e.printStackTrace();
+            return false;
+        }
+    }
+
+    /** Saves the icon as an ItemStack, player heads as Base64 to keep their texture. */
+    private void writeIcon(YamlConfiguration config, AreaBackup backup) {
+        ItemStack iconItem = backup.getIconItem();
+        if (iconItem != null) {
+            if (iconItem.getType() == org.bukkit.Material.PLAYER_HEAD) {
+                String base64Data = saveItemStackAsBase64(iconItem);
+                if (base64Data != null) {
+                    config.set("backup.iconItem-base64", base64Data);
+                } else {
+                    config.set("backup.iconItem", iconItem.serialize());
+                }
+            } else {
+                config.set("backup.iconItem", iconItem.serialize());
+            }
         }
     }
 
@@ -105,7 +131,11 @@ public class FileManager {
             plugin.getLogger().warning("Backup file not found for: " + areaName + "_" + backupId);
             return null;
         }
+        return readBackup(backupFile, backupId);
+    }
 
+    /** Reads a whole backup: metadata, blocks and entities. */
+    private AreaBackup readBackup(File backupFile, String backupId) {
         try {
             YamlConfiguration config;
             boolean isCompressed = backupFile.getName().endsWith(COMPRESSED_EXTENSION);
@@ -473,6 +503,90 @@ public class FileManager {
         return config;
     }
 
+    // ==================== INDEX FILES ====================
+
+    private File indexFile(String areaName, String backupId) {
+        return new File(backupFolder, areaName + "_" + backupId + INDEX_EXTENSION);
+    }
+
+    /** Writes the metadata of a backup; its blocks must be in memory or loadable. */
+    public void writeIndex(String areaName, AreaBackup backup) {
+        File file = indexFile(areaName, backup.getId());
+        try {
+            YamlConfiguration config = new YamlConfiguration();
+            config.set("backup.id", backup.getId());
+            config.set("backup.timestamp", backup.getTimestamp().toString());
+            config.set("backup.blockCount", backup.getBlockCount());
+            config.set("backup.nonAirBlockCount", backup.getNonAirBlockCount());
+            config.set("backup.entityCount", backup.getEntityCount());
+            writeIcon(config, backup);
+            config.save(file);
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to write backup index " + file.getName() + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * A backup with only its metadata, from its index file; null when there is no
+     * index or it is older than the backup file, so the backup must be read whole.
+     */
+    public AreaBackup loadBackupIndex(String areaName, String backupId) {
+        File data = findBackupFile(areaName, backupId);
+        File index = indexFile(areaName, backupId);
+        if (data == null || !index.exists() || index.lastModified() < data.lastModified()) {
+            return null;
+        }
+        try {
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(index);
+            String timestamp = config.getString("backup.timestamp");
+            if (timestamp == null || !config.contains("backup.blockCount")) {
+                return null;
+            }
+            AreaBackup backup = AreaBackup.unloaded(config.getString("backup.id", backupId),
+                    LocalDateTime.parse(timestamp), config.getInt("backup.blockCount"),
+                    config.getInt("backup.nonAirBlockCount", -1), config.getInt("backup.entityCount"));
+            loadBackupIcon(config, backup, backupId, index);
+            return backup;
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to read backup index " + index.getName() + ", reading the backup: "
+                    + e.getMessage());
+            return null;
+        }
+    }
+
+    // ==================== BEFORE-RESTORE SNAPSHOTS ====================
+
+    private File beforeRestoreFile(String backupId) {
+        return new File(beforeRestoreFolder, backupId + COMPRESSED_EXTENSION);
+    }
+
+    /** Writes a "before restore" snapshot so it can leave memory. */
+    public boolean saveBeforeRestore(AreaBackup backup) {
+        return writeBackup(beforeRestoreFile(backup.getId()), backup);
+    }
+
+    public AreaBackup loadBeforeRestore(String backupId) {
+        File file = beforeRestoreFile(backupId);
+        return file.exists() ? readBackup(file, backupId) : null;
+    }
+
+    public void deleteBeforeRestore(String backupId) {
+        File file = beforeRestoreFile(backupId);
+        if (file.exists() && !file.delete()) {
+            plugin.getLogger().warning("Failed to delete " + file.getName());
+        }
+    }
+
+    /** Deletes the snapshots of an earlier run; they only live as long as the plugin. */
+    public void clearBeforeRestore() {
+        File[] files = beforeRestoreFolder.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                file.delete();
+            }
+        }
+    }
+
     /**
      * Finds backup file, trying both compressed and uncompressed versions
      */
@@ -551,6 +665,10 @@ public class FileManager {
     }
 
     public void deleteBackupFile(String areaName, String backupId) {
+        File index = indexFile(areaName, backupId);
+        if (index.exists() && !index.delete()) {
+            plugin.getLogger().warning("Failed to delete backup index: " + index.getName());
+        }
         File backupFile = findBackupFile(areaName, backupId);
         if (backupFile != null && backupFile.exists()) {
             if (backupFile.delete()) {
@@ -568,6 +686,14 @@ public class FileManager {
                 .listFiles((dir, name) -> name.startsWith(areaName + "_") && name.endsWith(UNCOMPRESSED_EXTENSION));
 
         int deletedCount = 0;
+
+        File[] indexFiles = backupFolder
+                .listFiles((dir, name) -> name.startsWith(areaName + "_") && name.endsWith(INDEX_EXTENSION));
+        if (indexFiles != null) {
+            for (File file : indexFiles) {
+                file.delete();
+            }
+        }
 
         if (compressedFiles != null) {
             for (File file : compressedFiles) {
@@ -595,6 +721,14 @@ public class FileManager {
                 .listFiles((dir, name) -> name.startsWith(oldName + "_") && name.endsWith(UNCOMPRESSED_EXTENSION));
 
         int renamedCount = 0;
+
+        File[] indexFiles = backupFolder
+                .listFiles((dir, name) -> name.startsWith(oldName + "_") && name.endsWith(INDEX_EXTENSION));
+        if (indexFiles != null) {
+            for (File file : indexFiles) {
+                file.renameTo(new File(backupFolder, file.getName().replace(oldName + "_", newName + "_")));
+            }
+        }
 
         if (compressedFiles != null) {
             for (File file : compressedFiles) {

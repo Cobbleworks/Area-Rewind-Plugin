@@ -138,6 +138,7 @@ If you have questions or issues related to WorldEdit integration, please [open a
 ```yaml
 backup:
   max-backups-per-area: 50       # Maximum stored backups per area before oldest are pruned
+  unload-after-minutes: 5        # Minutes after last use that a backup's blocks leave memory
 
 performance:
   max-area-size: 1000000         # Maximum number of blocks an area may contain
@@ -159,6 +160,7 @@ selection:
 | Key | Default | Description |
 |-----|---------|-------------|
 | `backup.max-backups-per-area` | `50` | Hard limit on stored backups per area; oldest are deleted when exceeded |
+| `backup.unload-after-minutes` | `5` | Backups keep only their metadata in memory. Their blocks are read from disk when a restore, diff, preview or export needs them and dropped again this many minutes after the last use |
 | `performance.max-area-size` | `1000000` | Maximum blocks in a single area; selections exceeding this are rejected |
 | `performance.rate-limit-cooldown` | `1000` | Cooldown in ms between backup/restore operations to prevent spam |
 | `performance.restore.max-batch-size` | `400` | Blocks restored per server tick for large areas; increase for speed at cost of TPS |

@@ -7,6 +7,7 @@ public class ConfigurationManager {
     private final JavaPlugin plugin;
     private FileConfiguration config;
     private int maxBackupsPerArea = 50;
+    private int backupUnloadMinutes = 5;
     private int maxAreaSize = 1000000;
     private int rateLimitCooldown = 1000;
     private int visualizationParticleDistance = 50;
@@ -27,6 +28,7 @@ public class ConfigurationManager {
 
         try {
             maxBackupsPerArea = config.getInt("backup.max-backups-per-area", 50);
+            backupUnloadMinutes = Math.max(1, config.getInt("backup.unload-after-minutes", 5));
             maxAreaSize = config.getInt("performance.max-area-size", 1000000);
             rateLimitCooldown = config.getInt("performance.rate-limit-cooldown", 1000);
             visualizationParticleDistance = config.getInt("visualization.particle-distance", 50);
@@ -45,6 +47,7 @@ public class ConfigurationManager {
             plugin.getLogger().warning("Error loading configuration, using defaults: " + e.getMessage());
 
             maxBackupsPerArea = 50;
+            backupUnloadMinutes = 5;
             maxAreaSize = 1000000;
             rateLimitCooldown = 1000;
             visualizationParticleDistance = 50;
@@ -61,6 +64,11 @@ public class ConfigurationManager {
 
     public int getMaxBackupsPerArea() {
         return maxBackupsPerArea;
+    }
+
+    /** Minutes after its last use that a backup's blocks leave memory. */
+    public int getBackupUnloadMinutes() {
+        return backupUnloadMinutes;
     }
 
     public int getMaxAreaSize() {
