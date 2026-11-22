@@ -12,6 +12,7 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @SerializableAs("BlockInfo")
 public class BlockInfo implements Serializable, ConfigurationSerializable {
@@ -99,9 +100,36 @@ public class BlockInfo implements Serializable, ConfigurationSerializable {
     private String noteBlockInstrument;
     private int noteBlockNote;
 
+    /**
+     * Shared instances for blocks without block-entity data, by block data string.
+     * A world has a few thousand distinct block states at most, while backups hold
+     * one entry per block; sharing keeps a plain block to one map entry instead of
+     * a full object with its own string.
+     */
+    private static final Map<String, BlockInfo> PLAIN = new ConcurrentHashMap<>();
+
+    /** Keys a plain block's serialized form has; anything else is extra data. */
+    private static final Set<String> PLAIN_KEYS = Set.of("==", "material", "blockDataString");
+
     public BlockInfo(Material material, BlockData blockData) {
         this.material = material;
         this.blockDataString = blockData.getAsString();
+    }
+
+    /**
+     * The shared BlockInfo for a block with no data beyond its block data. Shared
+     * instances must not be changed; BlockInfo is only changed while it is being
+     * built, and its getters return copies.
+     */
+    public static BlockInfo plain(Material material, BlockData blockData) {
+        return PLAIN.computeIfAbsent(blockData.getAsString(), key -> new BlockInfo(material, blockData));
+    }
+
+    private static boolean isPlain(Map<String, Object> map) {
+        for (String key : map.keySet())
+            if (!PLAIN_KEYS.contains(key))
+                return false;
+        return true;
     }
 
     public BlockInfo(Material material, BlockData blockData, List<Pattern> bannerPatterns) {
@@ -882,6 +910,12 @@ public class BlockInfo implements Serializable, ConfigurationSerializable {
     public static BlockInfo deserialize(Map<String, Object> map) {
         Material material = Material.valueOf((String) map.get("material"));
         String blockDataString = (String) map.get("blockDataString");
+        if (isPlain(map)) {
+            BlockInfo shared = PLAIN.get(blockDataString);
+            if (shared != null)
+                return shared;
+            return plain(material, Bukkit.createBlockData(blockDataString));
+        }
         BlockData blockData = Bukkit.createBlockData(blockDataString);
 
         BlockInfo blockInfo = new BlockInfo(material, blockData);

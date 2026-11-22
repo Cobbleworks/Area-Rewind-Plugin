@@ -1,5 +1,8 @@
 backup:
   max-backups-per-area: 50
+  # Backups are read from disk when a restore, diff, preview or export needs their
+  # blocks, and dropped from memory this many minutes after their last use.
+  unload-after-minutes: 5
 
 performance:
   max-area-size: 1000000

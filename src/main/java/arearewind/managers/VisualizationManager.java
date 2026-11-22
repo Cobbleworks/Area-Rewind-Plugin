@@ -254,11 +254,21 @@ public class VisualizationManager {
      */
     public boolean stopAreaVisualization(Player player, String areaName) {
         String activeArea = activeVisualizations.get(player.getUniqueId());
-        if (activeArea == null || (areaName != null && !activeArea.equalsIgnoreCase(areaName))) {
+        if (activeArea == null || (areaName != null && !activeArea.equals(areaName))) {
             return false;
         }
         activeVisualizations.remove(player.getUniqueId());
         return true;
+    }
+
+    public boolean hideBackupPreview(Player player, String areaName) {
+        UUID playerId = player.getUniqueId();
+        BackupPreview preview = activeBackupPreviews.get(playerId);
+        if (preview != null && preview.getArea().getName().equals(areaName)) {
+            activeBackupPreviews.remove(playerId);
+            return true;
+        }
+        return false;
     }
 
     public void stopVisualizationsForArea(String areaName) {
@@ -286,7 +296,8 @@ public class VisualizationManager {
 
             BackupPreview preview = new BackupPreview(backup, area);
             activeBackupPreviews.put(playerId, preview);
-            player.sendMessage(ChatColor.GREEN + "Backup preview enabled! Use /rewind preview to disable.");
+            player.sendMessage(ChatColor.GREEN + "Backup preview enabled! Use /rewind area "
+                    + area.getName() + " hide to disable.");
             return true;
         }
     }
@@ -300,7 +311,7 @@ public class VisualizationManager {
             return false;
         } else {
             player.sendMessage(ChatColor.YELLOW + "No active backup preview found!");
-            player.sendMessage(ChatColor.GRAY + "Usage: /rewind preview <area> <backup_id>");
+            player.sendMessage(ChatColor.GRAY + "Usage: /rewind area <area> preview [backup_id]");
             return false;
         }
     }

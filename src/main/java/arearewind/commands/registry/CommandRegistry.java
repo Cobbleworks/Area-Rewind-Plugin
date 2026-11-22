@@ -12,32 +12,19 @@ import java.util.stream.Collectors;
 public class CommandRegistry {
 
     private final Map<String, Command> commands = new HashMap<>();
-    private final Map<String, String> aliases = new HashMap<>();
 
     /**
      * Register a command
      */
     public void registerCommand(Command command) {
         commands.put(command.getName().toLowerCase(), command);
-
-        // Register aliases
-        for (String alias : command.getAliases()) {
-            aliases.put(alias.toLowerCase(), command.getName().toLowerCase());
-        }
     }
 
     /**
-     * Get command by name or alias
+     * Get command by name
      */
     public Command getCommand(String name) {
-        String commandName = name.toLowerCase();
-
-        // Check if it's an alias first
-        if (aliases.containsKey(commandName)) {
-            commandName = aliases.get(commandName);
-        }
-
-        return commands.get(commandName);
+        return commands.get(name.toLowerCase());
     }
 
     /**
@@ -53,19 +40,9 @@ public class CommandRegistry {
     public List<String> getCommandCompletions(String partial) {
         String lowerPartial = partial.toLowerCase();
 
-        List<String> completions = new ArrayList<>();
-
-        // Add command names
-        completions.addAll(commands.keySet().stream()
+        return commands.keySet().stream()
                 .filter(name -> name.startsWith(lowerPartial))
-                .collect(Collectors.toList()));
-
-        // Add aliases
-        completions.addAll(aliases.keySet().stream()
-                .filter(alias -> alias.startsWith(lowerPartial))
-                .collect(Collectors.toList()));
-
-        return completions;
+                .collect(Collectors.toList());
     }
 
     /**

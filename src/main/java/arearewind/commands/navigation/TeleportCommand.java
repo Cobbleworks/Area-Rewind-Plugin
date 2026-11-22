@@ -9,7 +9,6 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -63,11 +62,6 @@ public class TeleportCommand extends BaseCommand {
     @Override
     public String getName() {
         return "teleport";
-    }
-
-    @Override
-    public List<String> getAliases() {
-        return Arrays.asList("tp");
     }
 
     @Override

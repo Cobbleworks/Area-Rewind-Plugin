@@ -34,19 +34,29 @@ public class HelpCommand extends BaseCommand {
         player.sendMessage(ChatColor.GRAY + "  /rewind pos1|pos2 - Set selection positions");
         player.sendMessage(ChatColor.GRAY + "  /rewind save <name> - Create new area");
         player.sendMessage(ChatColor.GRAY + "  /rewind delete <area> - Delete area");
-        player.sendMessage(ChatColor.GRAY + "  /rewind contract <area> <dir> <amount> - Contract area");
-        player.sendMessage(ChatColor.GRAY + "  /rewind seticon <area> <material> - Set area icon");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> info - Area information");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> history [page] - View backup history");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> name <new_name> - Rename area");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> icon <material|hand> - Set area icon");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> speed <speed|dynamic> - Set restore speed");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> trust <add|remove|list> [player] - Manage trust");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> expand <dir> <amount> - Expand area");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> contract <dir> <amount> - Contract area");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> scan - Scan for current changes");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> diff <id|current> <id|current> - Compare states");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> preview [id] [particle] - Preview backup");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> show|hide - Toggle area bounds");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> cleanup [days] - Delete old backups");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> undo|redo - Undo or redo area restore");
 
         player.sendMessage(ChatColor.YELLOW + "Backup Operations:");
         player.sendMessage(ChatColor.GRAY + "  /rewind backup <area> - Create backup");
         player.sendMessage(ChatColor.GRAY + "  /rewind restore <area> <id> - Restore backup");
         player.sendMessage(ChatColor.GRAY + "  /rewind cmdrestore <area> <id> [world] - Restore via command block");
-        player.sendMessage(ChatColor.GRAY + "  /rewind history <area> - View backup history");
-        player.sendMessage(ChatColor.GRAY + "  /rewind seticon backup <area> <id> <material> - Set backup icon");
+        player.sendMessage(ChatColor.GRAY + "  /rewind area <area> backup-icon <id> <material|hand> - Set backup icon");
 
         player.sendMessage(ChatColor.YELLOW + "Information & Management:");
         player.sendMessage(ChatColor.GRAY + "  /rewind list [owned|trusted] - List areas");
-        player.sendMessage(ChatColor.GRAY + "  /rewind info <area> - Area information");
         player.sendMessage(ChatColor.GRAY + "  /rewind gui - Open management GUI");
         player.sendMessage(ChatColor.GRAY + "  /rewind config <setting> [value] - Configure personal settings");
         player.sendMessage(ChatColor.GRAY + "  /rewind status - System status");

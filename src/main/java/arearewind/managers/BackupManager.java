@@ -41,6 +41,7 @@ public class BackupManager {
     final Map<String, List<AreaBackup>> backupHistory;
     private final Map<String, Integer> undoPointers;
     private final Map<String, AreaBackup> beforeRestoreBackups;
+    private org.bukkit.scheduler.BukkitTask unloadTask;
 
     public BackupManager(JavaPlugin plugin, ConfigurationManager configManager, FileManager fileManager) {
         this.plugin = plugin;
@@ -146,8 +147,9 @@ public class BackupManager {
 
             try {
                 fileManager.saveBackupToFile(areaName, backup);
+                attachLoader(areaName, backup);
                 plugin.getLogger().info("Successfully saved backup for area: " + areaName +
-                        " (ID: " + backup.getId() + ", Blocks: " + backup.getBlocks().size() + ")");
+                        " (ID: " + backup.getId() + ", Blocks: " + backup.getBlockCount() + ")");
             } catch (Exception e) {
                 plugin.getLogger().severe("Failed to save backup file for area: " + areaName + " - " + e.getMessage());
                 e.printStackTrace();
@@ -177,7 +179,10 @@ public class BackupManager {
         Location min = area.getMin();
         Location max = area.getMax();
         World world = min.getWorld();
+        // Both taken now: the backup may leave memory, or its file be deleted (undo),
+        // before the restore is done.
         Map<String, BlockInfo> blocks = backup.getBlocks();
+        Map<String, Object> entities = backup.getEntities();
 
         final int total = blocks.size();
         final int batchSize = area.hasCustomRestoreSpeed() ? area.getCustomRestoreSpeed() : calculateOptimalBatchSize(total);
@@ -214,11 +219,11 @@ public class BackupManager {
         }
 
         // Start restoration task
-        startRestorationTask(area, backup, player, completionMessage, world, blocks,
+        startRestorationTask(area, entities, player, completionMessage, world, blocks,
                 regularBlocks, specialBlocks, containerBlocks, batchSize);
     }
 
-    private void startRestorationTask(ProtectedArea area, AreaBackup backup, Player player,
+    private void startRestorationTask(ProtectedArea area, Map<String, Object> entities, Player player,
             String completionMessage, World world, Map<String, BlockInfo> blocks,
             List<String> regularBlocks, List<String> specialBlocks, List<String> containerBlocks,
             int batchSize) {
@@ -271,7 +276,7 @@ public class BackupManager {
                         }
                     } else if (phase == 4) {
                         // Restore entities
-                        entityBackupHandler.restoreEntitiesInArea(area, backup.getEntities());
+                        entityBackupHandler.restoreEntitiesInArea(area, entities);
 
                         long duration = System.currentTimeMillis() - startTime;
                         plugin.getLogger().info("Restoration completed in " + duration + "ms" +
@@ -444,7 +449,7 @@ public class BackupManager {
         if (backup == null) return false;
 
         AreaBackup beforeRestore = createHiddenBackup(area);
-        beforeRestoreBackups.put(areaName, beforeRestore);
+        discardBeforeRestore(beforeRestoreBackups.put(areaName, beforeRestore));
 
         if (createBackupFirst) {
             createBackup(areaName, area);
@@ -468,7 +473,8 @@ public class BackupManager {
         }
 
         restoreFromBackup(area, beforeRestoreBackup, player, "✓ Undo successful! Restored to state before last backup restore.");
-        beforeRestoreBackups.remove(areaName);
+        // The restore holds the blocks it needs; the snapshot's file can go.
+        discardBeforeRestore(beforeRestoreBackups.remove(areaName));
         plugin.getLogger().info("Undo completed for area: " + areaName);
 
         return true;
@@ -641,6 +647,10 @@ public class BackupManager {
         if (backups != null) {
             backupHistory.put(newName, backups);
             fileManager.renameBackupFiles(oldName, newName);
+            // Unloaded backups are read back under the new file names.
+            for (AreaBackup backup : backups) {
+                attachLoader(newName, backup);
+            }
         }
 
         Integer undoPointer = undoPointers.remove(oldName);
@@ -695,6 +705,8 @@ public class BackupManager {
 
     public void loadBackups() {
         plugin.getLogger().info("Loading backup history from files...");
+        fileManager.clearBeforeRestore();
+        startUnloadTask();
 
         File backupFolder = fileManager.getBackupFolder();
         if (!backupFolder.exists()) {
@@ -712,6 +724,7 @@ public class BackupManager {
 
         int totalLoaded = 0;
         int totalFailed = 0;
+        int indexed = 0;
         Map<String, Integer> areaBackupCounts = new HashMap<>();
 
         for (File file : backupFiles) {
@@ -728,8 +741,21 @@ public class BackupManager {
                     String areaName = fileName.substring(0, lastUnderscoreIndex);
                     String backupId = fileName.substring(lastUnderscoreIndex + 1);
 
-                    AreaBackup backup = fileManager.loadBackupFromFile(areaName, backupId);
+                    // Metadata only, from the index; a backup without one (saved by an
+                    // older version) is read whole once, gets its index and leaves memory.
+                    AreaBackup loaded = fileManager.loadBackupIndex(areaName, backupId);
+                    if (loaded == null) {
+                        loaded = fileManager.loadBackupFromFile(areaName, backupId);
+                        if (loaded != null) {
+                            fileManager.writeIndex(areaName, loaded);
+                            loaded.markPersisted();
+                            indexed++;
+                        }
+                    }
+                    AreaBackup backup = loaded;
                     if (backup != null) {
+                        attachLoader(areaName, backup);
+                        backup.unload();
                         if (!backupHistory.containsKey(areaName)) {
                             backupHistory.put(areaName, new ArrayList<>());
                         }
@@ -762,6 +788,79 @@ public class BackupManager {
 
         plugin.getLogger().info("Successfully loaded " + totalLoaded + " backups for " +
                 backupHistory.size() + " areas (" + totalFailed + " failed)");
+        if (indexed > 0) {
+            plugin.getLogger().info("Wrote index files for " + indexed + " older backups");
+        }
+    }
+
+    // ==================== MEMORY ====================
+
+    /** Lets an unloaded backup read its blocks back from its file in this area. */
+    private void attachLoader(String areaName, AreaBackup backup) {
+        String id = backup.getId();
+        backup.setLoader(() -> fileManager.loadBackupFromFile(areaName, id));
+    }
+
+    /** Deletes the file of a "before restore" snapshot that is no longer needed. */
+    private void discardBeforeRestore(AreaBackup snapshot) {
+        if (snapshot != null && snapshot.isPersisted()) {
+            fileManager.deleteBeforeRestore(snapshot.getId());
+        }
+    }
+
+    private void startUnloadTask() {
+        stopUnloadTask();
+        unloadTask = Bukkit.getScheduler().runTaskTimer(plugin, this::unloadIdleBackups, 1200L, 1200L);
+    }
+
+    private void stopUnloadTask() {
+        if (unloadTask != null) {
+            unloadTask.cancel();
+            unloadTask = null;
+        }
+    }
+
+    /** Stops background work; call before this manager is replaced or the plugin stops. */
+    public void shutdown() {
+        stopUnloadTask();
+    }
+
+    /**
+     * Drops the blocks of backups unused for the configured time. A "before
+     * restore" snapshot is written to disk first, since it has no file of its own.
+     * Returns how many backups were unloaded.
+     */
+    public int unloadIdleBackups() {
+        long idle = configManager.getBackupUnloadMinutes() * 60_000L;
+        long now = System.currentTimeMillis();
+        int count = 0;
+        for (List<AreaBackup> backups : backupHistory.values()) {
+            for (AreaBackup backup : new ArrayList<>(backups)) {
+                if (backup.isLoaded() && now - backup.getLastUsed() >= idle && backup.unload()) {
+                    count++;
+                }
+            }
+        }
+        for (AreaBackup snapshot : beforeRestoreBackups.values()) {
+            if (!snapshot.isLoaded() || now - snapshot.getLastUsed() < idle) {
+                continue;
+            }
+            if (!snapshot.isPersisted()) {
+                if (!fileManager.saveBeforeRestore(snapshot)) {
+                    continue;
+                }
+                snapshot.markPersisted();
+                String id = snapshot.getId();
+                snapshot.setLoader(() -> fileManager.loadBeforeRestore(id));
+            }
+            if (snapshot.unload()) {
+                count++;
+            }
+        }
+        if (count > 0) {
+            plugin.getLogger().fine("Unloaded " + count + " idle backups from memory");
+        }
+        return count;
     }
 
     // ==================== UTILITIES ====================

@@ -3,6 +3,8 @@ package arearewind.managers.backup;
 import arearewind.data.BlockInfo;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.TileState;
 import org.bukkit.block.Banner;
 import org.bukkit.block.Sign;
 import org.bukkit.inventory.ItemStack;
@@ -46,10 +48,18 @@ public class BlockStateHandler {
                 return new BlockInfo(block.getType(), block.getBlockData());
             }
 
-            BlockInfo blockInfo = new BlockInfo(block.getType(), block.getBlockData());
+            // One state snapshot per block. Everything captured below is block-entity
+            // data, so any other block is fully described by its block data and can
+            // share one instance with every block of the same state.
+            BlockState state = block.getState();
+            if (!(state instanceof TileState)) {
+                return BlockInfo.plain(block.getType(), state.getBlockData());
+            }
+
+            BlockInfo blockInfo = new BlockInfo(block.getType(), state.getBlockData());
 
             try {
-                captureSpecialBlockState(block, blockInfo);
+                captureSpecialBlockState(block, state, blockInfo);
             } catch (Exception e) {
                 plugin.getLogger().warning("Failed to read special block state for " + block.getType() +
                         " at " + block.getLocation() + ": " + e.getMessage() +
@@ -74,69 +84,69 @@ public class BlockStateHandler {
     /**
      * Captures special block state data based on block type.
      */
-    private void captureSpecialBlockState(Block block, BlockInfo blockInfo) {
+    private void captureSpecialBlockState(Block block, BlockState state, BlockInfo blockInfo) {
         // Banner
-        if (block.getState() instanceof Banner) {
+        if (state instanceof Banner) {
             captureBannerState(block, blockInfo);
         }
         // Sign - capture both sides, colors, and glow state
-        else if (block.getState() instanceof Sign) {
+        else if (state instanceof Sign) {
             captureSignState(block, blockInfo);
         }
         // Lectern
-        else if (block.getState() instanceof org.bukkit.block.Lectern) {
+        else if (state instanceof org.bukkit.block.Lectern) {
             captureLecternState(block, blockInfo);
         }
         // Campfire
-        else if (block.getState() instanceof org.bukkit.block.Campfire) {
+        else if (state instanceof org.bukkit.block.Campfire) {
             captureCampfireState(block, blockInfo);
         }
         // Beehive/Bee Nest
-        else if (block.getState() instanceof org.bukkit.block.Beehive) {
+        else if (state instanceof org.bukkit.block.Beehive) {
             captureBeehiveState(block, blockInfo);
         }
         // Brewing Stand
-        else if (block.getState() instanceof org.bukkit.block.BrewingStand) {
+        else if (state instanceof org.bukkit.block.BrewingStand) {
             captureBrewingStandState(block, blockInfo);
         }
         // Spawner
-        else if (block.getState() instanceof org.bukkit.block.CreatureSpawner) {
+        else if (state instanceof org.bukkit.block.CreatureSpawner) {
             captureSpawnerState(block, blockInfo);
         }
         // Command Block
-        else if (block.getState() instanceof org.bukkit.block.CommandBlock) {
+        else if (state instanceof org.bukkit.block.CommandBlock) {
             captureCommandBlockState(block, blockInfo);
         }
         // Decorated Pot
-        else if (block.getState() instanceof org.bukkit.block.DecoratedPot) {
+        else if (state instanceof org.bukkit.block.DecoratedPot) {
             captureDecoratedPotState(block, blockInfo);
         }
         // Structure Block
-        else if (block.getState() instanceof org.bukkit.block.Structure) {
+        else if (state instanceof org.bukkit.block.Structure) {
             captureStructureBlockState(block, blockInfo);
         }
         // Chiseled Bookshelf
-        else if (block.getState() instanceof org.bukkit.block.ChiseledBookshelf) {
+        else if (state instanceof org.bukkit.block.ChiseledBookshelf) {
             captureChiseledBookshelfState(block, blockInfo);
         }
         // End Gateway
-        else if (block.getState() instanceof org.bukkit.block.EndGateway) {
+        else if (state instanceof org.bukkit.block.EndGateway) {
             captureEndGatewayState(block, blockInfo);
         }
         // Comparator
-        else if (block.getState() instanceof org.bukkit.block.Comparator) {
+        else if (state instanceof org.bukkit.block.Comparator) {
             captureComparatorState(block, blockInfo);
         }
         // Generic Container (chests, barrels, hoppers, dispensers, droppers, shulker boxes, etc.)
-        else if (block.getState() instanceof org.bukkit.block.Container) {
+        else if (state instanceof org.bukkit.block.Container) {
             captureContainerState(block, blockInfo);
         }
         // Jukebox
-        else if (block.getState() instanceof org.bukkit.block.Jukebox) {
+        else if (state instanceof org.bukkit.block.Jukebox) {
             captureJukeboxState(block, blockInfo);
         }
         // Skull
-        else if (block.getState() instanceof org.bukkit.block.Skull) {
+        else if (state instanceof org.bukkit.block.Skull) {
             captureSkullState(block, blockInfo);
         }
     }

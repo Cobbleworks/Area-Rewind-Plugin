@@ -10,6 +10,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Allow `false`, `off`, `no`, `disable`, and `disabled` in the per-player wooden-hoe and progress-log settings. These valid values were previously mistaken for invalid input.
 
+### Memory And Performance
+
+- **Backups Load On Demand**: Startup reads only a small `.idx` file per backup (id, time, icon, block counts). A backup's blocks and entities are read from disk when a restore, diff, preview or export needs them, and leave memory again after `backup.unload-after-minutes` (default 5) without use. Older backups get their index file on the first start
+- **Before-Restore Snapshots**: The snapshot `/rewind area <area> undo` uses is written to `backups/before-restore/` before it leaves memory. The folder is cleared at startup.
+- **Shared Block Data**: Blocks without block-entity data share one entry per block state, when taking a backup and when loading one, instead of one object per block
+- **Faster Backups**: Taking a backup reads each block's state once instead of up to 31 times
+- **Lighter Lists**: Block counts in the backups GUI and history no longer copy the backup's blocks
+
 ## [1.0.10] - 2026-04-28
 
 Area Rewind v1.0.10 delivers stability improvements and maintenance fixes for restore-heavy server environments.

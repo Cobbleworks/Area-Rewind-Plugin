@@ -82,6 +82,6 @@ public class RedoCommand extends BaseCommand {
 
     @Override
     public String getUsage() {
-        return "/rewind redo <area>";
+        return "/rewind area <area> redo";
     }
 }

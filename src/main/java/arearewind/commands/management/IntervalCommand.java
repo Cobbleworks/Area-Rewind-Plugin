@@ -79,7 +79,7 @@ public class IntervalCommand extends BaseCommand {
 
             case "remove":
                 intervalManager.clearInterval(areaName);
-                player.sendMessage(ChatColor.GREEN + "Removed backup interval for " + areaName);
+                player.sendMessage(ChatColor.GREEN + "Removed auto-restore interval for " + areaName);
                 break;
 
             case "check":
@@ -134,13 +134,8 @@ public class IntervalCommand extends BaseCommand {
     }
 
     @Override
-    public List<String> getAliases() {
-        return Arrays.asList("timer", "schedule");
-    }
-
-    @Override
     public String getDescription() {
-        return "Manage automatic backup intervals";
+        return "Manage automatic restore intervals";
     }
 
     @Override

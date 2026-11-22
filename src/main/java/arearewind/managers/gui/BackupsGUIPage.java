@@ -96,13 +96,12 @@ public class BackupsGUIPage implements IGUIPage {
         for (int i = paginationInfo.getStartIndex(); i < paginationInfo.getEndIndex(); i++) {
             AreaBackup backup = backups.get(i);
 
-            // Use custom icon if set, otherwise default to CHEST
-            ItemStack item = backup.getIconItem() != null ? backup.getIconItem().clone()
-                    : new ItemStack(Material.CHEST);
-            ItemMeta meta = item.getItemMeta();
-            
             // Highlight current state backup
             boolean isCurrent = (currentPointer == i);
+            ItemStack item = isCurrent ? new ItemStack(Material.ENDER_CHEST)
+                    : (backup.getIconItem() != null ? backup.getIconItem().clone() : new ItemStack(Material.CHEST));
+            ItemMeta meta = item.getItemMeta();
+
             String prefix = isCurrent ? ChatColor.GREEN + "▶ " : ChatColor.AQUA + "";
             meta.setDisplayName(prefix + "Backup #" + i);
 
@@ -110,7 +109,7 @@ public class BackupsGUIPage implements IGUIPage {
             lore.add("");
             lore.add(ChatColor.WHITE + "Created: " + ChatColor.YELLOW + backup.getTimestamp().format(
                     DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm:ss")));
-            lore.add(ChatColor.WHITE + "Blocks: " + ChatColor.AQUA + String.format("%,d", backup.getBlocksNonAirOnly().size()));
+            lore.add(ChatColor.WHITE + "Blocks: " + ChatColor.AQUA + String.format("%,d", backup.getNonAirBlockCount()));
 
             // Check if this backup is used for auto-restore
             var intervalConfig = intervalManager.getIntervalConfig(areaName);
@@ -289,11 +288,11 @@ public class BackupsGUIPage implements IGUIPage {
             return;
         } else if (displayName.contains("Undo")) {
             player.closeInventory();
-            player.performCommand("rewind undo " + areaName);
+            player.performCommand("rewind area " + areaName + " undo");
             return;
         } else if (displayName.contains("Redo")) {
             player.closeInventory();
-            player.performCommand("rewind redo " + areaName);
+            player.performCommand("rewind area " + areaName + " redo");
             return;
         } else if (displayName.contains("Teleport to Area")) {
             player.closeInventory();
@@ -301,7 +300,7 @@ public class BackupsGUIPage implements IGUIPage {
             return;
         } else if (displayName.contains("Preview Area")) {
             player.closeInventory();
-            player.performCommand("rewind preview " + areaName);
+            player.performCommand("rewind area " + areaName + " preview");
             return;
         } else if (displayName.contains("Auto-Restore Settings")) {
             player.closeInventory();
@@ -317,9 +316,10 @@ public class BackupsGUIPage implements IGUIPage {
                     player.sendMessage(ChatColor.AQUA + "Current auto-restore settings for " + areaName + ":");
                     player.sendMessage(ChatColor.GRAY + "Interval: " + intervalConfig.minutes + " minutes");
                     player.sendMessage(ChatColor.GRAY + "Backup: #" + intervalConfig.backupId);
-                    player.sendMessage(ChatColor.YELLOW + "To change settings: /rewind interval set " + areaName
-                            + " <minutes> <backup_id>");
-                    player.sendMessage(ChatColor.YELLOW + "To disable: /rewind interval remove " + areaName);
+                    player.sendMessage(ChatColor.YELLOW + "To change settings: /rewind area " + areaName
+                            + " interval set <minutes> <backup_id>");
+                    player.sendMessage(ChatColor.YELLOW + "To disable: /rewind area " + areaName
+                            + " interval remove");
                 }
             } else {
                 // No interval set, show help
@@ -329,9 +329,10 @@ public class BackupsGUIPage implements IGUIPage {
                 } else {
                     player.sendMessage(ChatColor.YELLOW + "Set up auto-restore for " + areaName + ":");
                     player.sendMessage(
-                            ChatColor.GRAY + "Usage: /rewind interval set " + areaName + " <minutes> <backup_id>");
+                            ChatColor.GRAY + "Usage: /rewind area " + areaName
+                                    + " interval set <minutes> <backup_id>");
                     player.sendMessage(ChatColor.GRAY + "Available backups: 0-" + (backups.size() - 1));
-                    player.sendMessage(ChatColor.GRAY + "Example: /rewind interval set " + areaName + " 30 0");
+                    player.sendMessage(ChatColor.GRAY + "Example: /rewind area " + areaName + " interval set 30 0");
                 }
             }
             return;
@@ -349,15 +350,15 @@ public class BackupsGUIPage implements IGUIPage {
             return;
         } else if (displayName.contains("Permissions")) {
             player.closeInventory();
-            player.performCommand("rewind permissions " + areaName);
+            player.performCommand("rewind area " + areaName + " trust list");
             return;
         } else if (displayName.contains("Area Management")) {
             player.closeInventory();
             player.sendMessage(ChatColor.YELLOW + "Area Management Commands:");
-            player.sendMessage(ChatColor.GREEN + "/rewind expand " + areaName + " <direction> <amount>");
-            player.sendMessage(ChatColor.GREEN + "/rewind contract " + areaName + " <direction> <amount>");
+            player.sendMessage(ChatColor.GREEN + "/rewind area " + areaName + " expand <direction> <amount>");
+            player.sendMessage(ChatColor.GREEN + "/rewind area " + areaName + " contract <direction> <amount>");
             player.sendMessage(ChatColor.GREEN + "/rewind delete " + areaName);
-            player.sendMessage(ChatColor.GREEN + "/rewind rename " + areaName + " <new_name>");
+            player.sendMessage(ChatColor.GREEN + "/rewind area " + areaName + " name <new_name>");
             return;
         }
 
@@ -395,10 +396,10 @@ public class BackupsGUIPage implements IGUIPage {
 
                 if (currentBackupId != -1) {
                     // Compare the selected backup with the current backup
-                    player.performCommand("rewind diff " + areaName + " " + backupId + " " + currentBackupId);
+                    player.performCommand("rewind area " + areaName + " diff " + backupId + " " + currentBackupId);
                 } else {
                     // If no current backup state, compare with live area state
-                    player.performCommand("rewind diff " + areaName + " " + backupId + " current");
+                    player.performCommand("rewind area " + areaName + " diff " + backupId + " current");
                 }
             } else if (event.isLeftClick()) {
                 player.closeInventory();

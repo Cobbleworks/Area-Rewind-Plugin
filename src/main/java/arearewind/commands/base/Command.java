@@ -35,13 +35,6 @@ public interface Command {
     String getName();
 
     /**
-     * Get command aliases
-     * 
-     * @return list of aliases for this command
-     */
-    List<String> getAliases();
-
-    /**
      * Get command description for help
      * 
      * @return command description

@@ -67,7 +67,7 @@ public class HistoryCommand extends BaseCommand {
         for (int i = startIndex; i < endIndex; i++) {
             AreaBackup backup = backups.get(i);
             String timestamp = backup.getTimestamp().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"));
-            int blockCount = backup.getBlocks().size();
+            int blockCount = backup.getBlockCount();
 
             ChatColor color = (i == backupManager.getUndoPointer(areaName)) ? ChatColor.YELLOW : ChatColor.GREEN;
             player.sendMessage(color + "[" + i + "] " + ChatColor.WHITE + timestamp +
@@ -75,8 +75,8 @@ public class HistoryCommand extends BaseCommand {
         }
 
         if (maxPage > 1) {
-            player.sendMessage(ChatColor.YELLOW + "Use /rewind history " + areaName +
-                    " <page> to view other pages");
+            player.sendMessage(ChatColor.YELLOW + "Use /rewind area " + areaName +
+                    " history <page> to view other pages");
         }
 
         return true;
@@ -113,6 +113,6 @@ public class HistoryCommand extends BaseCommand {
 
     @Override
     public String getUsage() {
-        return "/rewind history <area> [page]";
+        return "/rewind area <area> history [page]";
     }
 }

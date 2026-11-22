@@ -80,11 +80,6 @@ public class ToolCommand extends BaseCommand {
     }
 
     @Override
-    public List<String> getAliases() {
-        return Arrays.asList("wand", "item");
-    }
-
-    @Override
     public String getDescription() {
         return "Get the area selection tool";
     }

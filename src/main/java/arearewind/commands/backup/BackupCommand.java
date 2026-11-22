@@ -52,7 +52,7 @@ public class BackupCommand extends BaseCommand {
 
             player.sendMessage(ChatColor.GREEN + "Backup created for '" + areaName + "'!");
             player.sendMessage(ChatColor.YELLOW + "Backup ID: " + (backups.size() - 1) +
-                    " (" + lastBackup.getBlocks().size() + " blocks)");
+                    " (" + lastBackup.getBlockCount() + " blocks)");
         });
 
         return true;

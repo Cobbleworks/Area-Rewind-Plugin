@@ -1,13 +1,13 @@
 package arearewind.commands.utility;
 
 import arearewind.commands.base.BaseCommand;
+import arearewind.data.ProtectedArea;
 import arearewind.managers.*;
 import arearewind.util.ConfigurationManager;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,14 +32,18 @@ public class ShowCommand extends BaseCommand {
 
         String areaName = args[0];
 
-        if (!areaManager.areaExists(areaName)) {
-            player.sendMessage(ChatColor.RED + "Area '" + areaName + "' not found!");
+        ProtectedArea area = validateAndGetArea(player, areaName);
+        if (area == null) {
+            return true;
+        }
+
+        if (!permissionManager.canVisualize(player, area)) {
+            player.sendMessage(ChatColor.RED + "You don't have permission to visualize this area!");
             return true;
         }
 
         visualizationManager.startAreaVisualization(player, areaName);
         player.sendMessage(ChatColor.GREEN + "Showing the boundary for area '" + areaName + "'.");
-
         return true;
     }
 
@@ -59,17 +63,12 @@ public class ShowCommand extends BaseCommand {
     }
 
     @Override
-    public List<String> getAliases() {
-        return Arrays.asList("display", "visualize");
-    }
-
-    @Override
     public String getDescription() {
         return "Show area visualization";
     }
 
     @Override
     public String getUsage() {
-        return "/rewind show <area>";
+        return "/rewind area <area> show";
     }
 }

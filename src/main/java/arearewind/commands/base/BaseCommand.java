@@ -41,11 +41,6 @@ public abstract class BaseCommand implements Command {
     }
 
     @Override
-    public List<String> getAliases() {
-        return new ArrayList<>();
-    }
-
-    @Override
     public String getRequiredPermission() {
         return null; // Override in subclasses if specific permission needed
     }

@@ -72,6 +72,9 @@ public class AreaRewindPlugin extends JavaPlugin {
         if (areaManager != null)
             areaManager.saveAreas();
 
+        if (backupManager != null)
+            backupManager.shutdown();
+
         // Re-initialize config and managers
         reloadConfig();
         configManager = new ConfigurationManager(this);
@@ -114,6 +117,8 @@ public class AreaRewindPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (backupManager != null)
+            backupManager.shutdown();
         areaManager.saveAreas();
         visualizationManager.stopVisualizationTask();
         intervalManager.stopAll();
