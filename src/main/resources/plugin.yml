@@ -14,7 +14,7 @@ commands:
   rewind:
     description: Main command for AreaRewind plugin
     usage: /<command> [subcommand] [args...]
-    permission: arearewind.use
+    aliases: [arearewind]
     permission-message: "You don't have permission to use AreaRewind commands!"
 
 permissions:
